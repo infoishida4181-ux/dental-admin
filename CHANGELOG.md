@@ -9,6 +9,12 @@
 - GitHub運用のための `README.md` を追加
 - GitHub運用のための `CHANGELOG.md` を追加
 - GitHub運用のための `.gitignore` を追加
+- 管理者モードの入口を追加
+- 公式Excel/ZIP取込に備えた画面枠を追加
+
+### Planned
+
+- Excel取込本体は未実装
 
 ## 既存履歴整理
 
