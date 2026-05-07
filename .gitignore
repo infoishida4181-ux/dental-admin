@@ -1,0 +1,29 @@
+# Application data and backups
+*.json
+
+# PDF / Office / archives
+*.pdf
+*.zip
+*.7z
+*.rar
+*.xls
+*.xlsx
+*.xlsm
+*.xlsb
+*.csv
+*.tsv
+
+# Backup HTML
+*.backup-*.html
+*.bak.html
+*.tmp.html
+*backup*.html
+
+# Temp / logs
+*.tmp
+*.temp
+*.log
+*.cache
+~$*
+.DS_Store
+Thumbs.db
