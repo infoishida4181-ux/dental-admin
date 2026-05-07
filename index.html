@@ -417,6 +417,7 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
     <div class="nav-item" onclick="nav('koushu',this)"><span class="ni">🎓</span>講習会管理<span class="nav-badge w" id="koushu-badge" style="display:none">期限</span></div>
     <div class="nav-item" onclick="nav('shinki',this)"><span class="ni">🆕</span>新規届出サポート</div>
     <div class="nav-item" onclick="nav('baseup',this)"><span class="ni">📋</span>ベースアップ書類作成</div>
+    <div class="nav-item" onclick="nav('admin',this)"><span class="ni">🛠</span>管理者モード</div>
   </div>
   <div class="nav-sec" id="nav-future">
     <div class="nav-label">今後追加予定</div>
@@ -531,6 +532,68 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
       </div>
     </div>
     <div id="baseup-body"></div>
+  </div>
+
+  <div class="view" id="view-admin">
+    <div class="ph">
+      <div class="ph-left">
+        <h2>管理者モード</h2>
+        <p>歯科医師会側・保険委員会側が施設基準データを管理するための準備画面</p>
+      </div>
+    </div>
+
+    <div style="background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:10px;padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)">
+      <div style="font-size:13px;color:var(--text2);line-height:1.9">
+        <div>この画面は、歯科医師会側・保険委員会側が施設基準データを更新するための準備画面です。</div>
+        <div>現時点では公式Excel/ZIP取込機能は未実装です。</div>
+        <div>将来的に、関東信越厚生局の公式Excel/ZIPを読み込み、東京都・歯科の施設基準データを最新版として管理できるようにします。</div>
+        <div>会員側は、医療機関コードを入力するだけで自院の施設基準を取り込める設計を目指します。</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:18px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">公式Excel/ZIP取込</div>
+          <span class="badge by">未実装</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">公式ExcelまたはZIPを読み込み、施設基準データを更新する予定です。</div>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">最新版データ確認</div>
+          <span class="badge by">未実装</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">現在アプリに登録されている最新版データの基準日、作成日、件数を確認する予定です。</div>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">医療機関コード検索テスト</div>
+          <span class="badge by">未実装</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">3440435、3440609などのテスト用医療機関コードで、正しく医院名と施設基準が取得できるか確認する予定です。</div>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">会員配布用データ作成</div>
+          <span class="badge by">未実装</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">将来的に、会員側がPDFやExcelを直接扱わずに済むよう、配布用データを作成する予定です。</div>
+      </div>
+    </div>
+
+    <div style="background:var(--yellow-bg);border:1px solid #fde68a;border-radius:10px;padding:16px 18px;box-shadow:var(--shadow)">
+      <div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:8px">注意</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.9">
+        <div>この管理者モードは、現時点では本格的な認証機能ではありません。</div>
+        <div>ローカルHTMLアプリ上の画面整理用の機能です。</div>
+        <div>給与情報、マイナンバー、患者情報、会員医院の実データは入力しないでください。</div>
+        <div>公式Excel/ZIP取込機能を追加するまでは、現在のPDF取込機能を継続して利用してください。</div>
+      </div>
+    </div>
   </div>
 
   <div class="view" id="view-deadline">
