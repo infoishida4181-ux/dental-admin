@@ -14,6 +14,9 @@
 
 ### Changed
 
+- `index.html` 内の CSS を `./assets/css/style.css` に分離
+- JavaScript を `./assets/js/data.js` `./assets/js/admin.js` `./assets/js/app.js` に分割し、静的読み込み順を整理
+- `./assets/js/import-excel.js` を Excel 取込機能用のプレースホルダーとして追加
 - 管理者モードを通常ナビゲーションから外し、右上の `設定` メニュー配下へ移動
 - 管理者用画面にパスフレーズ入力モーダル、セッション管理、終了導線、注意書きを追加
 - 管理者パスフレーズを `localStorage` の SHA-256 ハッシュ、管理者ログイン状態を `sessionStorage` で扱うよう整理
