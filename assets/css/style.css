@@ -233,8 +233,32 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .admin-default-tip{background:var(--yellow-bg);border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:14px}
 .admin-default-tip code,.form-note code,.admin-helper code{font-family:var(--mono);font-size:11px}
 .admin-helper{font-size:11px;color:var(--text3);line-height:1.8;margin-top:8px}
-.form-error{display:none;background:var(--red-bg);border:1px solid #fecaca;border-radius:8px;padding:10px 12px;color:var(--red);font-size:12px;line-height:1.7;margin-bottom:14px}
+.form-error{display:none;background:var(--red-bg);border:1px solid #fecaca;border-radius:8px;padding:10px 12px;color:var(--red);font-size:12px;line-height:1.7;margin-bottom:14px;white-space:pre-line}
 .form-note{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text2);font-size:11px;line-height:1.8;margin-bottom:14px}
+
+/* ─── EXCEL IMPORT ─── */
+.excel-import-modal{width:1000px}
+.excel-import-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.excel-import-picker{position:relative;overflow:hidden}
+.excel-import-native-input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.excel-import-file{font-size:12px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;min-height:38px;display:flex;align-items:center;flex:1;min-width:240px}
+.excel-import-layout{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:14px;margin-bottom:14px}
+.excel-import-panel{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px}
+.excel-import-section-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px}
+.excel-import-meta{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.excel-import-meta-item{font-size:12px;color:var(--text2);line-height:1.8}
+.excel-import-meta-item strong{color:var(--text)}
+.excel-import-chip-list{display:flex;flex-wrap:wrap;gap:6px}
+.excel-import-chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:var(--bg2);border:1px solid var(--border);font-size:11px;color:var(--text2)}
+.excel-import-columns{display:flex;flex-wrap:wrap;gap:6px;min-height:42px}
+.excel-import-empty{font-size:12px;color:var(--text3);line-height:1.8}
+.excel-import-preview-meta{font-size:11px;color:var(--text3);margin-bottom:10px}
+.excel-import-preview{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:auto;max-height:420px}
+.excel-import-table{width:100%;border-collapse:collapse;min-width:640px}
+.excel-import-table th,.excel-import-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:top;text-align:left}
+.excel-import-table th{position:sticky;top:0;background:var(--bg3);z-index:1;font-size:10px;font-family:var(--mono);letter-spacing:.06em;color:var(--text3)}
+.excel-import-table td{color:var(--text2);white-space:nowrap}
+.excel-import-table tr:last-child td{border-bottom:none}
 
 /* ─── SUCCESS ─── */
 .success-fl{display:none;position:fixed;inset:0;background:rgba(15,20,40,.6);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
@@ -363,6 +387,9 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
   /* モーダル */
   .modal,.modal-lg{width:95vw;padding:18px 14px}
   .fr2{grid-template-columns:1fr}
+  .excel-import-layout{grid-template-columns:1fr}
+  .excel-import-file{min-width:0}
+  .excel-import-preview{max-height:320px}
 
   /* インポート画面 */
   .import-steps{flex-direction:column;align-items:flex-start;gap:8px;padding:10px}
