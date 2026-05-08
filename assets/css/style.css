@@ -272,6 +272,14 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .excel-search-result-table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:auto;max-height:360px}
 .excel-search-placeholder{margin-top:12px;font-size:11px;color:var(--text3);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .excel-search-placeholder .btn[disabled]{opacity:.55;cursor:not-allowed}
+.excel-ledger-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 10px}
+.excel-ledger-chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:var(--bg2);border:1px solid var(--border);font-size:11px;color:var(--text2)}
+.excel-ledger-chip.is-existing{background:var(--blue-bg);border-color:#bfdbfe;color:var(--accent)}
+.excel-ledger-chip.is-new{background:var(--yellow-bg);border-color:#fde68a;color:var(--yellow)}
+.excel-ledger-note{font-size:11px;color:var(--text2);line-height:1.8;margin-bottom:10px}
+.excel-ledger-table td{white-space:normal;min-width:90px}
+.excel-ledger-table td:nth-child(1){min-width:220px}
+.excel-ledger-table td:nth-child(9){min-width:240px}
 
 /* ─── SUCCESS ─── */
 .success-fl{display:none;position:fixed;inset:0;background:rgba(15,20,40,.6);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
