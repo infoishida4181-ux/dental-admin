@@ -1,9 +1,22 @@
 /* Excel取り込み（第1段階: ファイル読込とプレビュー） */
 window.ExcelImport = window.ExcelImport || {
   previewLimit: 15,
+  headerKeywords: [
+    '医療機関番号',
+    '医療機関名称',
+    '受理届出名称',
+    '受理記号',
+    '受理番号',
+    '算定開始年月日',
+    '都道府県名',
+    '区分'
+  ],
   workbook: null,
   fileName: '',
   selectedSheet: '',
+  sheetRows: {},
+  headerRowBySheet: {},
+  detectedHeaderRowBySheet: {},
   init() {
     this.reset();
   },
@@ -11,6 +24,9 @@ window.ExcelImport = window.ExcelImport || {
     this.workbook = null;
     this.fileName = '';
     this.selectedSheet = '';
+    this.sheetRows = {};
+    this.headerRowBySheet = {};
+    this.detectedHeaderRowBySheet = {};
     const input = document.getElementById('excel-import-file');
     if (input) input.value = '';
     const nameEl = document.getElementById('excel-import-file-name');
@@ -22,6 +38,14 @@ window.ExcelImport = window.ExcelImport || {
       sheet.innerHTML = '<option value="">シートを選択してください</option>';
       sheet.disabled = true;
     }
+    const headerRow = document.getElementById('excel-import-header-row');
+    if (headerRow) {
+      headerRow.value = '1';
+      headerRow.min = '1';
+      headerRow.disabled = true;
+    }
+    const headerStatus = document.getElementById('excel-import-header-status');
+    if (headerStatus) headerStatus.textContent = '見出し行は未判定です。';
     const cols = document.getElementById('excel-import-columns');
     if (cols) cols.innerHTML = '<div class="excel-import-empty">シートを選択すると列名を表示します。</div>';
     const previewMeta = document.getElementById('excel-import-preview-meta');
@@ -71,6 +95,7 @@ window.ExcelImport = window.ExcelImport || {
       this.workbook = workbook;
       this.fileName = file.name;
       this.selectedSheet = workbook.SheetNames[0];
+      this.prepareSheetRows();
       this.renderWorkbookSummary();
       this.renderSheetOptions();
       this.renderCurrentSheet();
@@ -102,6 +127,22 @@ window.ExcelImport = window.ExcelImport || {
       </div>
     `;
   },
+  prepareSheetRows() {
+    this.sheetRows = {};
+    this.headerRowBySheet = {};
+    this.detectedHeaderRowBySheet = {};
+    if (!this.workbook) return;
+    this.workbook.SheetNames.forEach(name => {
+      const worksheet = this.workbook.Sheets[name];
+      const rows = worksheet && worksheet['!ref']
+        ? XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: true })
+        : [];
+      this.sheetRows[name] = Array.isArray(rows) ? rows : [];
+      const detected = this.detectHeaderRowIndex(this.sheetRows[name]);
+      this.detectedHeaderRowBySheet[name] = detected;
+      this.headerRowBySheet[name] = detected;
+    });
+  },
   renderSheetOptions() {
     const select = document.getElementById('excel-import-sheet');
     if (!select) return;
@@ -117,35 +158,104 @@ window.ExcelImport = window.ExcelImport || {
   handleSheetChange(sheetName) {
     if (!this.workbook) return;
     this.selectedSheet = sheetName;
+    if (typeof this.headerRowBySheet[sheetName] !== 'number') {
+      const detected = this.detectHeaderRowIndex(this.sheetRows[sheetName] || []);
+      this.detectedHeaderRowBySheet[sheetName] = detected;
+      this.headerRowBySheet[sheetName] = detected;
+    }
     this.renderCurrentSheet();
   },
+  handleHeaderRowChange(value) {
+    if (!this.workbook || !this.selectedSheet) return;
+    const rows = this.sheetRows[this.selectedSheet] || [];
+    const max = Math.max(rows.length, 1);
+    let parsed = Number(value);
+    if (!Number.isFinite(parsed)) parsed = 1;
+    parsed = Math.max(1, Math.min(max, Math.floor(parsed)));
+    this.headerRowBySheet[this.selectedSheet] = parsed - 1;
+    const input = document.getElementById('excel-import-header-row');
+    if (input) input.value = String(parsed);
+    this.renderCurrentSheet();
+  },
+  detectHeaderRowIndex(rows) {
+    let bestIndex = -1;
+    let bestScore = -1;
+    let bestFilled = -1;
+    rows.forEach((row, idx) => {
+      const values = Array.isArray(row) ? row : [];
+      const normalized = values.map(value => String(value == null ? '' : value).trim()).filter(Boolean);
+      if (!normalized.length) return;
+      const joined = normalized.join(' | ');
+      const score = this.headerKeywords.reduce((sum, keyword) => sum + (joined.includes(keyword) ? 1 : 0), 0);
+      const filled = normalized.length;
+      if (score > bestScore || (score === bestScore && filled > bestFilled)) {
+        bestScore = score;
+        bestFilled = filled;
+        bestIndex = idx;
+      }
+    });
+    if (bestScore > 0) return bestIndex;
+    return rows.findIndex(row => this.isNonEmptyRow(row)) >= 0
+      ? rows.findIndex(row => this.isNonEmptyRow(row))
+      : 0;
+  },
+  isNonEmptyRow(row) {
+    return Array.isArray(row) && row.some(value => String(value == null ? '' : value).trim() !== '');
+  },
+  buildHeadersFromRow(row) {
+    const values = Array.isArray(row) ? row : [];
+    return values.map((value, idx) => {
+      const text = String(value == null ? '' : value).trim();
+      return text || `列${idx + 1}`;
+    }).filter((_, idx, arr) => idx < arr.length);
+  },
   renderCurrentSheet() {
+    const headerStatus = document.getElementById('excel-import-header-status');
+    const headerInput = document.getElementById('excel-import-header-row');
     const cols = document.getElementById('excel-import-columns');
     const preview = document.getElementById('excel-import-preview');
     const previewMeta = document.getElementById('excel-import-preview-meta');
-    if (!cols || !preview || !previewMeta) return;
+    if (!cols || !preview || !previewMeta || !headerStatus || !headerInput) return;
     if (!this.workbook || !this.selectedSheet) {
+      headerStatus.textContent = '見出し行は未判定です。';
+      headerInput.value = '1';
+      headerInput.disabled = true;
       cols.innerHTML = '<div class="excel-import-empty">シートを選択すると列名を表示します。</div>';
       preview.innerHTML = '<div class="excel-import-empty">Excelファイルを読み込むと、ここに先頭10〜20行の表を表示します。</div>';
       previewMeta.textContent = 'まだプレビューはありません。';
       return;
     }
-    const worksheet = this.workbook.Sheets[this.selectedSheet];
-    if (!worksheet || !worksheet['!ref']) {
+    const rows = this.sheetRows[this.selectedSheet] || [];
+    if (!rows.length) {
+      headerStatus.innerHTML = `<strong>見出し行:</strong> 判定できませんでした`;
+      headerInput.value = '1';
+      headerInput.disabled = true;
       cols.innerHTML = '<div class="excel-import-empty">このシートには表示できるデータがありません。</div>';
       preview.innerHTML = '<div class="excel-import-empty">このシートには表示できるデータがありません。</div>';
       previewMeta.textContent = `選択中シート: ${this.selectedSheet}`;
       return;
     }
-    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: false });
-    const headerRow = Array.isArray(rows[0]) ? rows[0] : [];
-    const headers = headerRow.length
-      ? headerRow.map((value, idx) => {
-          const text = String(value == null ? '' : value).trim();
-          return text || `列${idx + 1}`;
-        })
-      : [];
+    const detectedIndex = typeof this.detectedHeaderRowBySheet[this.selectedSheet] === 'number'
+      ? this.detectedHeaderRowBySheet[this.selectedSheet]
+      : this.detectHeaderRowIndex(rows);
+    const headerIndex = typeof this.headerRowBySheet[this.selectedSheet] === 'number'
+      ? this.headerRowBySheet[this.selectedSheet]
+      : detectedIndex;
+    const safeHeaderIndex = Math.max(0, Math.min(rows.length - 1, headerIndex));
+    this.headerRowBySheet[this.selectedSheet] = safeHeaderIndex;
+    headerInput.disabled = false;
+    headerInput.min = '1';
+    headerInput.max = String(Math.max(rows.length, 1));
+    headerInput.value = String(safeHeaderIndex + 1);
+    const isAuto = safeHeaderIndex === detectedIndex;
+    headerStatus.innerHTML = isAuto
+      ? `<strong>自動判定された見出し行:</strong> ${safeHeaderIndex + 1}行目`
+      : `<strong>見出し行:</strong> ${safeHeaderIndex + 1}行目 <span style="color:var(--text3)">（自動判定候補: ${detectedIndex + 1}行目）</span>`;
+
+    const headerRow = Array.isArray(rows[safeHeaderIndex]) ? rows[safeHeaderIndex] : [];
+    const headers = this.buildHeadersFromRow(headerRow);
     if (!headers.length) {
+      headerStatus.innerHTML = `<strong>見出し行:</strong> ${safeHeaderIndex + 1}行目 <span style="color:var(--red)">列名を取得できません</span>`;
       cols.innerHTML = '<div class="excel-import-empty">列名を取得できませんでした。1行目に見出しがあるか確認してください。</div>';
       preview.innerHTML = '<div class="excel-import-empty">列名を取得できませんでした。1行目に見出しがあるか確認してください。</div>';
       previewMeta.textContent = `選択中シート: ${this.selectedSheet}`;
@@ -153,23 +263,26 @@ window.ExcelImport = window.ExcelImport || {
     }
 
     cols.innerHTML = headers.map(name => `<span class="excel-import-chip">${this.escapeHtml(name)}</span>`).join('');
-    const dataRows = rows.slice(1, this.previewLimit + 1);
-    previewMeta.textContent = `選択中シート: ${this.selectedSheet} / 列数: ${headers.length} / プレビュー: 先頭${Math.min(dataRows.length, this.previewLimit)}行`;
+    const dataRows = rows
+      .map((row, idx) => ({ row, rowNumber: idx + 1 }))
+      .filter(item => item.rowNumber > safeHeaderIndex + 1 && this.isNonEmptyRow(item.row))
+      .slice(0, this.previewLimit);
+    previewMeta.textContent = `選択中シート: ${this.selectedSheet} / 見出し行: ${safeHeaderIndex + 1}行目 / 列数: ${headers.length} / プレビュー: 見出し行の次から先頭${Math.min(dataRows.length, this.previewLimit)}行`;
 
     if (!dataRows.length) {
-      preview.innerHTML = '<div class="excel-import-empty">見出し行は読み込めましたが、データ行はまだありません。</div>';
+      preview.innerHTML = '<div class="excel-import-empty">見出し行は読み込めましたが、その下に表示できるデータ行はまだありません。</div>';
       return;
     }
 
     preview.innerHTML = `
       <table class="excel-import-table">
         <thead>
-          <tr>${headers.map(name => `<th>${this.escapeHtml(name)}</th>`).join('')}</tr>
+          <tr><th>Excel行</th>${headers.map(name => `<th>${this.escapeHtml(name)}</th>`).join('')}</tr>
         </thead>
         <tbody>
-          ${dataRows.map(row => {
-            const cells = headers.map((_, idx) => this.escapeHtml(String(row[idx] == null ? '' : row[idx])));
-            return `<tr>${cells.map(cell => `<td>${cell || '&nbsp;'}</td>`).join('')}</tr>`;
+          ${dataRows.map(item => {
+            const cells = headers.map((_, idx) => this.escapeHtml(String(item.row[idx] == null ? '' : item.row[idx])));
+            return `<tr><td class="excel-import-rowno">${item.rowNumber}</td>${cells.map(cell => `<td>${cell || '&nbsp;'}</td>`).join('')}</tr>`;
           }).join('')}
         </tbody>
       </table>
@@ -206,6 +319,10 @@ async function handleExcelFileSelect(event) {
 
 function handleExcelSheetChange(sheetName) {
   ExcelImport.handleSheetChange(sheetName);
+}
+
+function handleExcelHeaderRowChange(value) {
+  ExcelImport.handleHeaderRowChange(value);
 }
 
 ExcelImport.init();
