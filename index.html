@@ -42,8 +42,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .logo{font-family:var(--mono);font-size:11px;color:var(--accent);background:var(--blue-bg);border:1px solid #bfdbfe;padding:3px 10px;border-radius:4px;letter-spacing:.06em;font-weight:500}
 .h-title{font-size:14px;font-weight:600;color:var(--text)}
 .h-right{display:flex;align-items:center;gap:10px}
-.clinic-pill{font-size:12px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .15s;font-weight:500}
-.clinic-pill:hover{border-color:var(--accent);color:var(--accent);background:var(--blue-bg)}
+.clinic-pill{font-size:12px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);padding:4px 12px;border-radius:6px;font-weight:500;display:inline-flex;align-items:center;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.settings-menu{position:relative}
+.settings-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:6px 12px;font-size:12px;font-family:var(--font);font-weight:600;cursor:pointer;transition:all .15s;box-shadow:var(--shadow)}
+.settings-btn:hover,.settings-menu.open .settings-btn{border-color:var(--accent);color:var(--accent);background:var(--blue-bg)}
+.settings-panel{position:absolute;top:calc(100% + 8px);right:0;width:220px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow2);padding:8px;display:none;z-index:260}
+.settings-menu.open .settings-panel{display:block}
+.settings-item{width:100%;border:none;background:none;border-radius:8px;padding:10px 12px;text-align:left;font-size:12px;font-family:var(--font);color:var(--text);cursor:pointer;transition:all .15s}
+.settings-item:hover{background:var(--bg3);color:var(--accent)}
+.settings-item.admin{color:var(--accent);font-weight:700}
+.settings-divider{height:1px;background:var(--border);margin:6px 4px}
 .dot-live{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px #d1fae5;display:inline-block;animation:blink 2s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
 
@@ -223,6 +231,19 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .ib{background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px;padding:13px 15px;font-size:12px;color:var(--text2);line-height:1.8;margin-top:14px}
 .ib strong{color:var(--accent)}
 
+/* ─── ADMIN MODE ─── */
+.admin-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
+.admin-banner-label{font-size:11px;font-family:var(--mono);letter-spacing:.08em;color:var(--accent);text-transform:uppercase;font-weight:700}
+.admin-banner-copy{font-size:12px;color:var(--text2);margin-top:2px}
+.admin-inline-note{background:var(--red-bg);border:1px solid #fecaca;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:12px;color:var(--text);line-height:1.9;box-shadow:var(--shadow)}
+.admin-inline-note strong{color:var(--red)}
+.admin-security-status{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:14px}
+.admin-default-tip{background:var(--yellow-bg);border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:14px}
+.admin-default-tip code,.form-note code,.admin-helper code{font-family:var(--mono);font-size:11px}
+.admin-helper{font-size:11px;color:var(--text3);line-height:1.8;margin-top:8px}
+.form-error{display:none;background:var(--red-bg);border:1px solid #fecaca;border-radius:8px;padding:10px 12px;color:var(--red);font-size:12px;line-height:1.7;margin-bottom:14px}
+.form-note{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text2);font-size:11px;line-height:1.8;margin-bottom:14px}
+
 /* ─── SUCCESS ─── */
 .success-fl{display:none;position:fixed;inset:0;background:rgba(15,20,40,.6);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
 .success-fl.show{display:flex}
@@ -263,9 +284,11 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
   .header{padding:0 12px;height:48px}
   .logo{display:none}
   .h-title{display:none}
-  .clinic-pill{font-size:11px;padding:6px 10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:32px;display:flex;align-items:center}
+  .clinic-pill{font-size:11px;padding:6px 10px;max-width:150px;min-height:32px}
   .h-right{gap:6px}
   .h-right .btn{font-size:10px;padding:4px 8px}
+  .settings-btn{padding:6px 10px;font-size:11px;min-height:32px}
+  .settings-panel{right:0;width:min(220px,calc(100vw - 24px))}
 
   /* レイアウト */
   .app{flex-direction:column;height:auto;min-height:calc(100vh - 48px);margin-top:48px;padding-bottom:64px}
@@ -393,8 +416,16 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
   </div>
   <div class="h-right">
     <span class="dot-live"></span>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="openDataMgr()">💾 データ管理</button>
-    <div class="clinic-pill" id="clinic-pill" onclick="editClinicName()">⚙ ○○歯科医院 ▾</div>
+    <div class="clinic-pill" id="clinic-pill">🏥 ○○歯科医院</div>
+    <div class="settings-menu" id="settings-menu">
+      <button class="settings-btn" id="settings-btn" type="button" onclick="toggleSettingsMenu(event)" aria-haspopup="true" aria-expanded="false">⚙ 設定</button>
+      <div class="settings-panel" id="settings-panel" onclick="event.stopPropagation()">
+        <button class="settings-item" type="button" onclick="handleSettingsAction('clinic')">🏥 医院名を設定</button>
+        <button class="settings-item" type="button" onclick="handleSettingsAction('data')">💾 データ管理</button>
+        <div class="settings-divider"></div>
+        <button class="settings-item admin" type="button" onclick="handleSettingsAction('admin')">🛠 管理者用</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -410,14 +441,13 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 <div class="sidebar">
   <div class="nav-sec">
     <div class="nav-label">厚生局</div>
-    <div class="nav-item active" onclick="nav('daichou',this)"><span class="ni">📋</span>届出台帳</div>
-    <div class="nav-item" onclick="nav('kaitei',this)"><span class="ni">⚡</span>改定影響分析<span class="nav-badge w">R8</span></div>
-    <div class="nav-item" onclick="nav('teirei',this)"><span class="ni">📅</span>定例報告<span class="nav-badge" id="teirei-badge">8月</span></div>
-    <div class="nav-item" onclick="nav('deadline',this)"><span class="ni">🔔</span>期限管理</div>
-    <div class="nav-item" onclick="nav('koushu',this)"><span class="ni">🎓</span>講習会管理<span class="nav-badge w" id="koushu-badge" style="display:none">期限</span></div>
-    <div class="nav-item" onclick="nav('shinki',this)"><span class="ni">🆕</span>新規届出サポート</div>
-    <div class="nav-item" onclick="nav('baseup',this)"><span class="ni">📋</span>ベースアップ書類作成</div>
-    <div class="nav-item" onclick="nav('admin',this)"><span class="ni">🛠</span>管理者モード</div>
+    <div class="nav-item active" data-view="daichou" onclick="nav('daichou',this)"><span class="ni">📋</span>届出台帳</div>
+    <div class="nav-item" data-view="kaitei" onclick="nav('kaitei',this)"><span class="ni">⚡</span>改定影響分析<span class="nav-badge w">R8</span></div>
+    <div class="nav-item" data-view="teirei" onclick="nav('teirei',this)"><span class="ni">📅</span>定例報告<span class="nav-badge" id="teirei-badge">8月</span></div>
+    <div class="nav-item" data-view="deadline" onclick="nav('deadline',this)"><span class="ni">🔔</span>期限管理</div>
+    <div class="nav-item" data-view="koushu" onclick="nav('koushu',this)"><span class="ni">🎓</span>講習会管理<span class="nav-badge w" id="koushu-badge" style="display:none">期限</span></div>
+    <div class="nav-item" data-view="shinki" onclick="nav('shinki',this)"><span class="ni">🆕</span>新規届出サポート</div>
+    <div class="nav-item" data-view="baseup" onclick="nav('baseup',this)"><span class="ni">📋</span>ベースアップ書類作成</div>
   </div>
   <div class="nav-sec" id="nav-future">
     <div class="nav-label">今後追加予定</div>
@@ -535,11 +565,23 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
   </div>
 
   <div class="view" id="view-admin">
+    <div class="admin-banner">
+      <div>
+        <div class="admin-banner-label">管理者モード</div>
+        <div class="admin-banner-copy">管理者向け機能を通常画面から分離した専用エリアです</div>
+      </div>
+      <button class="btn btn-danger" onclick="exitAdminMode()">管理者モードを終了</button>
+    </div>
+
     <div class="ph">
       <div class="ph-left">
         <h2>管理者モード</h2>
         <p>歯科医師会側・保険委員会側が施設基準データを管理するための準備画面</p>
       </div>
+    </div>
+
+    <div class="admin-inline-note">
+      <strong>この画面は管理者向けです。</strong> 公式データの取込・最新版データ確認・会員配布用データ作成などを行います。通常利用の先生は操作しないでください。
     </div>
 
     <div style="background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:10px;padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)">
@@ -548,6 +590,36 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
         <div>現時点では公式Excel/ZIP取込機能は未実装です。</div>
         <div>将来的に、関東信越厚生局の公式Excel/ZIPを読み込み、東京都・歯科の施設基準データを最新版として管理できるようにします。</div>
         <div>会員側は、医療機関コードを入力するだけで自院の施設基準を取り込める設計を目指します。</div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="font-size:14px;font-weight:700;color:var(--text)">管理者パスフレーズ設定</div>
+        <span class="badge bb">誤操作防止用</span>
+      </div>
+      <div class="admin-security-status" id="admin-security-status"></div>
+      <div class="admin-default-tip" id="admin-default-tip">
+        初期パスフレーズのまま運用している場合は、公開前または引き渡し前に変更してください。単一HTMLアプリのため厳密な認証ではありませんが、誤操作防止には有効です。
+      </div>
+      <div class="fr2">
+        <div class="fr">
+          <div class="fl">現在のパスフレーズ</div>
+          <input type="password" class="fi" id="admin-current-passphrase" placeholder="現在の管理者パスフレーズ">
+        </div>
+        <div class="fr">
+          <div class="fl">新しいパスフレーズ</div>
+          <input type="password" class="fi" id="admin-new-passphrase" placeholder="新しい管理者パスフレーズ">
+        </div>
+      </div>
+      <div class="fr">
+        <div class="fl">新しいパスフレーズ（確認）</div>
+        <input type="password" class="fi" id="admin-confirm-passphrase" placeholder="確認のためもう一度入力">
+      </div>
+      <div class="admin-helper">保存先は <code>localStorage</code> ですが、値そのものではなく SHA-256 ハッシュを記録します。ログイン状態は <code>sessionStorage</code> で管理し、ブラウザを閉じるか「管理者モードを終了」で解除されます。</div>
+      <div class="mf">
+        <button class="btn btn-secondary" onclick="resetAdminPassphraseToDefault()">初期パスフレーズに戻す</button>
+        <button class="btn btn-primary" onclick="changeAdminPassphrase()">パスフレーズを保存</button>
       </div>
     </div>
 
@@ -589,7 +661,7 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
       <div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:8px">注意</div>
       <div style="font-size:12px;color:var(--text2);line-height:1.9">
         <div>この管理者モードは、現時点では本格的な認証機能ではありません。</div>
-        <div>ローカルHTMLアプリ上の画面整理用の機能です。</div>
+        <div>ローカルHTMLアプリ上の誤操作防止・画面整理用の機能です。</div>
         <div>給与情報、マイナンバー、患者情報、会員医院の実データは入力しないでください。</div>
         <div>公式Excel/ZIP取込機能を追加するまでは、現在のPDF取込機能を継続して利用してください。</div>
       </div>
@@ -733,6 +805,26 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 
     <div class="mf">
       <button class="btn btn-ghost" onclick="closeOverlay('data-mgr-overlay')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ADMIN ACCESS MODAL -->
+<div class="overlay" id="admin-access-overlay">
+  <div class="modal" style="max-width:520px">
+    <div class="mt">🛠 管理者用</div>
+    <div class="ms">管理者モードは通常利用画面から分離されています。誤操作防止のため、管理者パスフレーズを入力してください。</div>
+    <div class="form-note" id="admin-access-note"></div>
+    <div class="form-error" id="admin-access-error"></div>
+    <div class="fr">
+      <div class="fl">管理者パスフレーズ</div>
+      <input type="password" class="fi" id="admin-passphrase-input" placeholder="管理者パスフレーズを入力" onkeydown="if(event.key==='Enter')submitAdminPassphrase()">
+    </div>
+    <div class="admin-helper">この機能は完全な認証ではありません。会員向け通常操作から管理者機能を分離し、誤って開かないようにするための導線です。</div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="closeOverlay('admin-access-overlay')">キャンセル</button>
+      <button class="btn btn-primary" onclick="submitAdminPassphrase()">管理者モードを開く</button>
     </div>
   </div>
 </div>
@@ -1149,6 +1241,15 @@ let entries=JSON.parse(localStorage.getItem('shisetsu_kijun')||'[]');
 let clinicName=localStorage.getItem('clinic_name')||'○○歯科医院';
 let fStat='all', fCatV='all';
 let pdfPages=[], pdfPageItems=[], parsedImport=[];
+const ADMIN_PASS_HASH_KEY='admin_passphrase_hash_v1';
+const ADMIN_PASS_DEFAULT_KEY='admin_passphrase_default_v1';
+const ADMIN_PASS_UPDATED_AT_KEY='admin_passphrase_updated_at_v1';
+const ADMIN_SESSION_KEY='admin_mode_active_v1';
+const ADMIN_LAST_VIEW_KEY='admin_last_member_view_v1';
+const ADMIN_DEFAULT_PASSPHRASE='admin-2026';
+const ADMIN_DEFAULT_PASS_HASH='sha256:dea0eb2bfaf38042753851289edacfa858ce5117d17bc8bb6814dbce7119daaa';
+let currentView='daichou';
+let lastMemberView=sessionStorage.getItem(ADMIN_LAST_VIEW_KEY)||'daichou';
 
 // デフォルトデータ（くにたち石田歯科・開発用初期値）
 const DEFAULT_ENTRIES=[
@@ -1450,12 +1551,249 @@ function openAiModal(){
     </div>`;
 }
 
+function ensureAdminStorageInitialized(){
+  if(!localStorage.getItem(ADMIN_PASS_HASH_KEY)){
+    localStorage.setItem(ADMIN_PASS_HASH_KEY, ADMIN_DEFAULT_PASS_HASH);
+    localStorage.setItem(ADMIN_PASS_DEFAULT_KEY, '1');
+    localStorage.setItem(ADMIN_PASS_UPDATED_AT_KEY, new Date().toISOString());
+    return;
+  }
+  if(!localStorage.getItem(ADMIN_PASS_DEFAULT_KEY)){
+    const stored=localStorage.getItem(ADMIN_PASS_HASH_KEY);
+    localStorage.setItem(ADMIN_PASS_DEFAULT_KEY, stored===ADMIN_DEFAULT_PASS_HASH?'1':'0');
+  }
+  if(!localStorage.getItem(ADMIN_PASS_UPDATED_AT_KEY)){
+    localStorage.setItem(ADMIN_PASS_UPDATED_AT_KEY, new Date().toISOString());
+  }
+}
+
+function findNavItem(view){
+  return document.querySelector(`.nav-item[data-view="${view}"]`);
+}
+
+function toggleSettingsMenu(event){
+  event.stopPropagation();
+  const menu=document.getElementById('settings-menu');
+  const btn=document.getElementById('settings-btn');
+  if(!menu||!btn)return;
+  const open=!menu.classList.contains('open');
+  menu.classList.toggle('open',open);
+  btn.setAttribute('aria-expanded',open?'true':'false');
+}
+
+function closeSettingsMenu(){
+  const menu=document.getElementById('settings-menu');
+  const btn=document.getElementById('settings-btn');
+  if(menu)menu.classList.remove('open');
+  if(btn)btn.setAttribute('aria-expanded','false');
+}
+
+function handleSettingsAction(action){
+  closeSettingsMenu();
+  if(action==='clinic') return editClinicName();
+  if(action==='data') return openDataMgr();
+  if(action==='admin') return requestAdminModeAccess();
+}
+
+function updateClinicPill(){
+  const pill=document.getElementById('clinic-pill');
+  if(pill) pill.textContent=`🏥 ${clinicName}`;
+}
+
+function isAdminSessionActive(){
+  return sessionStorage.getItem(ADMIN_SESSION_KEY)==='1';
+}
+
+async function sha256Hex(text){
+  if(!(window.crypto&&window.crypto.subtle)) throw new Error('このブラウザではSHA-256が利用できません。');
+  const bytes=new TextEncoder().encode(text);
+  const digest=await window.crypto.subtle.digest('SHA-256',bytes);
+  return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function verifyAdminPassphrase(text){
+  ensureAdminStorageInitialized();
+  const stored=localStorage.getItem(ADMIN_PASS_HASH_KEY)||ADMIN_DEFAULT_PASS_HASH;
+  if(stored.startsWith('sha256:')){
+    return `sha256:${await sha256Hex(text)}`===stored;
+  }
+  return `plain:${text}`===stored;
+}
+
+async function createAdminPassphraseHash(text){
+  return `sha256:${await sha256Hex(text)}`;
+}
+
+function updateAdminAccessNote(){
+  const note=document.getElementById('admin-access-note');
+  if(!note)return;
+  const isDefault=localStorage.getItem(ADMIN_PASS_DEFAULT_KEY)!=='0';
+  note.innerHTML=isDefault
+    ? `現在は初期パスフレーズ <code>${ADMIN_DEFAULT_PASSPHRASE}</code> が設定されています。ログイン後に変更してください。`
+    : '現在はカスタムの管理者パスフレーズが設定されています。';
+}
+
+function setAdminAccessError(message){
+  const el=document.getElementById('admin-access-error');
+  if(!el)return;
+  el.textContent=message||'';
+  el.style.display=message?'block':'none';
+}
+
+function requestAdminModeAccess(){
+  ensureAdminStorageInitialized();
+  if(isAdminSessionActive()){
+    openAdminMode();
+    return;
+  }
+  updateAdminAccessNote();
+  setAdminAccessError('');
+  const input=document.getElementById('admin-passphrase-input');
+  if(input) input.value='';
+  document.getElementById('admin-access-overlay').classList.add('open');
+  setTimeout(()=>{ if(input) input.focus(); }, 0);
+}
+
+async function submitAdminPassphrase(){
+  const input=document.getElementById('admin-passphrase-input');
+  if(!input)return;
+  const pass=input.value;
+  if(!pass.trim()){
+    setAdminAccessError('管理者パスフレーズを入力してください。');
+    input.focus();
+    return;
+  }
+  try{
+    const ok=await verifyAdminPassphrase(pass);
+    if(!ok){
+      setAdminAccessError('パスフレーズが一致しません。');
+      input.select();
+      return;
+    }
+    sessionStorage.setItem(ADMIN_SESSION_KEY,'1');
+    closeOverlay('admin-access-overlay');
+    input.value='';
+    openAdminMode();
+  }catch(err){
+    setAdminAccessError(`管理者認証の確認に失敗しました。${err.message}`);
+  }
+}
+
+function openAdminMode(){
+  nav('admin');
+  renderAdminSecurityStatus();
+}
+
+function clearAdminPassphraseInputs(){
+  ['admin-current-passphrase','admin-new-passphrase','admin-confirm-passphrase'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.value='';
+  });
+}
+
+function formatAdminUpdatedAt(value){
+  if(!value) return '更新日時不明';
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return '更新日時不明';
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function renderAdminSecurityStatus(){
+  ensureAdminStorageInitialized();
+  const status=document.getElementById('admin-security-status');
+  const defaultTip=document.getElementById('admin-default-tip');
+  if(status){
+    const isDefault=localStorage.getItem(ADMIN_PASS_DEFAULT_KEY)!=='0';
+    const updatedAt=formatAdminUpdatedAt(localStorage.getItem(ADMIN_PASS_UPDATED_AT_KEY));
+    status.innerHTML=isDefault
+      ? `現在は <strong style="color:var(--yellow)">初期パスフレーズ</strong> を使用しています。<br>更新日時: ${updatedAt}`
+      : `現在は <strong style="color:var(--green)">カスタムパスフレーズ</strong> を使用しています。<br>更新日時: ${updatedAt}`;
+  }
+  if(defaultTip){
+    defaultTip.style.display=localStorage.getItem(ADMIN_PASS_DEFAULT_KEY)!=='0'?'block':'none';
+  }
+}
+
+async function changeAdminPassphrase(){
+  ensureAdminStorageInitialized();
+  if(!isAdminSessionActive()){
+    alert('管理者モードに入ってから操作してください。');
+    return;
+  }
+  const current=document.getElementById('admin-current-passphrase')?.value||'';
+  const next=document.getElementById('admin-new-passphrase')?.value||'';
+  const confirmPass=document.getElementById('admin-confirm-passphrase')?.value||'';
+  if(!current || !next || !confirmPass){
+    alert('現在のパスフレーズ、新しいパスフレーズ、確認用パスフレーズを入力してください。');
+    return;
+  }
+  if(next!==confirmPass){
+    alert('新しいパスフレーズと確認用パスフレーズが一致しません。');
+    return;
+  }
+  if(current===next && localStorage.getItem(ADMIN_PASS_DEFAULT_KEY)==='0'){
+    alert('現在と同じパスフレーズが入力されています。');
+    return;
+  }
+  try{
+    const ok=await verifyAdminPassphrase(current);
+    if(!ok){
+      alert('現在のパスフレーズが一致しません。');
+      return;
+    }
+    localStorage.setItem(ADMIN_PASS_HASH_KEY, await createAdminPassphraseHash(next));
+    localStorage.setItem(ADMIN_PASS_DEFAULT_KEY, next===ADMIN_DEFAULT_PASSPHRASE?'1':'0');
+    localStorage.setItem(ADMIN_PASS_UPDATED_AT_KEY, new Date().toISOString());
+    clearAdminPassphraseInputs();
+    renderAdminSecurityStatus();
+    updateAdminAccessNote();
+    alert('管理者パスフレーズを更新しました。');
+  }catch(err){
+    alert(`管理者パスフレーズの更新に失敗しました。\n${err.message}`);
+  }
+}
+
+function resetAdminPassphraseToDefault(){
+  ensureAdminStorageInitialized();
+  if(!isAdminSessionActive()){
+    alert('管理者モードに入ってから操作してください。');
+    return;
+  }
+  if(!confirm(`管理者パスフレーズを初期値「${ADMIN_DEFAULT_PASSPHRASE}」に戻しますか？`)) return;
+  localStorage.setItem(ADMIN_PASS_HASH_KEY, ADMIN_DEFAULT_PASS_HASH);
+  localStorage.setItem(ADMIN_PASS_DEFAULT_KEY, '1');
+  localStorage.setItem(ADMIN_PASS_UPDATED_AT_KEY, new Date().toISOString());
+  clearAdminPassphraseInputs();
+  renderAdminSecurityStatus();
+  updateAdminAccessNote();
+  alert('管理者パスフレーズを初期値に戻しました。');
+}
+
+function exitAdminMode(){
+  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  const fallback=lastMemberView&&lastMemberView!=='admin'?lastMemberView:'daichou';
+  nav(fallback);
+}
+
 /* ═══ VIEWS ═══ */
 function nav(v,el){
+  if(v==='admin' && !isAdminSessionActive()){
+    requestAdminModeAccess();
+    return;
+  }
+  currentView=v;
+  if(v!=='admin'){
+    lastMemberView=v;
+    sessionStorage.setItem(ADMIN_LAST_VIEW_KEY,v);
+  }
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
-  if(el)el.classList.add('active');
+  if(v!=='admin'){
+    const navEl=el||findNavItem(v);
+    if(navEl)navEl.classList.add('active');
+  }
+  closeSettingsMenu();
   closeDP();
   if(v==='kaitei')renderKaitei();
   if(v==='teirei')renderTeirei();
@@ -1463,6 +1801,7 @@ function nav(v,el){
   if(v==='koushu')renderKoushu();
   if(v==='shinki')renderShinki();
   if(v==='baseup')renderBaseup();
+  if(v==='admin')renderAdminSecurityStatus();
 }
 function renderKaitei(){
   const items=entries.filter(e=>e.kaitei!=='none');
@@ -4577,6 +4916,10 @@ function setIS(n,done=false){
 /* ═══ UTILS ═══ */
 function closeOverlay(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.overlay').forEach(el=>{el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
+document.addEventListener('click',function(e){
+  const menu=document.getElementById('settings-menu');
+  if(menu && !menu.contains(e.target)) closeSettingsMenu();
+});
 function editClinicName(){
   // スマホでpromptが動かない場合のためモーダル方式に変更
   const existing = document.getElementById('clinic-edit-modal');
@@ -4637,8 +4980,7 @@ function showClinicNameConfirm(parsedName) {
 function applyClinicName(name) {
   clinicName = name;
   localStorage.setItem('clinic_name', name);
-  const pill = document.getElementById('clinic-pill');
-  if(pill) pill.textContent = `⚙ ${name} ▾`;
+  updateClinicPill();
   const modal = document.getElementById('clinic-confirm-modal');
   if(modal) modal.remove();
 }
@@ -4663,7 +5005,7 @@ function saveClinicName(){
   if(n){
     clinicName = n;
     localStorage.setItem('clinic_name', n);
-    document.getElementById('clinic-pill').textContent = `⚙ ${n} ▾`;
+    updateClinicPill();
   }
   const modal = document.getElementById('clinic-edit-modal');
   if(modal) modal.remove();
@@ -4799,7 +5141,7 @@ function importAllData(event) {
       // グローバル変数を再ロード
       entries    = JSON.parse(localStorage.getItem('shisetsu_kijun') || '[]');
       clinicName = localStorage.getItem('clinic_name') || '○○歯科医院';
-      document.getElementById('clinic-pill').textContent = `⚙ ${clinicName} ▾`;
+      updateClinicPill();
 
       render();
       closeOverlay('data-mgr-overlay');
@@ -4866,7 +5208,9 @@ function renderTrecTabContent(abbr) {
 }
 
 /* ─── INIT ─── */
-document.getElementById('clinic-pill').textContent=`⚙ ${clinicName} ▾`;
+ensureAdminStorageInitialized();
+updateClinicPill();
+renderAdminSecurityStatus();
 
 // バージョンバッジを表示
 (function(){
