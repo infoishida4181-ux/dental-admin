@@ -32,6 +32,7 @@ window.ExcelImport = window.ExcelImport || {
   sheetRowStartBySheet: {},
   headerRowBySheet: {},
   detectedHeaderRowBySheet: {},
+  lastSearchResult: null,
   init() {
     this.reset();
   },
@@ -43,6 +44,7 @@ window.ExcelImport = window.ExcelImport || {
     this.sheetRowStartBySheet = {};
     this.headerRowBySheet = {};
     this.detectedHeaderRowBySheet = {};
+    this.lastSearchResult = null;
 
     const input = document.getElementById('excel-import-file');
     if (input) input.value = '';
@@ -372,6 +374,7 @@ window.ExcelImport = window.ExcelImport || {
     this.setSearchError('');
     const ctx = this.getCurrentSheetContext();
     if (!ctx || !this.workbook || !this.selectedSheet) {
+      this.lastSearchResult = null;
       this.setSearchError('先にExcelファイルを読み込んでください。');
       return;
     }
@@ -380,16 +383,19 @@ window.ExcelImport = window.ExcelImport || {
     const rawInput = input ? input.value.trim() : '';
     const targetMedicalId = this.normalizeMedicalId(rawInput);
     if (!targetMedicalId) {
+      this.lastSearchResult = null;
       this.setSearchError('医療機関番号を入力してください。');
       return;
     }
 
     const columnMap = this.detectColumnIndexes(ctx.headers);
     if (columnMap.medicalId < 0) {
+      this.lastSearchResult = null;
       this.setSearchError('医療機関番号列を認識できませんでした。見出し行を確認してください。');
       return;
     }
     if (columnMap.acceptanceName < 0) {
+      this.lastSearchResult = null;
       this.setSearchError('受理届出名称列を認識できませんでした。見出し行を確認してください。');
       return;
     }
@@ -400,10 +406,12 @@ window.ExcelImport = window.ExcelImport || {
       .filter(item => this.normalizeMedicalId(item.row[columnMap.medicalId]) === targetMedicalId);
 
     if (!matches.length) {
+      this.lastSearchResult = null;
       this.renderSearchResultNoMatch(targetMedicalId);
       return;
     }
 
+    this.lastSearchResult = { matches, columnMap, targetMedicalId };
     this.renderSearchResultMatches(matches, columnMap, targetMedicalId);
   },
   renderSearchResultNoMatch(targetMedicalId) {
@@ -412,7 +420,7 @@ window.ExcelImport = window.ExcelImport || {
     el.innerHTML = `
       <div class="excel-import-empty">該当する医療機関番号が見つかりません。<br>検索番号: ${this.escapeHtml(targetMedicalId)}</div>
       <div class="excel-search-placeholder">
-        <button class="btn btn-secondary" disabled>届出台帳へ反映（次フェーズ対応予定）</button>
+        <button class="btn btn-secondary" disabled>新規候補を届出台帳へ追加</button>
       </div>
     `;
   },
@@ -518,8 +526,8 @@ window.ExcelImport = window.ExcelImport || {
         </table>
       </div>
       <div class="excel-search-placeholder">
-        <button class="btn btn-secondary" disabled>届出台帳へ反映（次フェーズ対応予定）</button>
-        <span>この段階では抽出確認のみを行います。</span>
+        <button class="btn btn-primary" onclick="importExcelNewCandidates()" ${newCount > 0 ? '' : 'disabled'}>＋ 新規候補を届出台帳へ追加</button>
+        <span>新規候補のみを追加し、既存あり ${existingCount}件はスキップします。</span>
       </div>
     `;
   },
@@ -540,18 +548,81 @@ window.ExcelImport = window.ExcelImport || {
         abbr: this.sanitizePreviewText(abbr) || '要確認',
         number: this.sanitizePreviewText(rawNumber) || '要確認',
         date: this.normalizeDisplayDate(rawDate) || '要確認',
+        entryDate: this.normalizeEntryDate(rawDate) || '',
         category: categoryKey,
         categoryLabel: this.getCategoryLabel(categoryKey),
         status: 'yellow',
         statusLabel: '要確認',
-        kaitei: 'pending',
-        kaiteiLabel: '未判定',
+        kaitei: 'none',
+        kaiteiLabel: '変更なし',
         teireiLabel: this.inferTeireiLabel(abbr),
         memo: this.sanitizePreviewText(rawNote) || '要確認',
         compareKey,
         compareLabel: compareKey === 'existing' ? '既存あり' : '新規候補'
       };
     });
+  },
+  importNewCandidates() {
+    if (!this.lastSearchResult || !this.lastSearchResult.matches || !this.lastSearchResult.matches.length) {
+      this.setSearchError('先に医療機関番号検索を実行してください。');
+      return;
+    }
+    if (typeof entries === 'undefined' || !Array.isArray(entries)) {
+      this.setSearchError('届出台帳データを参照できませんでした。ページを再読み込みしてから再度お試しください。');
+      return;
+    }
+    if (typeof save !== 'function' || typeof render !== 'function') {
+      this.setSearchError('届出台帳の保存処理を呼び出せませんでした。');
+      return;
+    }
+
+    const { matches, columnMap, targetMedicalId } = this.lastSearchResult;
+    const ledgerPreview = this.convertMatchesToLedgerPreview(matches, columnMap);
+    const existingCount = ledgerPreview.filter(item => item.compareKey === 'existing').length;
+    const newCandidates = ledgerPreview.filter(item => item.compareKey === 'new');
+
+    if (!newCandidates.length) {
+      this.setSearchError('追加できる新規候補はありません。');
+      this.renderSearchResultMatches(matches, columnMap, targetMedicalId);
+      return;
+    }
+
+    if (!confirm(`新規候補 ${newCandidates.length}件を届出台帳へ追加します。既存あり ${existingCount}件はスキップします。よろしいですか？`)) {
+      return;
+    }
+
+    const first = matches[0] && matches[0].row ? matches[0].row : [];
+    const clinicName = this.sanitizePreviewText(this.formatCell(first[columnMap.clinicName], '医療機関名称')) || '要確認';
+    const importedAt = new Date().toISOString();
+    const idBase = this.getNextEntryIdBase();
+    const addedEntries = newCandidates.map((item, idx) => ({
+      id: String(idBase + idx),
+      name: item.name === '要確認' ? '要確認' : item.name,
+      abbr: item.abbr === '要確認' ? '' : item.abbr,
+      number: item.number === '要確認' ? '' : item.number,
+      date: item.entryDate || '',
+      category: item.category || 'other',
+      status: 'yellow',
+      kaitei: 'none',
+      nextCheck: '',
+      memo: this.buildImportedEntryMemo(item, targetMedicalId, clinicName),
+      importMeta: {
+        source: 'official-excel',
+        fileName: this.fileName || '',
+        sheetName: this.selectedSheet || '',
+        medicalId: targetMedicalId,
+        clinicName,
+        importedAt,
+        mode: 'excel-new-candidate-import'
+      }
+    }));
+
+    entries.push(...addedEntries);
+    save();
+    render();
+    this.setSearchError('');
+    this.searchMedicalInstitution();
+    alert(`✅ 新規候補 ${addedEntries.length}件を届出台帳へ追加しました。\n既存あり ${existingCount}件はスキップしました。`);
   },
   detectColumnIndexes(headers) {
     const normalizedHeaders = headers.map(header => this.normalizeHeader(header));
@@ -654,6 +725,15 @@ window.ExcelImport = window.ExcelImport || {
     }
     return text.replace(/\s+/g, ' ');
   },
+  normalizeEntryDate(value) {
+    const displayDate = this.normalizeDisplayDate(value);
+    if (!displayDate) return '';
+    const parsed = displayDate.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+    if (parsed) {
+      return `${parsed[1]}-${parsed[2]}-${parsed[3]}`;
+    }
+    return this.sanitizePreviewText(String(value == null ? '' : value));
+  },
   sanitizePreviewText(value) {
     return String(value == null ? '' : value)
       .replace(/[\r\n\t]+/g, ' ')
@@ -698,6 +778,26 @@ window.ExcelImport = window.ExcelImport || {
   normalizeCompareValue(value) {
     return this.sanitizePreviewText(value).replace(/\s+/g, '');
   },
+  buildImportedEntryMemo(item, medicalId, clinicName) {
+    const parts = [];
+    if (item.memo && item.memo !== '要確認') {
+      parts.push(item.memo);
+    }
+    parts.push('公式Excel取込');
+    parts.push(`医療機関番号:${medicalId}`);
+    parts.push(`医療機関名:${clinicName}`);
+    return this.sanitizePreviewText(parts.join(' / '));
+  },
+  getNextEntryIdBase() {
+    if (typeof entries === 'undefined' || !Array.isArray(entries) || !entries.length) {
+      return Date.now();
+    }
+    const numericIds = entries
+      .map(entry => Number(entry && entry.id))
+      .filter(id => Number.isFinite(id));
+    if (!numericIds.length) return Date.now();
+    return Math.max(Date.now(), Math.max(...numericIds) + 1);
+  },
   escapeHtml(value) {
     return String(value)
       .replace(/&/g, '&amp;')
@@ -737,6 +837,10 @@ function handleExcelHeaderRowChange(value) {
 
 function searchExcelMedicalInstitution() {
   ExcelImport.searchMedicalInstitution();
+}
+
+function importExcelNewCandidates() {
+  ExcelImport.importNewCandidates();
 }
 
 ExcelImport.init();
