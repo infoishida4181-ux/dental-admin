@@ -458,6 +458,13 @@
             <option value="">シートを選択してください</option>
           </select>
         </div>
+        <div class="excel-import-header-tools">
+          <div class="excel-import-header-status" id="excel-import-header-status">見出し行は未判定です。</div>
+          <div class="fr" style="margin-bottom:0">
+            <div class="fl">見出し行（Excel上の行番号）</div>
+            <input type="number" class="fi" id="excel-import-header-row" min="1" step="1" value="1" disabled onchange="handleExcelHeaderRowChange(this.value)">
+          </div>
+        </div>
       </div>
       <div class="excel-import-panel">
         <div class="excel-import-section-title">列名一覧</div>
