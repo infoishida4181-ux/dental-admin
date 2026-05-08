@@ -263,6 +263,15 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .excel-import-table td{color:var(--text2);white-space:nowrap}
 .excel-import-table tr:last-child td{border-bottom:none}
 .excel-import-rowno{color:var(--text3);font-family:var(--mono);background:#f8fafc;white-space:nowrap}
+.excel-search-toolbar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.excel-search-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px}
+.excel-search-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.excel-search-label{font-size:10px;font-family:var(--mono);letter-spacing:.06em;color:var(--text3);margin-bottom:6px}
+.excel-search-value{font-size:13px;color:var(--text);line-height:1.8;font-weight:600;word-break:break-word}
+.excel-search-meta{font-size:11px;color:var(--text3);margin-bottom:10px}
+.excel-search-result-table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:auto;max-height:360px}
+.excel-search-placeholder{margin-top:12px;font-size:11px;color:var(--text3);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.excel-search-placeholder .btn[disabled]{opacity:.55;cursor:not-allowed}
 
 /* ─── SUCCESS ─── */
 .success-fl{display:none;position:fixed;inset:0;background:rgba(15,20,40,.6);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
@@ -394,6 +403,7 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
   .excel-import-layout{grid-template-columns:1fr}
   .excel-import-file{min-width:0}
   .excel-import-preview{max-height:320px}
+  .excel-search-toolbar{align-items:stretch}
 
   /* インポート画面 */
   .import-steps{flex-direction:column;align-items:flex-start;gap:8px;padding:10px}
