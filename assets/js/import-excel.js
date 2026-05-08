@@ -420,10 +420,11 @@ window.ExcelImport = window.ExcelImport || {
     const el = document.getElementById('excel-search-result');
     if (!el) return;
     const first = matches[0].row;
-    const clinicName = this.formatCell(first[columnMap.clinicName], '医療機関名称') || '—';
+    const clinicName = this.sanitizePreviewText(this.formatCell(first[columnMap.clinicName], '医療機関名称')) || '—';
     const medicalId = this.normalizeMedicalId(first[columnMap.medicalId]) || targetMedicalId;
-    const address = this.joinAddress(first, columnMap);
-    const phone = this.formatCell(first[columnMap.phone], '電話番号') || '—';
+    const address = this.sanitizePreviewText(this.joinAddress(first, columnMap));
+    const phone = this.sanitizePreviewText(this.formatCell(first[columnMap.phone], '電話番号')) || '—';
+    const ledgerPreview = this.convertMatchesToLedgerPreview(matches, columnMap);
     const facilityRows = matches.map(item => {
       const note = this.buildNote(item.row, columnMap);
       return `
@@ -433,10 +434,26 @@ window.ExcelImport = window.ExcelImport || {
           <td>${this.escapeHtml(this.formatCell(item.row[columnMap.acceptanceCode], '受理記号') || '—')}</td>
           <td>${this.escapeHtml(this.formatCell(item.row[columnMap.acceptanceNumber], '受理番号') || '—')}</td>
           <td>${this.escapeHtml(this.formatCell(item.row[columnMap.startDate], '算定開始年月日') || '—')}</td>
-          <td>${this.escapeHtml(note || '—')}</td>
+          <td>${this.escapeHtml(this.sanitizePreviewText(note) || '—')}</td>
         </tr>
       `;
     }).join('');
+    const ledgerRows = ledgerPreview.map(item => `
+      <tr>
+        <td>${this.escapeHtml(item.name)}</td>
+        <td>${this.escapeHtml(item.abbr)}</td>
+        <td>${this.escapeHtml(item.number)}</td>
+        <td>${this.escapeHtml(item.date)}</td>
+        <td>${this.escapeHtml(item.categoryLabel)}</td>
+        <td>${this.escapeHtml(item.statusLabel)}</td>
+        <td>${this.escapeHtml(item.kaiteiLabel)}</td>
+        <td>${this.escapeHtml(item.teireiLabel)}</td>
+        <td>${this.escapeHtml(item.memo)}</td>
+        <td>${this.escapeHtml(item.compareLabel)}</td>
+      </tr>
+    `).join('');
+    const existingCount = ledgerPreview.filter(item => item.compareKey === 'existing').length;
+    const newCount = ledgerPreview.filter(item => item.compareKey === 'new').length;
 
     el.innerHTML = `
       <div class="excel-search-meta">検索番号: ${this.escapeHtml(targetMedicalId)} / 該当件数: ${matches.length}件</div>
@@ -474,20 +491,77 @@ window.ExcelImport = window.ExcelImport || {
           <tbody>${facilityRows}</tbody>
         </table>
       </div>
+      <div class="excel-ledger-summary">
+        <span class="excel-ledger-chip">${ledgerPreview.length}件を台帳形式へ変換</span>
+        <span class="excel-ledger-chip is-existing">既存あり ${existingCount}件</span>
+        <span class="excel-ledger-chip is-new">新規候補 ${newCount}件</span>
+      </div>
+      <div class="excel-import-section-title" style="margin-bottom:8px">台帳形式プレビュー</div>
+      <div class="excel-ledger-note">検索結果を既存の届出台帳に近い形式へ変換した確認用プレビューです。この段階では本体データへ反映しません。</div>
+      <div class="excel-search-result-table-wrap">
+        <table class="excel-import-table excel-ledger-table">
+          <thead>
+            <tr>
+              <th>施設基準名</th>
+              <th>略称</th>
+              <th>受理番号</th>
+              <th>算定開始</th>
+              <th>カテゴリ</th>
+              <th>状態</th>
+              <th>改定影響</th>
+              <th>定例報告</th>
+              <th>メモ</th>
+              <th>比較</th>
+            </tr>
+          </thead>
+          <tbody>${ledgerRows}</tbody>
+        </table>
+      </div>
       <div class="excel-search-placeholder">
         <button class="btn btn-secondary" disabled>届出台帳へ反映（次フェーズ対応予定）</button>
         <span>この段階では抽出確認のみを行います。</span>
       </div>
     `;
   },
+  convertMatchesToLedgerPreview(matches, columnMap) {
+    return matches.map((item, idx) => {
+      const row = item.row;
+      const rawName = this.formatCell(row[columnMap.acceptanceName], '受理届出名称');
+      const rawAbbr = this.formatCell(row[columnMap.acceptanceCode], '受理記号');
+      const rawNumber = this.formatCell(row[columnMap.acceptanceNumber], '受理番号');
+      const rawDate = this.formatCell(row[columnMap.startDate], '算定開始年月日');
+      const rawNote = this.buildNote(row, columnMap);
+      const abbr = this.inferLedgerAbbr(rawAbbr, rawName);
+      const categoryKey = this.inferLedgerCategory(abbr, rawName);
+      const compareKey = this.detectExistingLedgerMatch(abbr, rawNumber) ? 'existing' : 'new';
+      return {
+        id: `excel-preview-${item.excelRow}-${idx}`,
+        name: this.sanitizePreviewText(rawName) || '要確認',
+        abbr: this.sanitizePreviewText(abbr) || '要確認',
+        number: this.sanitizePreviewText(rawNumber) || '要確認',
+        date: this.normalizeDisplayDate(rawDate) || '要確認',
+        category: categoryKey,
+        categoryLabel: this.getCategoryLabel(categoryKey),
+        status: 'yellow',
+        statusLabel: '要確認',
+        kaitei: 'pending',
+        kaiteiLabel: '未判定',
+        teireiLabel: this.inferTeireiLabel(abbr),
+        memo: this.sanitizePreviewText(rawNote) || '要確認',
+        compareKey,
+        compareLabel: compareKey === 'existing' ? '既存あり' : '新規候補'
+      };
+    });
+  },
   detectColumnIndexes(headers) {
     const normalizedHeaders = headers.map(header => this.normalizeHeader(header));
-    const detect = (key) => {
+    const detect = (key, options = {}) => {
       const candidates = this.columnHints[key] || [];
       for (let i = 0; i < normalizedHeaders.length; i++) {
         if (!normalizedHeaders[i]) continue;
         if (candidates.some(candidate => normalizedHeaders[i] === this.normalizeHeader(candidate))) return i;
       }
+      if (options.exactOnly) return -1;
       for (let i = 0; i < normalizedHeaders.length; i++) {
         if (!normalizedHeaders[i]) continue;
         if (candidates.some(candidate => normalizedHeaders[i].includes(this.normalizeHeader(candidate)))) return i;
@@ -506,7 +580,7 @@ window.ExcelImport = window.ExcelImport || {
       startDate: detect('startDate'),
       noteHeader: detect('noteHeader'),
       noteData: detect('noteData'),
-      note: detect('note')
+      note: detect('note', { exactOnly: true })
     };
   },
   normalizeHeader(value) {
@@ -551,7 +625,78 @@ window.ExcelImport = window.ExcelImport || {
       }
       return String(value);
     }
-    return String(value).trim();
+    const text = String(value).trim();
+    if ((columnName || '').includes('年月日')) {
+      return this.normalizeDisplayDate(text) || text;
+    }
+    return text;
+  },
+  normalizeDisplayDate(value) {
+    if (value == null) return '';
+    const text = String(value).trim();
+    if (!text) return '';
+    const iso = text.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if (iso) {
+      return `${iso[1]}/${String(iso[2]).padStart(2, '0')}/${String(iso[3]).padStart(2, '0')}`;
+    }
+    const wareki = text.replace(/\s+/g, '').match(/^(令和|平成|昭和)(\d+)年(\d+)月(\d+)日$/);
+    if (wareki) {
+      const era = wareki[1];
+      const year = Number(wareki[2]);
+      const month = Number(wareki[3]);
+      const day = Number(wareki[4]);
+      const westernYear = era === '令和'
+        ? 2018 + year
+        : era === '平成'
+          ? 1988 + year
+          : 1925 + year;
+      return `${westernYear}/${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+    }
+    return text.replace(/\s+/g, ' ');
+  },
+  sanitizePreviewText(value) {
+    return String(value == null ? '' : value)
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  },
+  inferLedgerAbbr(rawAbbr, rawName) {
+    const abbr = this.sanitizePreviewText(rawAbbr);
+    if (abbr) return abbr;
+    const name = this.sanitizePreviewText(rawName);
+    if (name && typeof ABBR_MAP !== 'undefined' && ABBR_MAP[name]) return ABBR_MAP[name];
+    return '';
+  },
+  inferLedgerCategory(abbr, rawName) {
+    if (abbr && typeof KM !== 'undefined' && KM[abbr] && KM[abbr].c) return KM[abbr].c;
+    const name = this.sanitizePreviewText(rawName);
+    if (name && typeof ABBR_MAP !== 'undefined' && ABBR_MAP[name]) {
+      const mappedAbbr = ABBR_MAP[name];
+      if (typeof KM !== 'undefined' && KM[mappedAbbr] && KM[mappedAbbr].c) return KM[mappedAbbr].c;
+    }
+    return 'other';
+  },
+  getCategoryLabel(categoryKey) {
+    if (typeof CL !== 'undefined' && CL[categoryKey]) return CL[categoryKey];
+    return categoryKey === 'other' ? 'その他' : '要確認';
+  },
+  inferTeireiLabel(abbr) {
+    if (abbr && typeof TEIREI_ROW !== 'undefined' && TEIREI_ROW[abbr]) {
+      return this.sanitizePreviewText(TEIREI_ROW[abbr]);
+    }
+    return '要確認';
+  },
+  detectExistingLedgerMatch(abbr, number) {
+    if (typeof entries === 'undefined' || !Array.isArray(entries)) return false;
+    const normalizedAbbr = this.normalizeCompareValue(abbr);
+    const normalizedNumber = this.normalizeCompareValue(number);
+    return entries.some(entry => {
+      return this.normalizeCompareValue(entry.abbr) === normalizedAbbr
+        && this.normalizeCompareValue(entry.number) === normalizedNumber;
+    });
+  },
+  normalizeCompareValue(value) {
+    return this.sanitizePreviewText(value).replace(/\s+/g, '');
   },
   escapeHtml(value) {
     return String(value)
