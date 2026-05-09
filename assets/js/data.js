@@ -78,6 +78,10 @@ const KB={none:'<span class="badge bgr">変更なし</span>',reapply:'<span clas
 /* ═══ STATE ═══ */
 let entries=JSON.parse(localStorage.getItem('shisetsu_kijun')||'[]');
 let clinicName=localStorage.getItem('clinic_name')||'○○歯科医院';
+const OFFICIAL_DATASET_KEY='official_dataset_cache_v1';
+const OFFICIAL_MANIFEST_META_KEY='official_dataset_manifest_meta_v1';
+let officialDataset=loadStoredJson(OFFICIAL_DATASET_KEY,null);
+let officialManifestMeta=loadStoredJson(OFFICIAL_MANIFEST_META_KEY,null);
 let fStat='all', fCatV='all';
 let pdfPages=[], pdfPageItems=[], parsedImport=[];
 const ADMIN_PASS_HASH_KEY='admin_passphrase_hash_v1';
@@ -109,6 +113,24 @@ if(!entries || !entries.length){
   save();
 }
 function save(){localStorage.setItem('shisetsu_kijun',JSON.stringify(entries));}
+function loadStoredJson(key,fallback){
+  try{
+    const raw=localStorage.getItem(key);
+    return raw?JSON.parse(raw):fallback;
+  }catch{
+    return fallback;
+  }
+}
+function saveOfficialDataset(data){
+  officialDataset=data||null;
+  if(data)localStorage.setItem(OFFICIAL_DATASET_KEY,JSON.stringify(data));
+  else localStorage.removeItem(OFFICIAL_DATASET_KEY);
+}
+function saveOfficialManifestMeta(meta){
+  officialManifestMeta=meta||null;
+  if(meta)localStorage.setItem(OFFICIAL_MANIFEST_META_KEY,JSON.stringify(meta));
+  else localStorage.removeItem(OFFICIAL_MANIFEST_META_KEY);
+}
 function resetToDefault(){
   if(!confirm('台帳をデフォルトデータに戻します。\n現在のデータは消えます。よろしいですか？\n\n（先にデータ管理からバックアップを取ってください）')) return;
   entries=DEFAULT_ENTRIES.map(e=>({...e}));
@@ -136,6 +158,8 @@ const APP_DATE    = '2026-03-18';
 // エクスポート対象のlocalStorageキー一覧
 const DATA_KEYS = {
   shisetsu_kijun:    '届出台帳',
+  official_dataset_cache_v1: '公式配布データセット',
+  official_dataset_manifest_meta_v1: '公式データセット更新情報',
   teirei_records:    '定例報告記録（旧）',
   'teirei_歯初診':   '定例報告：歯初診',
   'teirei_歯外在ベⅠ':'定例報告：ベースアップ',
