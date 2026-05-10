@@ -526,18 +526,32 @@
       </div>
       <div class="fr2">
         <div class="fr">
+          <div class="fl">format</div>
+          <select class="fs" id="excel-dataset-format">
+            <option value="grouped-by-clinic">grouped-by-clinic（推奨）</option>
+            <option value="records">records（従来互換）</option>
+          </select>
+        </div>
+        <div class="fr">
           <div class="fl">area</div>
           <input type="text" class="fi" id="excel-dataset-area" value="tokyo" placeholder="例：tokyo">
         </div>
+      </div>
+      <div class="fr2">
         <div class="fr">
           <div class="fl">category</div>
           <input type="text" class="fi" id="excel-dataset-category" value="dental" placeholder="例：dental">
+        </div>
+        <div class="fr">
+          <div class="fl">推定サイズ</div>
+          <div class="excel-import-file" id="excel-dataset-size-estimate">まだ計算していません</div>
         </div>
       </div>
       <div id="excel-dataset-preview" class="excel-import-empty">まだ配布用JSONは作成されていません。</div>
       <div class="mf" style="margin-top:12px">
         <button class="btn btn-secondary" onclick="generateOfficialDatasetPreview()">📦 配布用JSONを作成</button>
         <button class="btn btn-primary" id="excel-dataset-download-btn" onclick="downloadOfficialDatasetJson()" disabled>⬇ JSONをダウンロード</button>
+        <button class="btn btn-ghost" id="excel-dataset-download-pretty-btn" onclick="downloadOfficialDatasetPrettyJson()" disabled>📝 Pretty JSON</button>
       </div>
     </div>
     <div class="mf">

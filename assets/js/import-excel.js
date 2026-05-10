@@ -121,12 +121,17 @@ window.ExcelImport = window.ExcelImport || {
 
     const downloadBtn = document.getElementById('excel-dataset-download-btn');
     if (downloadBtn) downloadBtn.disabled = true;
+    const prettyBtn = document.getElementById('excel-dataset-download-pretty-btn');
+    if (prettyBtn) prettyBtn.disabled = true;
+    const sizeEl = document.getElementById('excel-dataset-size-estimate');
+    if (sizeEl) sizeEl.textContent = 'まだ計算していません';
 
     const fields = {
       'excel-dataset-id': '',
       'excel-dataset-name': '',
       'excel-dataset-source-date': '',
       'excel-dataset-source-file': this.fileName || '',
+      'excel-dataset-format': 'grouped-by-clinic',
       'excel-dataset-area': 'tokyo',
       'excel-dataset-category': 'dental'
     };
@@ -150,6 +155,8 @@ window.ExcelImport = window.ExcelImport || {
     this.prefillDatasetMetadata();
     try {
       const payload = this.buildOfficialDatasetFromCurrentSheet({ previewOnly: true });
+      const sizeMin = this.estimateJsonSize(payload, false);
+      const sizePretty = this.estimateJsonSize(payload, true);
       summary.innerHTML = `
         <div class="dataset-summary-grid">
           <div class="dataset-summary-card"><div class="dataset-summary-label">レコード数</div><div class="dataset-summary-value">${payload.recordCount}件</div></div>
@@ -157,8 +164,10 @@ window.ExcelImport = window.ExcelImport || {
           <div class="dataset-summary-card"><div class="dataset-summary-label">対象地域</div><div class="dataset-summary-value">${this.escapeHtml(payload.area || 'tokyo')}</div></div>
           <div class="dataset-summary-card"><div class="dataset-summary-label">診療区分</div><div class="dataset-summary-value">${this.escapeHtml(payload.category || 'dental')}</div></div>
         </div>
-        <div class="dataset-compare-note">見出し行 ${payload.headerDisplayRow}行目を基準に、${payload.sourceSheetName} シート全体から正規化候補を集計しています。</div>
+        <div class="dataset-compare-note">見出し行 ${payload.headerDisplayRow}行目を基準に、${payload.sourceSheetName} シート全体から正規化候補を集計しています。推定サイズ: minify ${sizeMin.label} / pretty ${sizePretty.label}</div>
       `;
+      const sizeEl = document.getElementById('excel-dataset-size-estimate');
+      if (sizeEl) sizeEl.textContent = `minify ${sizeMin.label} / pretty ${sizePretty.label}`;
     } catch (err) {
       summary.innerHTML = `<div class="excel-import-empty">${this.escapeHtml(err.message)}</div>`;
     }
@@ -752,17 +761,18 @@ window.ExcelImport = window.ExcelImport || {
     const datasetName = (document.getElementById('excel-dataset-name')?.value || '').trim();
     const sourceDate = (document.getElementById('excel-dataset-source-date')?.value || '').trim();
     const sourceFileName = (document.getElementById('excel-dataset-source-file')?.value || this.fileName || '').trim();
+    const format = (document.getElementById('excel-dataset-format')?.value || 'grouped-by-clinic').trim() || 'grouped-by-clinic';
     const area = (document.getElementById('excel-dataset-area')?.value || 'tokyo').trim() || 'tokyo';
     const category = (document.getElementById('excel-dataset-category')?.value || 'dental').trim() || 'dental';
     const createdAt = new Date().toISOString();
-    const records = ctx.rows
+    const normalizedRecords = ctx.rows
       .map((row, idx) => ({ row, internalIndex: idx, excelRow: ctx.rowStart + idx }))
       .filter(item => item.internalIndex > ctx.headerInternalIndex && this.isNonEmptyRow(item.row))
       .map(item => this.normalizeOfficialRecord(item, columnMap))
-      .filter(record => record.medicalId && record.acceptanceName);
-    const uniqueMedicalIds = new Set(records.map(record => record.medicalId));
+      .filter(record => record.medicalInstitutionNumber && record.acceptedName);
+    const groupedClinics = this.groupRecordsByClinic(normalizedRecords);
     const payload = {
-      schemaVersion: 'official-dataset-v1',
+      schemaVersion: '1.1.0',
       datasetId: datasetId || this.inferDatasetDefaults().datasetId,
       datasetName: datasetName || this.inferDatasetDefaults().datasetName,
       sourceFileName,
@@ -770,12 +780,19 @@ window.ExcelImport = window.ExcelImport || {
       createdAt,
       area,
       category,
+      format,
       sourceSheetName: this.selectedSheet,
-      headerDisplayRow: ctx.headerDisplayRow,
-      recordCount: records.length,
-      institutionCount: uniqueMedicalIds.size,
-      records
+      headerDisplayRow: ctx.headerDisplayRow
     };
+    if (format === 'records') {
+      payload.records = normalizedRecords;
+    } else {
+      payload.recordsByClinic = groupedClinics;
+    }
+    const stats = this.getOfficialDatasetStats(payload);
+    payload.recordCount = stats.recordCount;
+    payload.institutionCount = stats.institutionCount;
+    payload.facilityCount = stats.facilityCount;
     if (!options.previewOnly) {
       this.lastDatasetPreview = payload;
     }
@@ -785,24 +802,47 @@ window.ExcelImport = window.ExcelImport || {
     const row = item.row;
     const note = this.buildNote(row, columnMap);
     return {
-      medicalId: this.normalizeMedicalId(row[columnMap.medicalId]),
+      medicalInstitutionNumber: this.normalizeMedicalId(row[columnMap.medicalId]),
       clinicName: this.sanitizePreviewText(this.formatCell(row[columnMap.clinicName], '医療機関名称')),
-      address: this.sanitizePreviewText(this.joinAddress(row, columnMap)),
+      address: this.buildCompactAddress(row, columnMap),
       phone: this.sanitizePreviewText(this.formatCell(row[columnMap.phone], '電話番号')),
-      acceptanceName: this.sanitizePreviewText(this.formatCell(row[columnMap.acceptanceName], '受理届出名称')),
-      acceptanceCode: this.sanitizePreviewText(this.formatCell(row[columnMap.acceptanceCode], '受理記号')),
-      acceptanceNumber: this.sanitizePreviewText(this.formatCell(row[columnMap.acceptanceNumber], '受理番号')),
-      startDate: this.normalizeEntryDate(this.formatCell(row[columnMap.startDate], '算定開始年月日')),
-      startDateDisplay: this.normalizeDisplayDate(this.formatCell(row[columnMap.startDate], '算定開始年月日')),
-      note: this.sanitizePreviewText(note),
-      noteHeader: this.sanitizePreviewText(this.formatCell(row[columnMap.noteHeader], '備考（見出し）')),
-      noteData: this.sanitizePreviewText(this.formatCell(row[columnMap.noteData], '備考（データ）')),
-      excelRow: item.excelRow
+      acceptedName: this.sanitizePreviewText(this.formatCell(row[columnMap.acceptanceName], '受理届出名称')),
+      acceptedCode: this.sanitizePreviewText(this.formatCell(row[columnMap.acceptanceCode], '受理記号')),
+      acceptedNumber: this.sanitizePreviewText(this.formatCell(row[columnMap.acceptanceNumber], '受理番号')),
+      startDate: this.normalizeDisplayDate(this.formatCell(row[columnMap.startDate], '算定開始年月日')),
+      remarks: this.sanitizePreviewText(note)
     };
+  },
+  groupRecordsByClinic(records) {
+    const grouped = new Map();
+    records.forEach(record => {
+      const key = record.medicalInstitutionNumber;
+      if (!key) return;
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          medicalInstitutionNumber: key,
+          clinicName: record.clinicName || '',
+          address: record.address || '',
+          phone: record.phone || '',
+          facilities: []
+        });
+      }
+      grouped.get(key).facilities.push({
+        acceptedName: record.acceptedName || '',
+        acceptedCode: record.acceptedCode || '',
+        acceptedNumber: record.acceptedNumber || '',
+        startDate: record.startDate || '',
+        remarks: record.remarks || ''
+      });
+    });
+    return Array.from(grouped.values());
   },
   generateOfficialDatasetPreview() {
     try {
       const payload = this.buildOfficialDatasetFromCurrentSheet();
+      const stats = this.getOfficialDatasetStats(payload);
+      const sizeMin = this.estimateJsonSize(payload, false);
+      const sizePretty = this.estimateJsonSize(payload, true);
       const preview = document.getElementById('excel-dataset-preview');
       if (preview) {
         preview.innerHTML = `
@@ -811,29 +851,37 @@ window.ExcelImport = window.ExcelImport || {
               <div class="dataset-summary-card"><div class="dataset-summary-label">datasetId</div><div class="dataset-summary-value">${this.escapeHtml(payload.datasetId)}</div></div>
               <div class="dataset-summary-card"><div class="dataset-summary-label">datasetName</div><div class="dataset-summary-value">${this.escapeHtml(payload.datasetName)}</div></div>
               <div class="dataset-summary-card"><div class="dataset-summary-label">sourceDate</div><div class="dataset-summary-value">${this.escapeHtml(payload.sourceDate || '要確認')}</div></div>
-              <div class="dataset-summary-card"><div class="dataset-summary-label">records</div><div class="dataset-summary-value">${payload.recordCount}件 / ${payload.institutionCount}医療機関</div></div>
+              <div class="dataset-summary-card"><div class="dataset-summary-label">format</div><div class="dataset-summary-value">${this.escapeHtml(payload.format)}</div></div>
+              <div class="dataset-summary-card"><div class="dataset-summary-label">医療機関数</div><div class="dataset-summary-value">${stats.institutionCount}件</div></div>
+              <div class="dataset-summary-card"><div class="dataset-summary-label">施設基準件数</div><div class="dataset-summary-value">${stats.facilityCount}件</div></div>
+              <div class="dataset-summary-card"><div class="dataset-summary-label">JSONサイズ</div><div class="dataset-summary-value">${this.formatBytes(sizeMin.bytes)}</div></div>
             </div>
             <div class="dataset-compare-note">
               <div><strong>sourceFileName:</strong> ${this.escapeHtml(payload.sourceFileName || this.fileName || '要確認')}</div>
               <div><strong>createdAt:</strong> ${this.escapeHtml(payload.createdAt)}</div>
               <div><strong>sourceSheetName:</strong> ${this.escapeHtml(payload.sourceSheetName)}</div>
+              <div><strong>出力形式:</strong> minify ${this.escapeHtml(sizeMin.label)} / pretty ${this.escapeHtml(sizePretty.label)}</div>
             </div>
-            <div class="excel-import-empty">JSONダウンロード時には <code>records</code> に全医療機関分の正規化データを保存します。</div>
+            <div class="excel-import-empty">JSONダウンロード時には ${payload.format==='grouped-by-clinic' ? '<code>recordsByClinic</code>' : '<code>records</code>'} に必要項目のみを保存します。</div>
           </div>
         `;
       }
+      const sizeEl = document.getElementById('excel-dataset-size-estimate');
+      if (sizeEl) sizeEl.textContent = `minify ${sizeMin.label} / pretty ${sizePretty.label}`;
       const downloadBtn = document.getElementById('excel-dataset-download-btn');
-      if (downloadBtn) downloadBtn.disabled = payload.recordCount === 0;
+      if (downloadBtn) downloadBtn.disabled = stats.facilityCount === 0;
+      const prettyBtn = document.getElementById('excel-dataset-download-pretty-btn');
+      if (prettyBtn) prettyBtn.disabled = stats.facilityCount === 0;
       this.setError('');
     } catch (err) {
       this.setError(`配布用JSONの作成に失敗しました。\n${err.message}`);
     }
   },
-  downloadOfficialDatasetJson() {
+  downloadOfficialDatasetJson(pretty = false) {
     try {
       const payload = this.lastDatasetPreview || this.buildOfficialDatasetFromCurrentSheet();
-      const fileName = `${payload.datasetId || 'official-dataset'}.json`;
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+      const fileName = `${payload.datasetId || 'official-dataset'}${pretty ? '.pretty' : ''}.json`;
+      const blob = new Blob([JSON.stringify(payload, null, pretty ? 2 : 0)], { type: 'application/json;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -844,6 +892,61 @@ window.ExcelImport = window.ExcelImport || {
     } catch (err) {
       this.setError(`JSONダウンロードに失敗しました。\n${err.message}`);
     }
+  },
+  estimateJsonSize(payload, pretty = false) {
+    const json = JSON.stringify(payload, null, pretty ? 2 : 0);
+    const bytes = new TextEncoder().encode(json).length;
+    return { bytes, label: this.formatBytes(bytes) };
+  },
+  formatBytes(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MiB`;
+  },
+  getOfficialDatasetStats(dataset) {
+    const flatRecords = this.flattenOfficialDatasetRecords(dataset);
+    const institutionSet = new Set(flatRecords.map(record => this.normalizeMedicalId(record.medicalInstitutionNumber || record.medicalId)));
+    return {
+      recordCount: flatRecords.length,
+      facilityCount: flatRecords.length,
+      institutionCount: institutionSet.size
+    };
+  },
+  flattenOfficialDatasetRecords(dataset) {
+    if (!dataset || typeof dataset !== 'object') return [];
+    if (Array.isArray(dataset.recordsByClinic)) {
+      return dataset.recordsByClinic.flatMap(clinic => {
+        const medicalInstitutionNumber = this.normalizeMedicalId(clinic.medicalInstitutionNumber || clinic.medicalId);
+        const clinicName = this.sanitizePreviewText(clinic.clinicName);
+        const address = this.sanitizePreviewText(clinic.address);
+        const phone = this.sanitizePreviewText(clinic.phone);
+        return Array.isArray(clinic.facilities) ? clinic.facilities.map(facility => ({
+          medicalInstitutionNumber,
+          clinicName,
+          address,
+          phone,
+          acceptedName: this.sanitizePreviewText(facility.acceptedName || facility.acceptanceName),
+          acceptedCode: this.sanitizePreviewText(facility.acceptedCode || facility.acceptanceCode),
+          acceptedNumber: this.sanitizePreviewText(facility.acceptedNumber || facility.acceptanceNumber),
+          startDate: this.normalizeDisplayDate(facility.startDate || facility.startDateDisplay),
+          remarks: this.sanitizePreviewText(facility.remarks || facility.note || facility.noteData || '')
+        })) : [];
+      });
+    }
+    if (Array.isArray(dataset.records)) {
+      return dataset.records.map(record => ({
+        medicalInstitutionNumber: this.normalizeMedicalId(record.medicalInstitutionNumber || record.medicalId),
+        clinicName: this.sanitizePreviewText(record.clinicName),
+        address: this.sanitizePreviewText(record.address),
+        phone: this.sanitizePreviewText(record.phone),
+        acceptedName: this.sanitizePreviewText(record.acceptedName || record.acceptanceName),
+        acceptedCode: this.sanitizePreviewText(record.acceptedCode || record.acceptanceCode),
+        acceptedNumber: this.sanitizePreviewText(record.acceptedNumber || record.acceptanceNumber),
+        startDate: this.normalizeDisplayDate(record.startDate || record.startDateDisplay),
+        remarks: this.sanitizePreviewText(record.remarks || record.note || '')
+      }));
+    }
+    return [];
   },
   detectColumnIndexes(headers) {
     const normalizedHeaders = headers.map(header => this.normalizeHeader(header));
@@ -891,6 +994,16 @@ window.ExcelImport = window.ExcelImport || {
     const postal = this.formatCell(row[columnMap.postalCode], '医療機関所在地（郵便番号)');
     const address = this.formatCell(row[columnMap.address], '医療機関所在地（住所)');
     return [postal, address].filter(Boolean).join(' ');
+  },
+  buildCompactAddress(row, columnMap) {
+    const postal = this.formatPostalCode(this.formatCell(row[columnMap.postalCode], '医療機関所在地（郵便番号)'));
+    const address = this.sanitizePreviewText(this.formatCell(row[columnMap.address], '医療機関所在地（住所)'));
+    return [postal, address].filter(Boolean).join(' ');
+  },
+  formatPostalCode(value) {
+    const digits = String(value == null ? '' : value).replace(/[^\d]/g, '');
+    if (digits.length === 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    return this.sanitizePreviewText(value);
   },
   buildNote(row, columnMap) {
     const noteSingle = this.formatCell(row[columnMap.note], '備考');
@@ -1046,7 +1159,8 @@ window.ExcelImport = window.ExcelImport || {
     }
     const summary = document.getElementById('official-dataset-summary');
     if (!summary) return;
-    if (!officialDataset || !Array.isArray(officialDataset.records)) {
+    const stats = this.getOfficialDatasetStats(officialDataset);
+    if (!officialDataset || !stats.facilityCount) {
       summary.innerHTML = '<div class="excel-import-empty">公式JSONを読み込むと、ここに datasetId・作成日・件数などを表示します。</div>';
       return;
     }
@@ -1058,7 +1172,8 @@ window.ExcelImport = window.ExcelImport || {
         <div class="dataset-summary-card"><div class="dataset-summary-label">datasetId</div><div class="dataset-summary-value">${this.escapeHtml(officialDataset.datasetId || '—')}</div></div>
         <div class="dataset-summary-card"><div class="dataset-summary-label">datasetName</div><div class="dataset-summary-value">${this.escapeHtml(officialDataset.datasetName || '—')}</div></div>
         <div class="dataset-summary-card"><div class="dataset-summary-label">sourceDate</div><div class="dataset-summary-value">${this.escapeHtml(officialDataset.sourceDate || '—')}</div></div>
-        <div class="dataset-summary-card"><div class="dataset-summary-label">records</div><div class="dataset-summary-value">${Number(officialDataset.recordCount || officialDataset.records.length || 0)}件 / ${Number(officialDataset.institutionCount || 0)}医療機関</div></div>
+        <div class="dataset-summary-card"><div class="dataset-summary-label">format</div><div class="dataset-summary-value">${this.escapeHtml(officialDataset.format || (Array.isArray(officialDataset.recordsByClinic) ? 'grouped-by-clinic' : 'records'))}</div></div>
+        <div class="dataset-summary-card"><div class="dataset-summary-label">施設基準件数</div><div class="dataset-summary-value">${stats.facilityCount}件 / ${stats.institutionCount}医療機関</div></div>
       </div>
       <div class="dataset-compare-note">
         <div><strong>sourceFileName:</strong> ${this.escapeHtml(officialDataset.sourceFileName || '—')}</div>
@@ -1090,13 +1205,15 @@ window.ExcelImport = window.ExcelImport || {
   },
   validateOfficialDataset(dataset) {
     if (!dataset || typeof dataset !== 'object') throw new Error('JSONの形式が不正です。');
-    if (!dataset.schemaVersion || !String(dataset.schemaVersion).startsWith('official-dataset')) throw new Error('schemaVersion が official-dataset ではありません。');
+    const schema = String(dataset.schemaVersion || '');
+    if (!(schema === '1.1.0' || schema.startsWith('official-dataset'))) throw new Error('schemaVersion が対応形式ではありません。');
     if (!dataset.datasetId) throw new Error('datasetId がありません。');
-    if (!Array.isArray(dataset.records)) throw new Error('records 配列がありません。');
+    if (!Array.isArray(dataset.records) && !Array.isArray(dataset.recordsByClinic)) throw new Error('records または recordsByClinic がありません。');
   },
   searchOfficialDatasetMedicalInstitution() {
     this.setOfficialDatasetError('');
-    if (!officialDataset || !Array.isArray(officialDataset.records)) {
+    const records = this.flattenOfficialDatasetRecords(officialDataset);
+    if (!officialDataset || !records.length) {
       this.setOfficialDatasetError('先に公式JSONデータセットを読み込んでください。');
       return;
     }
@@ -1106,30 +1223,32 @@ window.ExcelImport = window.ExcelImport || {
       this.setOfficialDatasetError('医療機関番号を入力してください。');
       return;
     }
-    const records = officialDataset.records.filter(record => this.normalizeMedicalId(record.medicalId) === medicalId);
+    const filtered = records.filter(record => this.normalizeMedicalId(record.medicalInstitutionNumber || record.medicalId) === medicalId);
     const result = document.getElementById('official-dataset-result');
     if (!result) return;
-    if (!records.length) {
+    if (!filtered.length) {
       this.lastOfficialCompareResult = null;
       result.innerHTML = `<div class="excel-import-empty">該当する医療機関番号が見つかりません。<br>検索番号: ${this.escapeHtml(medicalId)}</div>`;
       return;
     }
-    const ledgerRows = this.convertOfficialRecordsToLedgerPreview(records);
+    const ledgerRows = this.convertOfficialRecordsToLedgerPreview(filtered);
     const compareResult = this.compareOfficialLedgerWithEntries(ledgerRows);
     this.lastOfficialCompareResult = compareResult;
     this.renderOfficialDatasetCompareResult(compareResult, medicalId);
   },
   convertOfficialRecordsToLedgerPreview(records) {
     return records.map((record, idx) => {
-      const abbr = this.inferLedgerAbbr(record.acceptanceCode, record.acceptanceName);
-      const category = this.inferLedgerCategory(abbr, record.acceptanceName);
+      const abbr = this.inferLedgerAbbr(record.acceptedCode || record.acceptanceCode, record.acceptedName || record.acceptanceName);
+      const acceptedName = record.acceptedName || record.acceptanceName;
+      const acceptedNumber = record.acceptedNumber || record.acceptanceNumber;
+      const category = this.inferLedgerCategory(abbr, acceptedName);
       return {
-        id: `official-${record.medicalId}-${idx}`,
-        medicalId: this.normalizeMedicalId(record.medicalId),
+        id: `official-${record.medicalInstitutionNumber || record.medicalId}-${idx}`,
+        medicalId: this.normalizeMedicalId(record.medicalInstitutionNumber || record.medicalId),
         clinicName: this.sanitizePreviewText(record.clinicName) || '要確認',
-        name: this.sanitizePreviewText(record.acceptanceName) || '要確認',
+        name: this.sanitizePreviewText(acceptedName) || '要確認',
         abbr: this.sanitizePreviewText(abbr) || '要確認',
-        number: this.sanitizePreviewText(record.acceptanceNumber) || '要確認',
+        number: this.sanitizePreviewText(acceptedNumber) || '要確認',
         date: this.normalizeDisplayDate(record.startDateDisplay || record.startDate) || '要確認',
         entryDate: this.normalizeEntryDate(record.startDateDisplay || record.startDate) || '',
         category,
@@ -1139,7 +1258,7 @@ window.ExcelImport = window.ExcelImport || {
         kaitei: 'none',
         kaiteiLabel: '変更なし',
         teireiLabel: this.inferTeireiLabel(abbr),
-        memo: this.sanitizePreviewText(record.note) || '要確認',
+        memo: this.sanitizePreviewText(record.remarks || record.note) || '要確認',
         address: this.sanitizePreviewText(record.address) || '—',
         phone: this.sanitizePreviewText(record.phone) || '—'
       };
@@ -1431,7 +1550,11 @@ function generateOfficialDatasetPreview() {
 }
 
 function downloadOfficialDatasetJson() {
-  ExcelImport.downloadOfficialDatasetJson();
+  ExcelImport.downloadOfficialDatasetJson(false);
+}
+
+function downloadOfficialDatasetPrettyJson() {
+  ExcelImport.downloadOfficialDatasetJson(true);
 }
 
 function openOfficialDatasetModal() {
