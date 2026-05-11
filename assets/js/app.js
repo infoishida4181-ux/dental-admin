@@ -308,7 +308,7 @@ const KAITEI_AUTO_MAP = {
   '歯外在ベⅡ':  { kaitei:'reapply', status:'red',    memo:'令和8年改定で施設基準届出が必要（5月7日受付開始・5月31日送付期限（6月1日必着））。賃金改善計画書は算定開始前月末までに専用メールアドレスへ添付送付（6月算定開始なら5月末が期限）。8月報告は継続施設＝前年分実績報告、新規施設＝中間報告。' },
   '口管強':      { kaitei:'check',   status:'yellow', memo:'口腔機能実地指導料（令和8年6月新設）との関係要確認。要件への影響は厚生局告示で確認のこと。' },
   '歯ＣＡＤ':   { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で全大臼歯に拡大・材料区分変更。様式変更の有無を厚生局に確認のこと。' },
-  '医療ＤＸ':   { kaitei:'expire',  status:'red',    memo:'令和8年6月改定で廃止・再編。後継は「電子的歯科診療情報連携体制加算」（新設）。既届出施設は厚生局の案内に従い対応要確認。' },
+  '医療ＤＸ':   { kaitei:'expire',  status:'red',    memo:'令和8年6月改定で廃止・再編。後継は「電子的歯科診療情報連携体制整備加算」（新設）。既届出施設は厚生局の案内に従い対応要確認。' },
   '咀嚼能力':   { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準が廃止→算定要件化の可能性あり。届出不要になる場合は辞退届不要。厚生局告示を要確認。' },
   '咬合圧':     { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準が廃止→算定要件化の可能性あり。届出不要になる場合は辞退届不要。厚生局告示を要確認。' },
   '外安全１':   { kaitei:'check',   status:'yellow', memo:'令和8年改定で様式変更あり。要件充足を再確認のこと。' },
@@ -1884,6 +1884,35 @@ function getShinkiPastPage(def){
   return def?.category === 'basic' ? SHINKI_OFFICIAL_LINKS.r06Basic : SHINKI_OFFICIAL_LINKS.r06Special;
 }
 
+const ELECTRONIC_DENTAL_DX_MASTER = {
+  ryakusho: '（歯医DX1・歯医DX2）',
+  name: '電子的歯科診療情報連携体制整備加算',
+  category: 'basic',
+  score: '加算1: 初診時9点 / 加算2: 初診時4点 / 再診時: 月1回2点',
+  scoreItems: [
+    { label: '電子的歯科診療情報連携体制整備加算1', value: '初診時 9点' },
+    { label: '電子的歯科診療情報連携体制整備加算2', value: '初診時 4点' },
+    { label: '再診時', value: '月1回 2点' }
+  ],
+  summary: '令和8年度診療報酬改定で新設。医療情報取得加算および医療DX推進体制整備加算を整理・再編した、歯科初診料・再診料に係る施設基準。オンライン資格確認、診療情報の取得・活用、医療DX推進体制、明細書無償交付、ウェブサイト掲示等の体制を評価する。',
+  prereq: [],
+  isNew: true,
+  newNote: '🆕【令和8年度改定に伴う新規届出事項】令和6年度の医療DX推進体制整備加算を届け出ている医療機関でも、令和8年6月1日以降に算定する場合は改めて届出が必要です。',
+  requirements: [
+    '対象は歯科 初診料・再診料',
+    '受理番号は歯医DX1または歯医DX2',
+    '施設基準通知は別添1 1の8',
+    '届出様式は様式1の6',
+    'オンライン資格確認、診療情報の取得・活用、医療DX推進体制、明細書無償交付、ウェブサイト掲示等の体制を整備',
+  ],
+  note: '施設基準の届出情報と算定点数情報を混同しないよう、点数は歯科初診時の加算1・加算2と再診時を分けて確認してください。',
+  yoshiki: [
+    {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html', keyword:'歯医DX'},
+  ],
+  sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html',
+  flow: ['歯医DX1または歯医DX2の区分を確認','オンライン資格確認・診療情報活用・掲示等の体制を整備','様式1の6を記載して厚生局へ届出','令和6年度の医療DX推進体制整備加算から自動移行しないため、令和8年6月1日以降の算定には改めて届出'],
+};
+
 const SHINKI_MASTER = {
 
   /* ════════════════════════════════
@@ -1985,14 +2014,14 @@ const SHINKI_MASTER = {
     name: '医療DX推進体制整備加算（令和8年6月廃止・再編）',
     category: 'basic',
     score: '令和8年6月改定で廃止',
-    summary: '令和8年6月改定で廃止・再編されました。後継として「電子的歯科診療情報連携体制加算」が新設されています。既に届出している施設は厚生局の案内に従い対応してください。',
+    summary: '令和8年6月改定で廃止・再編されました。後継として「電子的歯科診療情報連携体制整備加算」が新設されています。既に届出している施設は厚生局の案内に従い対応してください。',
     prereq: [],
     abolished: true,
-    abolishNote: '🚫【令和8年6月廃止・再編】医療DX推進体制整備加算は廃止され、「電子的歯科診療情報連携体制加算」として一新されました。新設された加算の届出が必要です。',
+    abolishNote: '🚫【令和8年6月廃止・再編】医療DX推進体制整備加算は廃止され、「電子的歯科診療情報連携体制整備加算」として一新されました。新設された加算の届出が必要です。',
     requirements: [
-      '【廃止】令和8年6月以降は「電子的歯科診療情報連携体制加算」として新規届出が必要',
+      '【廃止】令和8年6月以降は「電子的歯科診療情報連携体制整備加算」として新規届出が必要',
     ],
-    note: '🚫 令和8年6月廃止・再編。新設の「電子的歯科診療情報連携体制加算」（略称：電子的歯科連携）を参照のこと。',
+    note: '🚫 令和8年6月廃止・再編。新設の「電子的歯科診療情報連携体制整備加算」（略称：電子的歯科連携）を参照のこと。',
     yoshiki: [
       {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html', keyword:'医療ＤＸ'},
     ],
@@ -2580,25 +2609,19 @@ const SHINKI_MASTER = {
   },
 
   '電子的歯科連携': {
-    ryakusho: '（電子的歯科連携）',
-    name: '電子的歯科診療情報連携体制整備加算',
-    category: 'basic',
-    score: '電子的歯科診療情報連携体制整備加算：500点（1の(1)）',
-    summary: '令和8年6月改定で新設。旧「医療DX推進体制整備加算」を廃止・一新した加算。歯科診療情報を電子的に共有・連携する体制を評価する。',
-    prereq: [],
-    isNew: true,
-    newNote: '🆕【令和8年6月新設】旧「医療DX推進体制整備加算」の後継。新規届出が必要。',
-    requirements: [
-      '電子カルテ情報共有サービスまたは歯科診療情報を電子的に連携できる体制を有すること',
-      '他の医療機関・歯科医療機関との電子的情報共有の実績',
-      '院内掲示・ウェブサイト掲載',
-    ],
-    note: '令和8年6月新設。旧医療DX加算から一新されているため、既届出施設も新規届出が必要。届出様式・詳細要件は厚生局告示で確認のこと。',
-    yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'電子的歯科'},
-    ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
-    flow: ['医療ＤＸ届出確認','電子カルテ情報共有サービスへの対応','届出書を記載して厚生局へ郵送'],
+    ...ELECTRONIC_DENTAL_DX_MASTER,
+  },
+
+  '歯医DX1': {
+    ...ELECTRONIC_DENTAL_DX_MASTER,
+    ryakusho: '（歯医DX1）',
+    score: '電子的歯科診療情報連携体制整備加算1: 初診時9点 / 再診時: 月1回2点',
+  },
+
+  '歯医DX2': {
+    ...ELECTRONIC_DENTAL_DX_MASTER,
+    ryakusho: '（歯医DX2）',
+    score: '電子的歯科診療情報連携体制整備加算2: 初診時4点 / 再診時: 月1回2点',
   },
 
   /* ════════════════════════════════
@@ -2630,14 +2653,14 @@ const SHINKI_MASTER = {
 
 // カテゴリ順・表示グループ
 const SHINKI_GROUPS = [
-  { label:'🏥 基本診療料（歯科）', abbrs:['歯初診','外安全１','外感染１','口管強','歯情報通信'] },
+  { label:'🏥 基本診療料（歯科）', abbrs:['歯初診','外安全１','外感染１','口管強','歯情報通信','歯医DX1','歯医DX2'] },
   { label:'🏠 在宅・訪問診療', abbrs:['歯訪診','在支歯','歯地連','在宅ＤＸ'] },
   { label:'💊 全身管理', abbrs:['機安歯','医管','在歯管'] },
   { label:'🔬 検査・機能評価', abbrs:['咀嚼能力','咬合圧','口細菌','歯画診'] },
   { label:'🦷 補綴・技工', abbrs:['歯ＣＡＤ','光印象','歯技連１','歯技工','補管'] },
   { label:'🔭 外科・精密治療', abbrs:['手顕微加','根切顕微','ＧＴＲ'] },
   { label:'💡 処置・その他', abbrs:['口腔粘膜','う蝕無痛'] },
-  { label:'🆕 令和8年6月新設（施設基準）', abbrs:['口腔機能実地','電子的歯科連携','三次元プリント義歯','特別管理加算','歯科麻酔','歯技工所ベースアップ'] },
+  { label:'🆕 令和8年6月新設（施設基準）', abbrs:['口腔機能実地','三次元プリント義歯','特別管理加算','歯科麻酔','歯技工所ベースアップ'] },
   { label:'🚫 令和8年6月廃止・再編', abbrs:['医療ＤＸ'] },
   { label:'💰 賃上げ', abbrs:['歯外在ベⅠ'] },
 ];
@@ -2646,6 +2669,7 @@ let _shinkiSelected = null;
 
 function renderShinki(){
   const alreadyHave = new Set(entries.map(e => e.abbr));
+  if(alreadyHave.has('歯医DX1') || alreadyHave.has('歯医DX2')) alreadyHave.add('電子的歯科連携');
 
   let html = `
     <div id="shinki-layout" style="display:grid;grid-template-columns:240px 1fr;gap:16px;height:calc(100vh - 120px);overflow:hidden">
@@ -2701,6 +2725,7 @@ function showShinkiDetail(abbr){
   const def = SHINKI_MASTER[abbr];
   if(!def) return;
   const alreadyHave = new Set(entries.map(e => e.abbr));
+  if(alreadyHave.has('歯医DX1') || alreadyHave.has('歯医DX2')) alreadyHave.add('電子的歯科連携');
   const have = alreadyHave.has(abbr);
 
   // 前提条件の充足確認
@@ -2736,9 +2761,21 @@ function showShinkiDetail(abbr){
             ? '<span class="badge bg" style="font-size:11px;padding:5px 12px;flex-shrink:0">✓ 届出済み</span>'
             : '<span class="badge by" style="font-size:11px;padding:5px 12px;flex-shrink:0">未届出</span>'}
         </div>
-        <div style="margin-top:12px;padding:8px 12px;background:var(--blue-bg);border-radius:6px;font-size:12px;color:var(--accent);font-weight:600">
-          💰 算定点数：${def.score}
-        </div>
+        ${def.scoreItems ? `
+          <div style="margin-top:12px;padding:10px 12px;background:var(--blue-bg);border-radius:6px;font-size:12px;color:var(--accent);font-weight:600">
+            <div style="margin-bottom:6px">💰 算定点数</div>
+            ${def.scoreItems.map(item => `
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0;border-top:1px solid #bfdbfe">
+                <span>${item.label}</span>
+                <strong style="white-space:nowrap">${item.value}</strong>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <div style="margin-top:12px;padding:8px 12px;background:var(--blue-bg);border-radius:6px;font-size:12px;color:var(--accent);font-weight:600">
+            💰 算定点数：${def.score}
+          </div>
+        `}
       </div>
 
       ${prereqStatus.length > 0 ? `
@@ -3312,7 +3349,7 @@ function parseKijunBlock(block){
       // 🟡 要件確認必要
       '口管強':      { kaitei:'check',   status:'yellow', memo:'口腔機能実地指導料（令和8年6月新設）との関係要確認。要件への影響は厚生局告示で確認のこと。' },
       '歯ＣＡＤ':   { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で全大臼歯に拡大・材料区分変更。様式変更の有無を厚生局に確認のこと。' },
-      '医療ＤＸ':   { kaitei:'expire',  status:'red',    memo:'令和8年6月改定で廃止・再編。後継は「電子的歯科診療情報連携体制加算」（新設）。既届出施設は厚生局の案内に従い対応要確認。' },
+      '医療ＤＸ':   { kaitei:'expire',  status:'red',    memo:'令和8年6月改定で廃止・再編。後継は「電子的歯科診療情報連携体制整備加算」（新設）。既届出施設は厚生局の案内に従い対応要確認。' },
       '咀嚼能力':   { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準が廃止→算定要件化の可能性あり。届出不要になる場合は辞退届不要。厚生局告示を要確認。' },
       '咬合圧':     { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準が廃止→算定要件化の可能性あり。届出不要になる場合は辞退届不要。厚生局告示を要確認。' },
       '外安全１':   { kaitei:'check',   status:'yellow', memo:'令和8年改定で様式変更あり。要件充足を再確認のこと。' },
@@ -3346,7 +3383,7 @@ function loadDemoData(){
     '歯外在ベⅠ':  { kaitei:'reapply', status:'red',    memo:'令和8年改定で施設基準届出が必要（5月7日受付開始・5月31日送付期限（6月1日必着））。賃金改善計画書は算定開始前月末までに専用メールアドレスへ添付送付（6月算定開始なら5月末が期限）。8月報告は継続施設＝前年分実績報告、新規施設＝中間報告。' },
     '口管強':      { kaitei:'check',   status:'yellow', memo:'口腔機能実地指導料（令和8年6月新設）との関係要確認。要件への影響は厚生局告示で確認のこと。' },
     '歯ＣＡＤ':   { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で全大臼歯に拡大・材料区分変更。様式変更の有無を厚生局に確認のこと。' },
-    '医療ＤＸ':   { kaitei:'expire',  status:'red',    memo:'令和8年6月改定で廃止・再編。後継は「電子的歯科診療情報連携体制加算」（新設）。既届出施設は厚生局の案内に従い対応要確認。' },
+    '医療ＤＸ':   { kaitei:'expire',  status:'red',    memo:'令和8年6月改定で廃止・再編。後継は「電子的歯科診療情報連携体制整備加算」（新設）。既届出施設は厚生局の案内に従い対応要確認。' },
     '外安全１':   { kaitei:'check',   status:'yellow', memo:'令和8年改定で様式変更あり。要件充足を再確認のこと。' },
     '外感染１':   { kaitei:'check',   status:'yellow', memo:'令和8年改定で要件変更あり。院内感染管理者配置等を再確認のこと。' },
     '歯初診':     { kaitei:'grace',   status:'yellow', memo:'令和8年改定で様式27の定例報告が廃止。施設基準自体は継続。' },

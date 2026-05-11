@@ -1081,6 +1081,8 @@ window.ExcelImport = window.ExcelImport || {
     if (abbr) return abbr;
     const name = this.sanitizePreviewText(rawName);
     if (name && typeof ABBR_MAP !== 'undefined' && ABBR_MAP[name]) return ABBR_MAP[name];
+    if (name.includes('電子的歯科診療情報連携体制整備加算2')) return '歯医DX2';
+    if (name.includes('電子的歯科診療情報連携体制整備加算')) return '歯医DX1';
     return '';
   },
   inferLedgerCategory(abbr, rawName) {
@@ -1090,6 +1092,7 @@ window.ExcelImport = window.ExcelImport || {
       const mappedAbbr = ABBR_MAP[name];
       if (typeof KM !== 'undefined' && KM[mappedAbbr] && KM[mappedAbbr].c) return KM[mappedAbbr].c;
     }
+    if (name.includes('電子的歯科診療情報連携体制整備加算')) return 'basic';
     return 'other';
   },
   getCategoryLabel(categoryKey) {
