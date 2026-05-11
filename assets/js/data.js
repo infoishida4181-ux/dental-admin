@@ -15,9 +15,9 @@ const KM = {
   '外感染１':{n:'歯科外来診療感染対策加算1（外感染1）',c:'basic'},
   '外感染２':{n:'歯科外来診療感染対策加算2（外感染2）',c:'basic'},
   '外感染３':{n:'歯科外来診療感染対策加算3（外感染3）',c:'basic'},
-  '口管強':{n:'口腔管理体制強化加算（口管強）',c:'basic'},
-  '歯訪診':{n:'歯科訪問診療料（施設基準）',c:'basic'},
-  '在支歯':{n:'在宅療養支援歯科診療所',c:'basic'},
+  '口管強':{n:'口腔管理体制強化加算（口管強）',c:'special'},
+  '歯訪診':{n:'歯科訪問診療料（施設基準）',c:'special'},
+  '在支歯':{n:'在宅療養支援歯科診療所',c:'special'},
   '在推進':{n:'在宅歯科医療推進加算',c:'basic'},
   '歯地連':{n:'歯科地域連携体制加算',c:'basic'},
   '医療ＤＸ':{n:'医療DX推進体制整備加算',c:'basic'},
@@ -101,16 +101,87 @@ const ADMIN_DEFAULT_PASS_HASH='sha256:dea0eb2bfaf38042753851289edacfa858ce5117d1
 let currentView='daichou';
 let lastMemberView=sessionStorage.getItem(ADMIN_LAST_VIEW_KEY)||'daichou';
 
+const FACILITY_OFFICIAL_LINKS_R08 = {
+  basic: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html',
+  tokukei: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
+  baseup: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html'
+};
+const FACILITY_FILE_BASE_R08 = 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/';
+function facilityFormFileR08(name){ return name ? FACILITY_FILE_BASE_R08 + name : ''; }
+function facilityForm(label,type,pdfFile,editableFile){
+  return { label, type, pdfUrl: facilityFormFileR08(pdfFile), editableUrl: facilityFormFileR08(editableFile) };
+}
+function facilityFormFallback(receiptCode,name,officialCategory,officialItemNumber,noticeRef,note=''){
+  return {
+    receiptCode,
+    name,
+    officialCategory,
+    officialPageUrl: officialCategory === 'basic' ? FACILITY_OFFICIAL_LINKS_R08.basic : FACILITY_OFFICIAL_LINKS_R08.tokukei,
+    officialItemNumber,
+    noticeRef,
+    forms: [],
+    note,
+    lastChecked: '2026-05-11'
+  };
+}
+const BASEUP_FORM_NOTE = 'ベースアップ評価料は、専用Excel様式やメール提出が必要となる場合があります。提出方法・様式は公式ページで必ず確認してください。';
+const FACILITY_FORM_LINKS_R08 = {
+  '歯初診': { ...facilityFormFallback('歯初診','初診料（歯科）の注1に掲げる基準','basic','1-16','別添1 2の7'), forms:[facilityForm('別添7（歯初診）','cover','r8-1-016.pdf','r8-1-016.docx'), facilityForm('様式2の6','form','r8-k02-6.pdf','r8-k02-6.docx')] },
+  '外安全1': { ...facilityFormFallback('外安全1','歯科外来診療医療安全対策加算1','basic','1-18','別添1 4'), forms:[facilityForm('別添7（外安全1）','cover','r8-1-018.pdf','r8-1-018.docx'), facilityForm('様式4','form','r8-k04.pdf','r8-k04.docx')] },
+  '外安全2': { ...facilityFormFallback('外安全2','歯科外来診療医療安全対策加算2','basic','1-19','別添1 4'), forms:[facilityForm('別添7（外安全2）','cover','r8-1-019.pdf','r8-1-019.docx'), facilityForm('様式4の1の2','form','r8-k04-1-2.pdf','r8-k04-1-2.docx')] },
+  '外感染1': { ...facilityFormFallback('外感染1','歯科外来診療感染対策加算1','basic','1-20','別添1 4の2'), forms:[facilityForm('別添7（外感染1）','cover','r8-1-020.pdf','r8-1-020.docx'), facilityForm('様式4','form','r8-k04.pdf','r8-k04.docx')] },
+  '外感染2': { ...facilityFormFallback('外感染2','歯科外来診療感染対策加算2','basic','1-21','別添1 4の2'), forms:[facilityForm('別添7（外感染2）','cover','r8-1-021.pdf','r8-1-021.docx'), facilityForm('様式4','form','r8-k04.pdf','r8-k04.docx')] },
+  '歯医DX1': { ...facilityFormFallback('歯医DX1','電子的歯科診療情報連携体制整備加算1','basic','1-8','別添1 1の8','令和6年度の医療DX推進体制整備加算を届け出ていても、令和8年6月1日以降に算定する場合は改めて届出が必要です。'), forms:[facilityForm('別添7（歯医DX1）','cover','r8-1-008.pdf','r8-1-008.docx'), facilityForm('様式1の6','form','r8-k01-6.pdf','r8-k01-6.docx')] },
+  '歯医DX2': { ...facilityFormFallback('歯医DX2','電子的歯科診療情報連携体制整備加算2','basic','1-8-2','別添1 1の8','令和6年度の医療DX推進体制整備加算を届け出ていても、令和8年6月1日以降に算定する場合は改めて届出が必要です。'), forms:[facilityForm('別添7（歯医DX2）','cover','r8-1-008-2.pdf','r8-1-008-2.docx'), facilityForm('様式1の6','form','r8-k01-6.pdf','r8-k01-6.docx')] },
+  '口管強': { ...facilityFormFallback('口管強','小児口腔機能管理料の注5に規定する口腔管理体制強化加算','tokukei','2-89','別添1 13の2'), forms:[facilityForm('別添2（口管強）','cover','r8-2-089.pdf','r8-2-089.docx'), facilityForm('様式17の2','form','r8-t17-2.pdf','r8-t17-2.docx')] },
+  '歯訪診': { ...facilityFormFallback('歯訪診','歯科訪問診療料の注16に規定する基準','tokukei','2-133','別添1 17の1の2'), forms:[facilityForm('別添2（歯訪診）','cover','r8-2-133.pdf','r8-2-133.docx'), facilityForm('様式21の3の2','form','r8-t21-3-2.pdf','r8-t21-3-2.docx')] },
+  '歯ＣＡＤ': { ...facilityFormFallback('歯ＣＡＤ','CAD/CAM冠及びCAD/CAMインレー','tokukei','2-301','別添1 57の2'), forms:[facilityForm('別添2（歯ＣＡＤ）','cover','r8-2-301.pdf','r8-2-301.docx'), facilityForm('様式50の2','form','r8-t50-2.pdf','r8-t50-2.docx')] },
+  '光印象': { ...facilityFormFallback('光印象','光学印象歯科技工士連携加算','tokukei','2-300','別添1 57の2'), forms:[facilityForm('別添2（光印象）','cover','r8-2-300.pdf','r8-2-300.docx')] },
+  '補管': { ...facilityFormFallback('補管','クラウン・ブリッジ維持管理料','tokukei','2-580','別添1 85'), forms:[facilityForm('別添2（補管）','cover','r8-2-580.pdf','r8-2-580.docx'), facilityForm('様式81','form','r8-t81.pdf','r8-t81.docx')] },
+  '根切顕微': { ...facilityFormFallback('根切顕微','歯根端切除手術の注3','tokukei','2-541','別添1 80の9'), forms:[facilityForm('別添2（根切顕微）','cover','r8-2-541.pdf','r8-2-541.docx'), facilityForm('様式49の8','form','r8-t49-8.pdf','r8-t49-8.docx')] },
+  '手顕微加': { ...facilityFormFallback('手顕微加','手術用顕微鏡加算','tokukei','2-251','別添1 50'), forms:[facilityForm('別添2（手顕微加）','cover','r8-2-251.pdf','r8-2-251.docx'), facilityForm('様式49の8','form','r8-t49-8.pdf','r8-t49-8.docx')] },
+  '咬合圧': { ...facilityFormFallback('咬合圧','咬合圧検査','tokukei','2-193','別添1 38の1'), forms:[facilityForm('別添2（咬合圧）','cover','r8-2-193.pdf','r8-2-193.docx')] },
+  '歯外在ベⅠ': { ...facilityFormFallback('歯外在ベⅠ','歯科外来・在宅ベースアップ評価料（Ⅰ）','tokukei','2-611','別添1 106の2',`${BASEUP_FORM_NOTE} 要再届出。`), forms:[facilityForm('別添2（歯外在ベⅠ）','cover','r8-2-611.pdf',''), facilityForm('様式95','form','r8-t95.pdf','')], relatedPageUrl:FACILITY_OFFICIAL_LINKS_R08.baseup },
+  '歯外在ベⅠ注': { ...facilityFormFallback('歯外在ベⅠ注','歯科外来・在宅ベースアップ評価料（Ⅰ）の注5','tokukei','2-612','別添1 106の2',`${BASEUP_FORM_NOTE} 新規届出。`), forms:[facilityForm('別添2（歯外在ベⅠ注）','cover','r8-2-612.pdf',''), facilityForm('様式95','form','r8-t95.pdf',''), facilityForm('様式98','form','r8-t98.pdf','')], relatedPageUrl:FACILITY_OFFICIAL_LINKS_R08.baseup },
+  '歯外在ベⅡ': { ...facilityFormFallback('歯外在ベⅡ','歯科外来・在宅ベースアップ評価料（Ⅱ）（1～24）','tokukei','2-613','別添1 106の3',`${BASEUP_FORM_NOTE} 要再届出。`), forms:[facilityForm('別添2（歯外在ベⅡ）','cover','r8-2-613.pdf',''), facilityForm('様式96','form','r8-t96.pdf','')], relatedPageUrl:FACILITY_OFFICIAL_LINKS_R08.baseup },
+  '歯外在ベⅡ注': { ...facilityFormFallback('歯外在ベⅡ注','歯科外来・在宅ベースアップ評価料（Ⅱ）の注5及び注6','tokukei','2-614','別添1 106の3',`${BASEUP_FORM_NOTE} 新規届出。`), forms:[facilityForm('別添2（歯外在ベⅡ注）','cover','r8-2-614.pdf',''), facilityForm('様式96','form','r8-t96.pdf',''), facilityForm('様式98','form','r8-t98.pdf','')], relatedPageUrl:FACILITY_OFFICIAL_LINKS_R08.baseup },
+  '歯情報通信': facilityFormFallback('歯情報通信','情報通信機器を用いた診療に係る基準','basic','1-1','別添1 第1'),
+  '医療ＤＸ': facilityFormFallback('医療ＤＸ','医療DX推進体制整備加算（令和8年6月廃止・再編）','basic','',''),
+  '機安歯': facilityFormFallback('機安歯','医療機器安全管理料（歯科）','tokukei','',''),
+  '医管': facilityFormFallback('医管','歯科治療時医療管理料','tokukei','',''),
+  '在歯管': facilityFormFallback('在歯管','在宅患者歯科治療時医療管理料','tokukei','',''),
+  '在支歯': facilityFormFallback('在支歯','在宅療養支援歯科診療所','tokukei','',''),
+  '歯地連': facilityFormFallback('歯地連','地域医療連携体制加算','tokukei','2-132','別添1 17'),
+  '在宅ＤＸ': facilityFormFallback('在宅ＤＸ','在宅医療DX情報活用加算','tokukei','',''),
+  '咀嚼能力': facilityFormFallback('咀嚼能力','有床義歯咀嚼機能検査','tokukei','',''),
+  '口細菌': facilityFormFallback('口細菌','口腔細菌定量検査','tokukei','',''),
+  '歯画診': facilityFormFallback('歯画診','歯科画像診断管理加算','tokukei','',''),
+  '歯技連１': facilityFormFallback('歯技連１','歯科技工士連携加算1','tokukei','',''),
+  '歯技工': facilityFormFallback('歯技工','歯科技工加算','tokukei','',''),
+  'ＧＴＲ': facilityFormFallback('ＧＴＲ','歯周組織再生誘導手術','tokukei','2-538','別添1 80の6'),
+  '口腔粘膜': facilityFormFallback('口腔粘膜','口腔粘膜処置','tokukei','',''),
+  'う蝕無痛': facilityFormFallback('う蝕無痛','う蝕歯無痛的窩洞形成加算','tokukei','',''),
+  '口腔機能実地': facilityFormFallback('口腔機能実地','口腔機能実地指導料','tokukei','',''),
+  '三次元プリント義歯': facilityFormFallback('三次元プリント義歯','3次元プリント有床義歯','tokukei','',''),
+  '特別管理加算': facilityFormFallback('特別管理加算','特別管理加算（歯科疾患管理料）','tokukei','',''),
+  '歯科麻酔': facilityFormFallback('歯科麻酔','歯科吸入麻酔 又は 歯科静脈麻酔（Ⅱ）','tokukei','',''),
+  '歯技工所ベースアップ': facilityFormFallback('歯技工所ベースアップ','歯科技工所ベースアップ支援料','tokukei','2-616','別添1 108',BASEUP_FORM_NOTE)
+};
+FACILITY_FORM_LINKS_R08['外安全１'] = FACILITY_FORM_LINKS_R08['外安全1'];
+FACILITY_FORM_LINKS_R08['外安全２'] = FACILITY_FORM_LINKS_R08['外安全2'];
+FACILITY_FORM_LINKS_R08['外感染１'] = FACILITY_FORM_LINKS_R08['外感染1'];
+FACILITY_FORM_LINKS_R08['外感染２'] = FACILITY_FORM_LINKS_R08['外感染2'];
+
 // デフォルトデータ（くにたち石田歯科・開発用初期値）
 const DEFAULT_ENTRIES=[
   {id:1, name:'歯科点数表の初診料の注1（院内感染防止対策）',abbr:'歯初診',  number:'第305505号', date:'2018-06-01',category:'basic',  status:'green', kaitei:'none',    memo:''},
   {id:2, name:'歯科外来診療医療安全対策加算1（外安全1）',    abbr:'外安全１', number:'第615983号', date:'2024-10-01',category:'basic',  status:'yellow',kaitei:'reapply', memo:'令和6年改定で外来環1から再編。'},
   {id:3, name:'歯科外来診療感染対策加算1（外感染1）',        abbr:'外感染１', number:'第615982号', date:'2024-10-01',category:'basic',  status:'yellow',kaitei:'check',   memo:'院内感染管理者の配置要件を確認すること'},
-  {id:4, name:'口腔管理体制強化加算（口管強）',              abbr:'口管強',   number:'第312007号', date:'2019-09-01',category:'basic',  status:'yellow',kaitei:'check',   memo:'口腔機能実地指導料（令和8年6月新設）との関係要確認。'},
+  {id:4, name:'口腔管理体制強化加算（口管強）',              abbr:'口管強',   number:'第312007号', date:'2019-09-01',category:'special',status:'yellow',kaitei:'check',   memo:'口腔機能実地指導料（令和8年6月新設）との関係要確認。'},
   {id:5, name:'CAD/CAM冠・CAD/CAMインレー',                  abbr:'歯ＣＡＤ', number:'第268552号', date:'2015-04-01',category:'special',status:'green', kaitei:'none',    memo:''},
   {id:6, name:'歯科治療総合医療管理料',                      abbr:'医管',     number:'第180101号', date:'2006-04-01',category:'special',status:'green', kaitei:'none',    memo:''},
-  {id:7, name:'歯科外来在宅ベースアップ評価料（Ⅰ）',        abbr:'歯外在ベⅠ',number:'第611349号', date:'2024-06-01',category:'other', status:'red',   kaitei:'reapply', memo:'令和8年度改定で再届出必要。'},
-  {id:8, name:'補綴物維持管理料',                            abbr:'補管',     number:'第6617号',   date:'1996-04-01',category:'other', status:'green', kaitei:'none',    memo:''},
+  {id:7, name:'歯科外来在宅ベースアップ評価料（Ⅰ）',        abbr:'歯外在ベⅠ',number:'第611349号', date:'2024-06-01',category:'special',status:'red',   kaitei:'reapply', memo:'令和8年度改定で再届出必要。'},
+  {id:8, name:'補綴物維持管理料',                            abbr:'補管',     number:'第6617号',   date:'1996-04-01',category:'special',status:'green', kaitei:'none',    memo:''},
   {id:9, name:'医療DX推進体制整備加算',abbr:'医療ＤＸ',number:'第610058号',date:'2024-07-01',category:'basic',status:'red',kaitei:'expire',memo:'令和8年6月廃止・再編。電子的歯科診療情報連携体制整備加算への移行が必要。'},
 ];
 

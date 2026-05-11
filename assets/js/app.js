@@ -65,11 +65,11 @@ function openDP(id){
   ];
   const dlItems=YOSHIKI_DL[e.abbr]||[];
   const yoshikiBlock=dlItems.length>0?(()=>{
-    const links=dlItems.map(d=>`<a href="${d.url}" target="_blank" rel="noopener"
+    const links=dlItems.map(d=>`<a href="${d.url}" target="_blank" rel="noopener noreferrer"
       style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:6px;text-decoration:none;color:var(--accent);font-size:12px;font-weight:500;margin-bottom:6px">
       <span>${d.url.endsWith('.pdf')?'📄':d.url.endsWith('.xlsx')?'📊':d.url.endsWith('.docx')?'📝':'🔗'}</span>${d.label}
       <span style="margin-left:auto;font-size:10px;color:var(--text3)">↗ 厚生局</span></a>`).join('');
-    const common=COMMON_DL.map(d=>`<a href="${d.url}" target="_blank" rel="noopener"
+    const common=COMMON_DL.map(d=>`<a href="${d.url}" target="_blank" rel="noopener noreferrer"
       style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--text2);font-size:11px;margin-bottom:4px">
       <span>📄</span>${d.label}<span style="margin-left:auto;font-size:10px">↗</span></a>`).join('');
     return `<div class="ds"><div class="dst">📥 定例報告 様式ダウンロード</div>${links}${common}</div>`;
@@ -1045,7 +1045,7 @@ function renderBaseup() {
         '様式95（歯科外来・在宅ベースアップ評価料（Ⅰ））を記入して提出します。<br>',
         '※ 令和8年度より届出方法が変更になっている場合があります。必ず最新様式をご確認ください。',
       '</div>',
-      '<a href="https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html" target="_blank" rel="noopener"',
+      '<a href="https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html" target="_blank" rel="noopener noreferrer"',
         ' style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:linear-gradient(135deg,#059669,#0d9488);color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700">',
         '📥 様式95 ダウンロードページ（関東信越厚生局）↗',
       '</a>',
@@ -1061,7 +1061,7 @@ function renderBaseup() {
         '様式100（表紙）＋別添1（歯科診療所用）を記入して提出します。<br>',
         '前年度のベースアップ評価料による収入実績と賃金改善の内容を報告します。',
       '</div>',
-      '<a href="https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html" target="_blank" rel="noopener"',
+      '<a href="https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html" target="_blank" rel="noopener noreferrer"',
         ' style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:linear-gradient(135deg,#d97706,#b45309);color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700">',
         '📥 様式100・別添1 ダウンロードページ（関東信越厚生局）↗',
       '</a>',
@@ -1964,6 +1964,26 @@ const SHINKI_MASTER = {
     flow: ['歯初診の届出（未届の場合）','医療安全研修を受講','AED等の設備を整備','医療安全管理者を選任','ヒヤリ・ハット事業に登録','様式4を記載して厚生局へ郵送'],
   },
 
+  '外安全２': {
+    ryakusho: '（外安全２）',
+    name: '歯科外来診療医療安全対策加算2',
+    category: 'basic',
+    score: '医療安全対策の体制を評価',
+    summary: '歯科外来診療における医療安全対策の体制を評価する施設基準。令和8年度の基本診療料ページで様式を確認してください。',
+    prereq: ['歯初診'],
+    requirements: [
+      '歯初診の施設基準の届出を行っていること',
+      '歯科外来診療における医療安全対策の体制を整備',
+      '届出様式は令和8年度の基本診療料ページで確認',
+    ],
+    note: '外安全1とは要件・区分が異なります。提出前に公式一覧ページで最新要件を確認してください。',
+    yoshiki: [
+      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html', keyword:'外安全2'},
+    ],
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html',
+    flow: ['歯初診の届出（未届の場合）','医療安全対策の体制を整備','様式4の1の2を記載して厚生局へ届出'],
+  },
+
   '外感染１': {
     ryakusho: '（外感染１）',
     name: '歯科外来診療感染対策加算1',
@@ -1985,10 +2005,30 @@ const SHINKI_MASTER = {
     flow: ['歯初診の届出（未届の場合）','院内感染管理者を選任','口腔外バキュームを設置','様式4を記載して厚生局へ郵送'],
   },
 
+  '外感染２': {
+    ryakusho: '（外感染２）',
+    name: '歯科外来診療感染対策加算2',
+    category: 'basic',
+    score: '感染対策の体制を評価',
+    summary: '歯科外来診療における感染対策の体制を評価する施設基準。令和8年度の基本診療料ページで様式を確認してください。',
+    prereq: ['歯初診'],
+    requirements: [
+      '歯初診の施設基準の届出を行っていること',
+      '歯科外来診療における感染対策の体制を整備',
+      '届出様式は令和8年度の基本診療料ページで確認',
+    ],
+    note: '外感染1とは要件・区分が異なります。提出前に公式一覧ページで最新要件を確認してください。',
+    yoshiki: [
+      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html', keyword:'外感染2'},
+    ],
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html',
+    flow: ['歯初診の届出（未届の場合）','感染対策の体制を整備','様式4を記載して厚生局へ届出'],
+  },
+
   '口管強': {
     ryakusho: '（口管強）',
     name: '小児口腔機能管理料の注3に規定する口腔管理体制強化加算',
-    category: 'basic',
+    category: 'special',
     score: 'う蝕・歯周・口腔機能等の各種加算で高い点数を算定可能',
     summary: 'かかりつけ歯科医機能を評価する加算。継続的な口腔管理・訪問診療・歯周安定期治療等の実績が必要。令和6年改定で「か強診」から現在の名称に変更済み。',
     prereq: ['歯初診','外安全１','外感染１'],
@@ -2122,7 +2162,7 @@ const SHINKI_MASTER = {
   '歯訪診': {
     ryakusho: '（歯訪診）',
     name: '歯科訪問診療料の注13に規定する基準',
-    category: 'basic',
+    category: 'special',
     score: '歯科訪問診療料（高い点数）が算定可能',
     summary: '訪問患者割合が95%未満の歯科診療所が届出することで、高い点数の歯科訪問診療料が算定できる。',
     prereq: ['歯初診'],
@@ -2631,7 +2671,7 @@ const SHINKI_MASTER = {
   '歯外在ベⅠ': {
     ryakusho: '（歯外在ベⅠ）',
     name: '歯科外来・在宅ベースアップ評価料（Ⅰ）',
-    category: 'other',
+    category: 'special',
     score: '初診時10点・再診時2点・歯科訪問診療時41点',
     summary: '対象職員（歯科衛生士・歯科技工士等）の賃金改善を実施している歯科診療所に算定できる加算。算定収入は全額賃上げに充てることが条件。',
     prereq: [],
@@ -2649,20 +2689,68 @@ const SHINKI_MASTER = {
     flow: ['対象職員の賃上げ計画を作成','届出様式（Excel）をDLして記入','専用メールアドレスへExcelファイルを送付','受理後、翌月1日から算定','毎年6月に計画書・8月に実績報告書を提出'],
   },
 
+  '歯外在ベⅠ注': {
+    ryakusho: '（歯外在ベⅠ注）',
+    name: '歯科外来・在宅ベースアップ評価料（Ⅰ）の注5',
+    category: 'special',
+    score: 'ベースアップ評価料の注加算',
+    summary: '歯科外来・在宅ベースアップ評価料（Ⅰ）に係る注加算。専用Excel様式や実績報告書の確認が必要。',
+    prereq: [],
+    requirements: ['様式95を確認','様式98の対象有無を確認','提出方法・メール提出要否を公式ページで確認'],
+    note: 'ベースアップ評価料は、専用Excel様式やメール提出が必要となる場合があります。提出方法・様式は公式ページで必ず確認してください。',
+    yoshiki: [
+      {label:'🔍 ベースアップ評価料の届出ページ（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html', keyword:'歯科外来'},
+    ],
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html',
+    flow: ['対象区分を確認','様式95・様式98を確認','専用Excel様式を作成','公式ページ記載の提出方法で届出'],
+  },
+
+  '歯外在ベⅡ': {
+    ryakusho: '（歯外在ベⅡ）',
+    name: '歯科外来・在宅ベースアップ評価料（Ⅱ）',
+    category: 'special',
+    score: '区分に応じたベースアップ評価料',
+    summary: '歯科外来・在宅ベースアップ評価料（Ⅱ）に係る施設基準。令和8年度改定対応では再届出や専用Excel様式の確認が必要。',
+    prereq: [],
+    requirements: ['様式96を確認','賃金改善計画を作成','提出方法・メール提出要否を公式ページで確認'],
+    note: 'ベースアップ評価料は、専用Excel様式やメール提出が必要となる場合があります。提出方法・様式は公式ページで必ず確認してください。',
+    yoshiki: [
+      {label:'🔍 ベースアップ評価料の届出ページ（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html', keyword:'歯科外来'},
+    ],
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html',
+    flow: ['対象区分を確認','様式96を確認','専用Excel様式を作成','公式ページ記載の提出方法で届出'],
+  },
+
+  '歯外在ベⅡ注': {
+    ryakusho: '（歯外在ベⅡ注）',
+    name: '歯科外来・在宅ベースアップ評価料（Ⅱ）の注5及び注6',
+    category: 'special',
+    score: 'ベースアップ評価料の注加算',
+    summary: '歯科外来・在宅ベースアップ評価料（Ⅱ）に係る注加算。専用Excel様式や実績報告書の確認が必要。',
+    prereq: [],
+    requirements: ['様式96を確認','様式98の対象有無を確認','提出方法・メール提出要否を公式ページで確認'],
+    note: 'ベースアップ評価料は、専用Excel様式やメール提出が必要となる場合があります。提出方法・様式は公式ページで必ず確認してください。',
+    yoshiki: [
+      {label:'🔍 ベースアップ評価料の届出ページ（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html', keyword:'歯科外来'},
+    ],
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html',
+    flow: ['対象区分を確認','様式96・様式98を確認','専用Excel様式を作成','公式ページ記載の提出方法で届出'],
+  },
+
 };
 
 // カテゴリ順・表示グループ
 const SHINKI_GROUPS = [
-  { label:'🏥 基本診療料（歯科）', abbrs:['歯初診','外安全１','外感染１','口管強','歯情報通信','歯医DX1','歯医DX2'] },
+  { label:'🏥 基本診療料（歯科）', abbrs:['歯初診','外安全１','外安全２','外感染１','外感染２','歯情報通信','歯医DX1','歯医DX2'] },
   { label:'🏠 在宅・訪問診療', abbrs:['歯訪診','在支歯','歯地連','在宅ＤＸ'] },
-  { label:'💊 全身管理', abbrs:['機安歯','医管','在歯管'] },
+  { label:'💊 管理料・全身管理', abbrs:['口管強','機安歯','医管','在歯管'] },
   { label:'🔬 検査・機能評価', abbrs:['咀嚼能力','咬合圧','口細菌','歯画診'] },
   { label:'🦷 補綴・技工', abbrs:['歯ＣＡＤ','光印象','歯技連１','歯技工','補管'] },
   { label:'🔭 外科・精密治療', abbrs:['手顕微加','根切顕微','ＧＴＲ'] },
   { label:'💡 処置・その他', abbrs:['口腔粘膜','う蝕無痛'] },
   { label:'🆕 令和8年6月新設（施設基準）', abbrs:['口腔機能実地','三次元プリント義歯','特別管理加算','歯科麻酔','歯技工所ベースアップ'] },
   { label:'🚫 令和8年6月廃止・再編', abbrs:['医療ＤＸ'] },
-  { label:'💰 賃上げ', abbrs:['歯外在ベⅠ'] },
+  { label:'💰 賃上げ', abbrs:['歯外在ベⅠ','歯外在ベⅠ注','歯外在ベⅡ','歯外在ベⅡ注'] },
 ];
 
 let _shinkiSelected = null;
@@ -2719,6 +2807,76 @@ function renderShinki(){
 function selectShinki(abbr){
   _shinkiSelected = abbr;
   renderShinki();
+}
+
+function normalizeFacilityFormKey(abbr){
+  return String(abbr||'')
+    .replace(/１/g,'1')
+    .replace(/２/g,'2')
+    .replace(/３/g,'3')
+    .replace(/４/g,'4')
+    .replace(/５/g,'5')
+    .trim();
+}
+
+function getFacilityFormLinkR08(abbr){
+  if(typeof FACILITY_FORM_LINKS_R08 === 'undefined') return null;
+  return FACILITY_FORM_LINKS_R08[abbr] || FACILITY_FORM_LINKS_R08[normalizeFacilityFormKey(abbr)] || null;
+}
+
+function renderOfficialFormButton(url,label,kind){
+  if(!url) return '';
+  const cls = kind === 'editable' ? 'facility-form-link editable' : kind === 'page' ? 'facility-form-link page' : 'facility-form-link pdf';
+  return `<a class="${cls}" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+}
+
+function renderFacilityFormSection(abbr, def){
+  const link = getFacilityFormLinkR08(abbr) || {
+    receiptCode: abbr,
+    name: def?.name || abbr,
+    officialCategory: def?.category === 'basic' ? 'basic' : 'tokukei',
+    officialPageUrl: getShinkiPrimaryPage(def),
+    officialItemNumber: '',
+    noticeRef: '',
+    forms: [],
+    note: '',
+    lastChecked: ''
+  };
+  const forms = Array.isArray(link.forms) ? link.forms : [];
+  const pdfButtons = forms.map(f => renderOfficialFormButton(f.pdfUrl, `${f.label} PDFを開く`, 'pdf')).join('');
+  const editableButtons = forms.map(f => renderOfficialFormButton(f.editableUrl, `${f.label} Word/Excelを開く`, 'editable')).join('');
+  const hasDirect = Boolean(pdfButtons || editableButtons);
+  const officialPageUrl = link.officialPageUrl || getShinkiPrimaryPage(def);
+  const relatedPage = link.relatedPageUrl && link.relatedPageUrl !== officialPageUrl
+    ? renderOfficialFormButton(link.relatedPageUrl, '関連公式ページで確認', 'page')
+    : '';
+  return `
+    <div class="facility-form-section">
+      <div class="facility-form-head">
+        <div>
+          <div class="facility-form-title">届出様式</div>
+          <div class="facility-form-note">様式は関東信越厚生局の公式ファイルを開きます。掲載内容が変更される場合があるため、提出前には必ず公式一覧ページも確認してください。</div>
+        </div>
+      </div>
+      <div class="facility-form-meta">
+        <div><span>届出区分</span><strong>${link.officialCategory === 'basic' ? '基本診療料' : '特掲診療料'}</strong></div>
+        <div><span>受理番号</span><strong>${link.receiptCode || abbr}</strong></div>
+        <div><span>通知</span><strong>${link.noticeRef || '公式一覧ページで確認'}</strong></div>
+        <div><span>様式</span><strong>${forms.map(f=>f.label).join(' / ') || '公式一覧ページで確認'}</strong></div>
+      </div>
+      ${link.note ? `<div class="facility-form-caution">${link.note}</div>` : ''}
+      ${hasDirect ? `
+        <div class="facility-form-actions">
+          ${pdfButtons}
+          ${editableButtons}
+          ${renderOfficialFormButton(officialPageUrl, '公式一覧ページで確認', 'page')}
+          ${relatedPage}
+        </div>
+      ` : `
+        <div class="facility-form-empty">この施設基準の直接様式リンクは未登録です。公式一覧ページで様式を確認してください。</div>
+        <div class="facility-form-actions">${renderOfficialFormButton(officialPageUrl, '公式一覧ページで確認', 'page')}${relatedPage}</div>
+      `}
+    </div>`;
 }
 
 function showShinkiDetail(abbr){
@@ -2810,36 +2968,18 @@ function showShinkiDetail(abbr){
         ${def.note ? `<div style="margin-top:10px;font-size:11px;color:var(--text2);background:var(--bg3);border-radius:5px;padding:8px 10px">💡 ${def.note}</div>` : ''}
       </div>
 
-      <!-- 届出様式DL -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px">
-        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">📥 令和8年度改定の届出様式</div>
-        ${def.yoshiki.map(y => `
-          <a href="${y.url}" target="_blank" rel="noopener"
-             style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px;text-decoration:none;color:var(--accent);font-size:12px;font-weight:600;margin-bottom:8px;transition:opacity .15s"
-             onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
-            ${y.label}
-            <span style="margin-left:auto;font-size:10px;flex-shrink:0">↗ 開く</span>
-          </a>
-          ${y.keyword ? `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px;font-size:11px;color:var(--text2);line-height:1.8">
-            <strong style="color:var(--text)">📌 様式の探し方（Ctrl+F 検索）</strong><br>
-            ① 上のボタンで届出一覧ページを開く<br>
-            ② キーボードの <kbd style="background:#fff;border:1px solid #ccc;border-radius:3px;padding:1px 5px;font-family:monospace">Ctrl</kbd> + <kbd style="background:#fff;border:1px solid #ccc;border-radius:3px;padding:1px 5px;font-family:monospace">F</kbd>（Macは <kbd style="background:#fff;border:1px solid #ccc;border-radius:3px;padding:1px 5px;font-family:monospace">⌘</kbd>+<kbd style="background:#fff;border:1px solid #ccc;border-radius:3px;padding:1px 5px;font-family:monospace">F</kbd>）を押す<br>
-            ③ 検索ボックスに <strong style="color:var(--accent)">「${y.keyword}」</strong> と入力 → 該当行にジャンプ<br>
-            ④ PDFまたはWordファイルをダウンロード
-          </div>` : ''}
-        `).join('')}
-      </div>
+      ${renderFacilityFormSection(abbr, def)}
 
       <!-- 関連手続きリンク -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px">
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">🔗 関連手続きリンク</div>
-        <a href="${primaryPage}" target="_blank" rel="noopener"
+        <a href="${primaryPage}" target="_blank" rel="noopener noreferrer"
            style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px;text-decoration:none;color:var(--accent);font-size:12px;font-weight:600;margin-bottom:8px">
           令和8年度 ${primaryPage.includes('kihon') ? '基本診療料' : '特掲診療料'}の届出一覧
           <span style="margin-left:auto;font-size:10px;flex-shrink:0">↗ 開く</span>
         </a>
         ${actionLinks.map(link => `
-          <a href="${link.url}" target="_blank" rel="noopener"
+          <a href="${link.url}" target="_blank" rel="noopener noreferrer"
              style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text2);font-size:12px;font-weight:600;margin-bottom:8px">
             ${link.label}
             <span style="margin-left:auto;font-size:10px;flex-shrink:0">↗ 開く</span>
@@ -2847,7 +2987,7 @@ function showShinkiDetail(abbr){
         `).join('')}
         <details style="margin-top:4px">
           <summary style="cursor:pointer;font-size:11px;color:var(--text3);font-weight:700">過年度参照（令和6年度）</summary>
-          <a href="${pastPage}" target="_blank" rel="noopener"
+          <a href="${pastPage}" target="_blank" rel="noopener noreferrer"
              style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text2);font-size:12px;font-weight:600;margin-top:8px">
             令和6年度 ${pastPage.includes('kihon') ? '基本診療料' : '特掲診療料'}の届出一覧
             <span style="margin-left:auto;font-size:10px;flex-shrink:0">↗ 開く</span>
@@ -3660,3 +3800,4 @@ render();
     // ネットワークエラーは無視
   }
 })();
+

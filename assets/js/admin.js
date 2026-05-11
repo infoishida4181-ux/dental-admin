@@ -146,6 +146,59 @@ function formatAdminUpdatedAt(value){
   return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
+function getAllShinkiSupportAbbrs(){
+  if(typeof SHINKI_GROUPS === 'undefined') return [];
+  return [...new Set(SHINKI_GROUPS.flatMap(g => g.abbrs || []))];
+}
+
+function auditFacilityFormLinksR08(){
+  const abbrs=getAllShinkiSupportAbbrs();
+  return abbrs.map(abbr => {
+    const link=typeof getFacilityFormLinkR08 === 'function' ? getFacilityFormLinkR08(abbr) : null;
+    const def=typeof SHINKI_MASTER !== 'undefined' ? SHINKI_MASTER[abbr] : null;
+    const forms=Array.isArray(link?.forms) ? link.forms : [];
+    const pdfCount=forms.filter(f=>f.pdfUrl).length;
+    const editableCount=forms.filter(f=>f.editableUrl).length;
+    const page=link?.officialPageUrl || '';
+    const issues=[];
+    if(!link) issues.push('様式リンク未登録');
+    if(link?.officialCategory==='basic' && page.includes('tokukei_shinryo_r08')) issues.push('区分と公式ページが不一致');
+    if(link?.officialCategory==='tokukei' && page.includes('kihon_shinryo_r08')) issues.push('区分と公式ページが不一致');
+    if(page.includes('_r06')) issues.push('令和6年度ページがメイン導線');
+    if(forms.length===0 && !page) issues.push('公式一覧ページ未登録');
+    if(forms.some(f=>!f.pdfUrl && !f.editableUrl)) issues.push('空の様式リンクあり');
+    return {
+      abbr,
+      name: link?.name || def?.name || abbr,
+      category: link?.officialCategory || (def?.category==='basic'?'basic':'tokukei'),
+      page,
+      pdfCount,
+      editableCount,
+      lastChecked: link?.lastChecked || '',
+      note: [link?.note, issues.join(' / ')].filter(Boolean).join(' / ')
+    };
+  });
+}
+
+function renderFacilityFormLinkAudit(){
+  const el=document.getElementById('facility-form-link-audit');
+  if(!el)return;
+  const rows=auditFacilityFormLinksR08();
+  el.innerHTML=`<div class="tw"><table class="admin-form-audit-table">
+    <thead><tr><th>受理番号</th><th>施設基準名</th><th>区分</th><th>公式ページ</th><th>PDF</th><th>Word/Excel</th><th>最終確認日</th><th>注意メモ</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><span class="badge bb">${r.abbr}</span></td>
+      <td>${r.name}</td>
+      <td>${r.category==='basic'?'基本診療料':'特掲診療料'}</td>
+      <td>${r.page?`<a href="${r.page}" target="_blank" rel="noopener noreferrer">公式一覧ページ</a>`:'未登録'}</td>
+      <td>${r.pdfCount}</td>
+      <td>${r.editableCount}</td>
+      <td>${r.lastChecked || '未確認'}</td>
+      <td>${r.note || '直接リンク登録済み'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
 function renderAdminSecurityStatus(){
   ensureAdminStorageInitialized();
   const status=document.getElementById('admin-security-status');
@@ -160,6 +213,7 @@ function renderAdminSecurityStatus(){
   if(defaultTip){
     defaultTip.style.display=localStorage.getItem(ADMIN_PASS_DEFAULT_KEY)!=='0'?'block':'none';
   }
+  renderFacilityFormLinkAudit();
 }
 
 async function changeAdminPassphrase(){
