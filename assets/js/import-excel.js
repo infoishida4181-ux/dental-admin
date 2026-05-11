@@ -1102,6 +1102,34 @@ window.ExcelImport = window.ExcelImport || {
     }
     return '要確認';
   },
+  normalizeFacilityName(value) {
+    const base = this.sanitizePreviewText(value)
+      .replace(/（/g, '(')
+      .replace(/）/g, ')')
+      .normalize('NFKC');
+    const romanMap = { III: '3', II: '2', IV: '4', I: '1' };
+    const normalizedRomans = base
+      .replace(/(^|[\s(])((?:III|II|IV|I))(?=$|[\s)])/g, (match, prefix, roman) => `${prefix}${romanMap[roman] || roman}`)
+      .replace(/([一-龠ぁ-ゔァ-ヶー々])((?:III|II|IV|I))(?=$|[\s()])/g, (match, prefix, roman) => `${prefix}${romanMap[roman] || roman}`);
+    return normalizedRomans
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  },
+  buildCompareReference(item, existingEntry) {
+    if (!existingEntry) return '';
+    const notes = [];
+    if (this.normalizeCompareValue(item.abbr) && this.normalizeCompareValue(item.abbr) !== this.normalizeCompareValue(existingEntry.abbr || '')) {
+      notes.push(`略称: 台帳「${existingEntry.abbr || '—'}」 / 公式「${item.abbr || '—'}」`);
+    }
+    if (this.normalizeCompareValue(item.number) && this.normalizeCompareValue(item.number) !== this.normalizeCompareValue(existingEntry.number || '')) {
+      notes.push(`受理番号: 台帳「${existingEntry.number || '—'}」 / 公式「${item.number || '—'}」`);
+    }
+    if ((item.entryDate || '') && this.normalizeEntryDate(existingEntry.date || '') !== (item.entryDate || '')) {
+      notes.push(`算定開始: 台帳「${this.normalizeDisplayDate(existingEntry.date || '—') || '—'}」 / 公式「${item.date || '—'}」`);
+    }
+    return notes.join(' / ');
+  },
   detectExistingLedgerMatch(abbr, number) {
     if (typeof entries === 'undefined' || !Array.isArray(entries)) return false;
     const normalizedAbbr = this.normalizeCompareValue(abbr);
@@ -1517,29 +1545,48 @@ window.ExcelImport = window.ExcelImport || {
     });
   },
   compareOfficialLedgerWithEntries(ledgerRows) {
-    const exactMatches = [];
-    const changedCandidates = [];
+    const existingMatches = [];
+    const reviewCandidates = [];
     const newCandidates = [];
     const comparedRows = [];
-    const officialAbbrs = new Set();
+    const officialNames = new Set();
+    const safeEntries = Array.isArray(entries) ? entries : [];
     ledgerRows.forEach(item => {
-      officialAbbrs.add(this.normalizeCompareValue(item.abbr));
-      const sameAbbrEntries = Array.isArray(entries)
-        ? entries.filter(entry => this.normalizeCompareValue(entry.abbr) === this.normalizeCompareValue(item.abbr))
+      const normalizedName = this.normalizeFacilityName(item.name);
+      if (normalizedName) officialNames.add(normalizedName);
+      const sameNameEntries = normalizedName
+        ? safeEntries.filter(entry => this.normalizeFacilityName(entry.name) === normalizedName)
         : [];
-      const exact = sameAbbrEntries.find(entry =>
-        this.normalizeCompareValue(entry.number) === this.normalizeCompareValue(item.number) &&
-        this.normalizeEntryDate(entry.date) === (item.entryDate || '')
-      );
-      if (exact) {
-        const compared = { ...item, compareStatus: 'exact', compareLabel: '既存一致', existingEntry: exact };
-        exactMatches.push(compared);
+      if (sameNameEntries.length) {
+        const existing = sameNameEntries.find(entry => this.normalizeCompareValue(entry.abbr) === this.normalizeCompareValue(item.abbr)) || sameNameEntries[0];
+        const compareReference = this.buildCompareReference(item, existing);
+        const compared = {
+          ...item,
+          compareStatus: 'existing',
+          compareLabel: 'すでに台帳にある項目',
+          compareReference,
+          existingEntry: existing
+        };
+        existingMatches.push(compared);
         comparedRows.push(compared);
         return;
       }
-      if (sameAbbrEntries.length) {
-        const compared = { ...item, compareStatus: 'changed', compareLabel: '変更候補', existingEntry: sameAbbrEntries[0] };
-        changedCandidates.push(compared);
+      const normalizedAbbr = this.normalizeCompareValue(item.abbr);
+      const normalizedNumber = this.normalizeCompareValue(item.number);
+      const auxiliaryMatch = safeEntries.find(entry => {
+        const entryAbbr = this.normalizeCompareValue(entry.abbr);
+        const entryNumber = this.normalizeCompareValue(entry.number);
+        return (normalizedAbbr && entryAbbr === normalizedAbbr) || (normalizedNumber && entryNumber === normalizedNumber);
+      });
+      if (auxiliaryMatch) {
+        const compared = {
+          ...item,
+          compareStatus: 'review',
+          compareLabel: '要確認',
+          compareReference: this.buildCompareReference(item, auxiliaryMatch) || '略称または受理番号が近い既存項目があります。既存項目は自動変更しません。',
+          existingEntry: auxiliaryMatch
+        };
+        reviewCandidates.push(compared);
         comparedRows.push(compared);
         return;
       }
@@ -1547,8 +1594,9 @@ window.ExcelImport = window.ExcelImport || {
       newCandidates.push(compared);
       comparedRows.push(compared);
     });
-    const removedCandidates = Array.isArray(entries)
-      ? entries.filter(entry => !officialAbbrs.has(this.normalizeCompareValue(entry.abbr))).map(entry => ({
+    const removedCandidates = safeEntries
+      .filter(entry => !officialNames.has(this.normalizeFacilityName(entry.name)))
+      .map(entry => ({
           id: `removed-${entry.id}`,
           name: entry.name,
           abbr: entry.abbr,
@@ -1556,19 +1604,22 @@ window.ExcelImport = window.ExcelImport || {
           date: entry.date ? entry.date.replace(/-/g, '/') : '—',
           memo: entry.memo || '—',
           compareStatus: 'removed',
-          compareLabel: '公式データから消えた候補'
-        }))
-      : [];
+          compareLabel: '公式データでは見つからない項目'
+        }));
     const clinicName = ledgerRows[0]?.clinicName || '要確認';
     const address = ledgerRows[0]?.address || '—';
     const phone = ledgerRows[0]?.phone || '—';
-    return { clinicName, address, phone, ledgerRows: comparedRows, exactMatches, changedCandidates, newCandidates, removedCandidates };
+    return { clinicName, address, phone, ledgerRows: comparedRows, existingMatches, reviewCandidates, newCandidates, removedCandidates };
   },
   renderOfficialDatasetCompareResult(compareResult, medicalId) {
     const result = document.getElementById('official-dataset-result');
     if (!result) return;
     const rows = compareResult.ledgerRows.map(item => {
-      const compareClass = item.compareStatus === 'exact' ? 'exact' : item.compareStatus === 'changed' ? 'changed' : 'new';
+      const compareClass = item.compareStatus === 'existing'
+        ? 'exact'
+        : item.compareStatus === 'review'
+          ? 'changed'
+          : 'new';
       return `
         <tr>
           <td>${this.escapeHtml(item.name)}</td>
@@ -1580,7 +1631,10 @@ window.ExcelImport = window.ExcelImport || {
           <td>${this.escapeHtml(item.kaiteiLabel)}</td>
           <td>${this.escapeHtml(item.teireiLabel)}</td>
           <td>${this.escapeHtml(item.memo)}</td>
-          <td><span class="dataset-compare-chip ${compareClass}">${this.escapeHtml(item.compareLabel)}</span></td>
+          <td>
+            <span class="dataset-compare-chip ${compareClass}">${this.escapeHtml(item.compareLabel)}</span>
+            ${item.compareReference ? `<div class="dataset-compare-note" style="margin:6px 0 0">${this.escapeHtml(item.compareReference)}</div>` : ''}
+          </td>
         </tr>
       `;
     }).join('');
@@ -1603,11 +1657,11 @@ window.ExcelImport = window.ExcelImport || {
       </div>
       <div class="excel-ledger-summary">
         <span class="excel-ledger-chip is-new">新規候補 ${compareResult.newCandidates.length}件</span>
-        <span class="excel-ledger-chip is-existing">既存一致 ${compareResult.exactMatches.length}件</span>
-        <span class="excel-ledger-chip is-new" style="background:var(--yellow-bg);border-color:#fde68a;color:var(--yellow)">変更候補 ${compareResult.changedCandidates.length}件</span>
-        <span class="excel-ledger-chip" style="background:var(--red-bg);border-color:#fecaca;color:var(--red)">消えた候補 ${compareResult.removedCandidates.length}件</span>
+        <span class="excel-ledger-chip is-existing">すでに台帳にある項目 ${compareResult.existingMatches.length}件</span>
+        <span class="excel-ledger-chip is-new" style="background:var(--yellow-bg);border-color:#fde68a;color:var(--yellow)">要確認 ${compareResult.reviewCandidates.length}件</span>
+        <span class="excel-ledger-chip" style="background:var(--red-bg);border-color:#fecaca;color:var(--red)">公式データでは見つからない項目 ${compareResult.removedCandidates.length}件</span>
       </div>
-      <div class="dataset-compare-note">現在の台帳は自動では上書きしません。まず差分だけ確認し、必要なものだけ反映できます。</div>
+      <div class="dataset-compare-note">既存項目は自動変更されません。台帳へ反映できるのは新規候補のみです。</div>
       <div class="excel-search-result-table-wrap">
         <table class="excel-import-table excel-ledger-table">
           <thead>
@@ -1617,7 +1671,7 @@ window.ExcelImport = window.ExcelImport || {
         </table>
       </div>
       ${compareResult.removedCandidates.length ? `
-        <div class="excel-import-section-title" style="margin:14px 0 8px">公式データから消えた候補</div>
+        <div class="excel-import-section-title" style="margin:14px 0 8px">公式データでは見つからない項目</div>
         <div class="excel-search-result-table-wrap">
           <table class="excel-import-table">
             <thead><tr><th>施設基準名</th><th>略称</th><th>受理番号</th><th>算定開始</th><th>メモ</th></tr></thead>
@@ -1626,7 +1680,7 @@ window.ExcelImport = window.ExcelImport || {
         </div>` : ''}
       <div class="excel-search-placeholder">
         <button class="btn btn-primary" onclick="applyOfficialDatasetNewCandidates()" ${compareResult.newCandidates.length ? '' : 'disabled'}>確認した内容を台帳へ反映</button>
-        <span>新規候補のみ追加します。既存一致・変更候補・消えた候補は確認のみです。</span>
+        <span>${compareResult.newCandidates.length ? '新規候補のみ追加します。既存項目・要確認・公式データでは見つからない項目は自動変更しません。' : '追加できる新規候補はありません。'}</span>
       </div>
     `;
   },
@@ -1636,13 +1690,14 @@ window.ExcelImport = window.ExcelImport || {
       return;
     }
     const newCandidates = this.lastOfficialCompareResult.newCandidates || [];
-    const exactCount = this.lastOfficialCompareResult.exactMatches.length;
-    const changedCount = this.lastOfficialCompareResult.changedCandidates.length;
+    const existingCount = this.lastOfficialCompareResult.existingMatches.length;
+    const reviewCount = this.lastOfficialCompareResult.reviewCandidates.length;
+    const removedCount = this.lastOfficialCompareResult.removedCandidates.length;
     if (!newCandidates.length) {
       this.setOfficialDatasetError('追加できる新規候補はありません。');
       return;
     }
-    if (!confirm(`新規候補 ${newCandidates.length}件を台帳に追加します。既存データは上書きしません。既存一致 ${exactCount}件、変更候補 ${changedCount}件は確認のみです。よろしいですか？`)) {
+    if (!confirm(`新規候補 ${newCandidates.length}件を台帳に追加します。既存データは上書きしません。すでに台帳にある項目 ${existingCount}件、要確認 ${reviewCount}件、公式データでは見つからない項目 ${removedCount}件は確認のみです。よろしいですか？`)) {
       return;
     }
     const importedAt = new Date().toISOString();
@@ -1675,7 +1730,7 @@ window.ExcelImport = window.ExcelImport || {
     this.renderOfficialDatasetBanner();
     this.searchOfficialDatasetMedicalInstitution();
     this.setOfficialDatasetStatus('確認した内容を台帳へ反映しました。', 'success');
-    alert(`✅ 新規候補 ${added.length}件を届出台帳へ追加しました。\n既存データは上書きしていません。`);
+    alert(`✅ 新規候補 ${added.length}件を届出台帳へ追加しました。\n既存項目は自動変更していません。`);
   },
   async loadOfficialDatasetFromManifest(options = {}) {
     const preferredMessage = options.preferredMessage || '最新データを確認しています。';
