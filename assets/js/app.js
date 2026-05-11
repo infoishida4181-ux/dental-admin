@@ -3413,15 +3413,24 @@ function editClinicName(){
   // スマホでpromptが動かない場合のためモーダル方式に変更
   const existing = document.getElementById('clinic-edit-modal');
   if(existing) existing.remove();
+  const profile = typeof getClinicProfile === 'function' ? getClinicProfile() : { medicalInstitutionNumber: '' };
+  const medicalInstitutionNumber = profile && profile.medicalInstitutionNumber ? profile.medicalInstitutionNumber : '';
   const modal = document.createElement('div');
   modal.id = 'clinic-edit-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
   modal.innerHTML = `
     <div style="background:var(--bg);border-radius:14px;padding:24px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
-      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">⚙ 医院名の設定</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">⚙ 医院情報の設定</div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.8;margin-bottom:12px">医院名と医療機関コードを保存しておくと、「施設基準の更新」で自院データを自動確認しやすくなります。</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">医院名</div>
       <input id="clinic-edit-input" type="text" value="${clinicName}"
         style="width:100%;padding:10px 12px;border:1.5px solid var(--accent);border-radius:8px;font-size:14px;font-family:var(--font);background:var(--bg2);color:var(--text);box-sizing:border-box;margin-bottom:16px"
         placeholder="例：くにたち石田歯科">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">医療機関コード（任意）</div>
+      <input id="clinic-medical-id-input" type="text" value="${medicalInstitutionNumber}"
+        style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font);background:var(--bg2);color:var(--text);box-sizing:border-box;margin-bottom:8px"
+        placeholder="例：0117093" inputmode="numeric" maxlength="7" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+      <div style="font-size:11px;color:var(--text3);line-height:1.7;margin-bottom:16px">7桁の医療機関コードを保存すると、最新データ確認時に自動で使います。</div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button onclick="document.getElementById('clinic-edit-modal').remove()"
           style="padding:8px 18px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);font-family:var(--font);font-size:13px;cursor:pointer">キャンセル</button>
@@ -3491,10 +3500,15 @@ function showInfoModal(title, message) {
 }
 function saveClinicName(){
   const n = document.getElementById('clinic-edit-input').value.trim();
+  const medicalIdInput = document.getElementById('clinic-medical-id-input');
+  const medicalInstitutionNumber = medicalIdInput ? medicalIdInput.value.trim() : '';
   if(n){
     clinicName = n;
     localStorage.setItem('clinic_name', n);
     updateClinicPill();
+  }
+  if(typeof saveClinicProfile === 'function'){
+    saveClinicProfile({ medicalInstitutionNumber });
   }
   const modal = document.getElementById('clinic-edit-modal');
   if(modal) modal.remove();
