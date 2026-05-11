@@ -35,6 +35,7 @@ window.ExcelImport = window.ExcelImport || {
   lastSearchResult: null,
   lastDatasetPreview: null,
   lastOfficialCompareResult: null,
+  lastOfficialDatasetDebug: null,
   init() {
     this.reset();
     this.renderStoredOfficialDatasetSummary();
@@ -51,6 +52,7 @@ window.ExcelImport = window.ExcelImport || {
     this.detectedHeaderRowBySheet = {};
     this.lastSearchResult = null;
     this.lastDatasetPreview = null;
+    this.lastOfficialDatasetDebug = null;
 
     const input = document.getElementById('excel-import-file');
     if (input) input.value = '';
@@ -1183,7 +1185,116 @@ window.ExcelImport = window.ExcelImport || {
   },
   getOfficialDatasetDisplayName(dataset) {
     if (!dataset) return '未読込';
-    return dataset.datasetName || dataset.datasetId || '名称未設定';
+    return dataset.datasetName || dataset.label || dataset.datasetId || '名称未設定';
+  },
+  stripBom(text) {
+    return String(text == null ? '' : text).replace(/^\uFEFF/, '');
+  },
+  getBaseManifestUrl() {
+    return new URL('./assets/data/manifest.json', location.href);
+  },
+  buildCacheBustedUrl(inputUrl) {
+    const url = new URL(String(inputUrl));
+    url.searchParams.set('v', Date.now());
+    return url;
+  },
+  resolveDatasetUrl(file, manifestUrl) {
+    const value = String(file || '').trim();
+    if (!value) throw new Error('データファイルの指定が空です。');
+    if (value.startsWith('./assets/') || value.startsWith('assets/')) {
+      return new URL(value, location.href).toString();
+    }
+    return new URL(value, manifestUrl).toString();
+  },
+  getDisplayFileName(value) {
+    const text = String(value || '').trim();
+    if (!text) return '要確認';
+    try {
+      const url = new URL(text, location.href);
+      const parts = url.pathname.split('/').filter(Boolean);
+      return parts[parts.length - 1] || text;
+    } catch {
+      const normalized = text.replace(/\\/g, '/');
+      const parts = normalized.split('/').filter(Boolean);
+      return parts[parts.length - 1] || text;
+    }
+  },
+  setOfficialDatasetDebug(partial) {
+    this.lastOfficialDatasetDebug = {
+      ...(this.lastOfficialDatasetDebug || {}),
+      ...(partial && typeof partial === 'object' ? partial : {})
+    };
+  },
+  renderOfficialDatasetDebugDetails() {
+    const debug = this.lastOfficialDatasetDebug;
+    if (!debug) return '';
+    const datasets = Array.isArray(debug.manifestDatasets) ? debug.manifestDatasets : [];
+    const datasetItems = datasets.length
+      ? datasets.map(item => {
+          const label = item.label || item.datasetName || item.datasetId || '名称未設定';
+          const file = item.file || item.path || '未設定';
+          return `<li><strong>${this.escapeHtml(label)}</strong> <span style="color:var(--text3)">(${this.escapeHtml(file)})</span></li>`;
+        }).join('')
+      : '<li>manifest に datasets が見つかりません。</li>';
+    const lines = [
+      debug.manifestRequestUrl ? `<div><strong>manifest URL:</strong> ${this.escapeHtml(debug.manifestRequestUrl)}</div>` : '',
+      debug.datasetRequestUrl ? `<div><strong>データ URL:</strong> ${this.escapeHtml(debug.datasetRequestUrl)}</div>` : '',
+      debug.activeDatasetId ? `<div><strong>activeDatasetId:</strong> ${this.escapeHtml(debug.activeDatasetId)}</div>` : '',
+      debug.selectedDatasetId ? `<div><strong>選択データ:</strong> ${this.escapeHtml(debug.selectedDatasetId)}</div>` : '',
+      debug.datasetFile ? `<div><strong>file:</strong> ${this.escapeHtml(debug.datasetFile)}</div>` : '',
+      debug.httpStatus ? `<div><strong>HTTP status:</strong> ${this.escapeHtml(debug.httpStatus)}</div>` : '',
+      debug.lastCheckedAt ? `<div><strong>最終確認:</strong> ${this.escapeHtml(this.formatDatasetDate(debug.lastCheckedAt, true))}</div>` : '',
+      debug.errorMessage ? `<div><strong>直近エラー:</strong> ${this.escapeHtml(debug.errorMessage)}</div>` : ''
+    ].filter(Boolean).join('');
+    return `
+      <details class="official-update-details-subtle">
+        <summary>管理者向けの詳細情報</summary>
+        <div class="dataset-compare-note">
+          ${lines}
+          <div style="margin-top:8px"><strong>manifest の datasets:</strong></div>
+          <ul style="margin:6px 0 0 18px;padding:0">${datasetItems}</ul>
+        </div>
+      </details>
+    `;
+  },
+  async fetchJsonTextWithDiagnostics(inputUrl, label) {
+    const requestUrl = this.buildCacheBustedUrl(inputUrl);
+    const response = await fetch(requestUrl.toString(), { cache: 'no-store' });
+    const text = await response.text();
+    if (!response.ok) {
+      const err = new Error(`${label}を取得できませんでした。\n確認URL: ${requestUrl.toString()}\nHTTP status: ${response.status}`);
+      err.requestUrl = requestUrl.toString();
+      err.httpStatus = String(response.status);
+      err.responseText = text;
+      throw err;
+    }
+    try {
+      return {
+        requestUrl: requestUrl.toString(),
+        httpStatus: String(response.status),
+        text,
+        json: JSON.parse(this.stripBom(text))
+      };
+    } catch (err) {
+      const parseErr = new Error(`${label}の解析に失敗しました。\n確認URL: ${requestUrl.toString()}\n${err.message}`);
+      parseErr.requestUrl = requestUrl.toString();
+      parseErr.httpStatus = String(response.status);
+      throw parseErr;
+    }
+  },
+  normalizeLoadedOfficialDataset(dataset, selectedDataset, datasetUrl) {
+    const normalized = {
+      ...(dataset && typeof dataset === 'object' ? dataset : {})
+    };
+    normalized.datasetId = normalized.datasetId || selectedDataset?.datasetId || '';
+    normalized.datasetName = normalized.datasetName || selectedDataset?.label || selectedDataset?.datasetName || normalized.datasetId || '';
+    normalized.label = normalized.label || selectedDataset?.label || normalized.datasetName || normalized.datasetId || '';
+    normalized.sourceDate = normalized.sourceDate || selectedDataset?.sourceDate || '';
+    normalized.format = normalized.format || selectedDataset?.format || (Array.isArray(normalized.recordsByClinic) ? 'grouped-by-clinic' : 'records');
+    normalized.schemaVersion = normalized.schemaVersion || selectedDataset?.schemaVersion || '';
+    normalized.sourceFileName = normalized.sourceFileName || this.getDisplayFileName(selectedDataset?.file || selectedDataset?.path || datasetUrl);
+    normalized.datasetFile = this.getDisplayFileName(selectedDataset?.file || selectedDataset?.path || datasetUrl);
+    return normalized;
   },
   resolveSavedMedicalInstitutionNumber() {
     const candidates = [];
@@ -1191,17 +1302,17 @@ window.ExcelImport = window.ExcelImport || {
       ? getClinicProfile()?.medicalInstitutionNumber
       : '';
     candidates.push(profileMedicalId);
-    if (Array.isArray(entries)) {
-      entries.forEach(entry => {
-        candidates.push(entry?.importMeta?.medicalInstitutionNumber);
-        candidates.push(entry?.importMeta?.medicalId);
-      });
-    }
     if (typeof getOfficialDatasetLastMedicalInstitutionNumber === 'function') {
       candidates.push(getOfficialDatasetLastMedicalInstitutionNumber());
     }
     if (typeof getLastMedicalInstitutionNumber === 'function') {
       candidates.push(getLastMedicalInstitutionNumber());
+    }
+    if (Array.isArray(entries)) {
+      entries.forEach(entry => {
+        candidates.push(entry?.importMeta?.medicalInstitutionNumber);
+        candidates.push(entry?.importMeta?.medicalId);
+      });
     }
     return candidates
       .map(value => this.normalizeMedicalId(value))
@@ -1238,8 +1349,8 @@ window.ExcelImport = window.ExcelImport || {
       this.applyResolvedMedicalInstitutionNumber(this.resolveSavedMedicalInstitutionNumber());
       return;
     }
-    this.setOfficialDatasetStatus('最新データを確認中です。');
-    await this.loadOfficialDatasetFromManifest({ autoSearch: true, preferredMessage: '最新データを確認中です。' });
+    this.setOfficialDatasetStatus('最新データを確認しています。');
+    await this.loadOfficialDatasetFromManifest({ autoSearch: true, preferredMessage: '最新データを確認しています。' });
   },
   closeOfficialDatasetModal() {
     closeOverlay('official-dataset-overlay');
@@ -1254,31 +1365,37 @@ window.ExcelImport = window.ExcelImport || {
     const fileNameEl = document.getElementById('official-dataset-file-name');
     if (fileNameEl) {
       fileNameEl.textContent = officialDataset
-        ? this.getOfficialDatasetDisplayName(officialDataset)
+        ? `使用中ファイル: ${this.getDisplayFileName(officialDataset.datasetFile || officialDataset.sourceFileName)}`
         : '更新データ未読込';
     }
     const summary = document.getElementById('official-dataset-summary');
     if (!summary) return;
     const stats = this.getOfficialDatasetStats(officialDataset);
     if (!officialDataset || !stats.facilityCount) {
-      summary.innerHTML = '<div class="excel-import-empty">最新データを確認すると、ここに作成日や収録件数を表示します。</div>';
+      summary.innerHTML = `
+        <div class="excel-import-empty">最新データを確認すると、ここに作成日や収録件数を表示します。</div>
+        ${this.renderOfficialDatasetDebugDetails()}
+      `;
       return;
     }
-    const latestCheckedAt = officialManifestMeta?.checkedAt
-      ? `最新版確認: ${this.formatDatasetDate(officialManifestMeta.checkedAt, true)}`
+    const latestCheckedAt = this.lastOfficialDatasetDebug?.lastCheckedAt || officialManifestMeta?.checkedAt || '';
+    const latestCheckedText = latestCheckedAt
+      ? `最終確認: ${this.formatDatasetDate(latestCheckedAt, true)}`
       : '';
     const manifestNote = officialManifestMeta && officialManifestMeta.activeDatasetId
-      ? `<div class="dataset-compare-note">${officialManifestMeta.activeDatasetId !== officialDataset.datasetId ? '保存済みの更新データと、公開中の最新版が異なる可能性があります。' : '公開中の最新版と同じ更新データを確認しています。'}${latestCheckedAt ? `<br>${this.escapeHtml(latestCheckedAt)}` : ''}</div>`
+      ? `<div class="dataset-compare-note">${officialManifestMeta.activeDatasetId !== officialDataset.datasetId ? '保存済みの更新データと、公開中の最新版が異なる可能性があります。' : '公開中の最新版と同じ更新データを確認しています。'}${latestCheckedText ? `<br>${this.escapeHtml(latestCheckedText)}` : ''}</div>`
       : '';
     summary.innerHTML = `
       <div class="dataset-summary-grid">
         <div class="dataset-summary-card"><div class="dataset-summary-label">最新データ</div><div class="dataset-summary-value">${this.escapeHtml(this.getOfficialDatasetDisplayName(officialDataset))}</div></div>
-        <div class="dataset-summary-card"><div class="dataset-summary-label">作成日</div><div class="dataset-summary-value">${this.escapeHtml(this.formatDatasetDate(officialDataset.createdAt || officialDataset.sourceDate))}</div></div>
+        <div class="dataset-summary-card"><div class="dataset-summary-label">sourceDate</div><div class="dataset-summary-value">${this.escapeHtml(this.formatDatasetDate(officialDataset.sourceDate || officialDataset.createdAt))}</div></div>
         <div class="dataset-summary-card"><div class="dataset-summary-label">対象</div><div class="dataset-summary-value">${this.escapeHtml(this.getAreaLabel(officialDataset.area))}・${this.escapeHtml(this.getCategoryDisplayLabel(officialDataset.category))}</div></div>
         <div class="dataset-summary-card"><div class="dataset-summary-label">収録医療機関数</div><div class="dataset-summary-value">${stats.institutionCount}件</div></div>
         <div class="dataset-summary-card"><div class="dataset-summary-label">収録施設基準数</div><div class="dataset-summary-value">${stats.facilityCount}件</div></div>
+        <div class="dataset-summary-card"><div class="dataset-summary-label">最終確認日時</div><div class="dataset-summary-value">${this.escapeHtml(this.formatDatasetDate(latestCheckedAt, true))}</div></div>
       </div>
       <div class="dataset-compare-note">
+        <div><strong>使用中のデータファイル:</strong> ${this.escapeHtml(this.getDisplayFileName(officialDataset.datasetFile || officialDataset.sourceFileName))}</div>
         <div><strong>元データ:</strong> ${this.escapeHtml(officialDataset.sourceFileName || '要確認')}</div>
       </div>
       <details class="official-update-details-subtle">
@@ -1290,6 +1407,7 @@ window.ExcelImport = window.ExcelImport || {
           <div><strong>createdAt:</strong> ${this.escapeHtml(officialDataset.createdAt || '—')}</div>
         </div>
       </details>
+      ${this.renderOfficialDatasetDebugDetails()}
       ${manifestNote}
     `;
   },
@@ -1299,10 +1417,19 @@ window.ExcelImport = window.ExcelImport || {
     this.setOfficialDatasetError('');
     this.setOfficialDatasetStatus('手動で更新データを読み込んでいます。');
     try {
-      const text = await file.text();
+      const text = this.stripBom(await file.text());
       const dataset = JSON.parse(text);
       this.validateOfficialDataset(dataset);
-      saveOfficialDataset(dataset);
+      const normalizedDataset = this.normalizeLoadedOfficialDataset(dataset, { file: file.name, label: dataset.datasetName || dataset.label || file.name }, file.name);
+      saveOfficialDataset(normalizedDataset);
+      this.setOfficialDatasetDebug({
+        manifestRequestUrl: '',
+        datasetRequestUrl: file.name,
+        datasetFile: file.name,
+        selectedDatasetId: normalizedDataset.datasetId || '',
+        lastCheckedAt: new Date().toISOString(),
+        errorMessage: ''
+      });
       this.lastOfficialCompareResult = null;
       this.renderStoredOfficialDatasetSummary();
       this.renderOfficialDatasetBanner();
@@ -1347,8 +1474,8 @@ window.ExcelImport = window.ExcelImport || {
     if (!result) return;
     if (!filtered.length) {
       this.lastOfficialCompareResult = null;
-      this.setOfficialDatasetStatus('該当する医療機関コードが見つかりませんでした。', 'error');
-      result.innerHTML = `<div class="excel-import-empty">該当する医療機関コードが見つかりません。<br>検索コード: ${this.escapeHtml(medicalId)}</div>`;
+      this.setOfficialDatasetStatus('自院の施設基準候補を確認しました。');
+      result.innerHTML = `<div class="excel-import-empty">該当なし<br>検索コード: ${this.escapeHtml(medicalId)}</div>`;
       return;
     }
     if (typeof setOfficialDatasetLastMedicalInstitutionNumber === 'function') {
@@ -1551,7 +1678,7 @@ window.ExcelImport = window.ExcelImport || {
     alert(`✅ 新規候補 ${added.length}件を届出台帳へ追加しました。\n既存データは上書きしていません。`);
   },
   async loadOfficialDatasetFromManifest(options = {}) {
-    const preferredMessage = options.preferredMessage || '最新データを確認中です。';
+    const preferredMessage = options.preferredMessage || '最新データを確認しています。';
     this.setOfficialDatasetError('');
     this.setOfficialDatasetStatus(preferredMessage);
     if (window.location && window.location.protocol === 'file:') {
@@ -1561,16 +1688,30 @@ window.ExcelImport = window.ExcelImport || {
       return;
     }
     try {
-      const manifest = await this.fetchOfficialManifest();
-      const active = Array.isArray(manifest.datasets)
-        ? manifest.datasets.find(item => item.datasetId === manifest.activeDatasetId)
-        : null;
-      if (!active || !active.path) {
-        throw new Error('公開版の最新データ設定が見つかりません。');
+      const { manifest, manifestUrl, manifestRequestUrl } = await this.fetchOfficialManifest();
+      const datasets = Array.isArray(manifest.datasets) ? manifest.datasets : [];
+      const active = datasets.find(item => item.datasetId === manifest.activeDatasetId) || datasets[0];
+      this.setOfficialDatasetDebug({
+        manifestRequestUrl,
+        activeDatasetId: manifest.activeDatasetId || '',
+        manifestDatasets: datasets,
+        selectedDatasetId: active?.datasetId || '',
+        datasetFile: active?.file || active?.path || '',
+        lastCheckedAt: new Date().toISOString(),
+        errorMessage: ''
+      });
+      const file = active?.file || active?.path || '';
+      if (!active || !file) {
+        throw new Error('最新版データ設定が見つかりません。');
       }
-      const response = await fetch(`${active.path}?t=${Date.now()}`, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`データセット取得に失敗しました (${response.status})`);
-      const dataset = await response.json();
+      const datasetBaseUrl = this.resolveDatasetUrl(file, manifestUrl);
+      const fetchedDataset = await this.fetchJsonTextWithDiagnostics(datasetBaseUrl, '最新版データ');
+      this.setOfficialDatasetDebug({
+        datasetRequestUrl: fetchedDataset.requestUrl,
+        httpStatus: fetchedDataset.httpStatus,
+        datasetFile: file
+      });
+      const dataset = this.normalizeLoadedOfficialDataset(fetchedDataset.json, active, datasetBaseUrl);
       this.validateOfficialDataset(dataset);
       saveOfficialDataset(dataset);
       this.lastOfficialCompareResult = null;
@@ -1588,8 +1729,13 @@ window.ExcelImport = window.ExcelImport || {
     } catch (err) {
       this.setOfficialDatasetStatus('最新データの確認に失敗しました。', 'error');
       this.setOfficialDatasetError(`最新データの確認に失敗しました。\n${err.message}`);
+      this.setOfficialDatasetDebug({
+        httpStatus: err.httpStatus || this.lastOfficialDatasetDebug?.httpStatus || '',
+        datasetRequestUrl: err.requestUrl || this.lastOfficialDatasetDebug?.datasetRequestUrl || '',
+        errorMessage: err.message || '不明なエラー'
+      });
+      this.renderStoredOfficialDatasetSummary();
       if (officialDataset) {
-        this.renderStoredOfficialDatasetSummary();
         this.renderOfficialDatasetBanner();
         if (options.autoSearch) {
           this.tryAutoSearchOfficialDataset();
@@ -1598,15 +1744,27 @@ window.ExcelImport = window.ExcelImport || {
     }
   },
   async fetchOfficialManifest() {
-    const response = await fetch(`./assets/data/manifest.json?t=${Date.now()}`, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`最新データ設定の取得に失敗しました (${response.status})`);
-    const manifest = await response.json();
+    const manifestUrl = this.getBaseManifestUrl();
+    const fetched = await this.fetchJsonTextWithDiagnostics(manifestUrl.toString(), '最新データ設定');
+    const manifest = fetched.json;
     saveOfficialManifestMeta({
       activeDatasetId: manifest.activeDatasetId || '',
       checkedAt: new Date().toISOString(),
       datasetCount: Array.isArray(manifest.datasets) ? manifest.datasets.length : 0
     });
-    return manifest;
+    this.setOfficialDatasetDebug({
+      manifestRequestUrl: fetched.requestUrl,
+      httpStatus: fetched.httpStatus,
+      manifestDatasets: Array.isArray(manifest.datasets) ? manifest.datasets : [],
+      activeDatasetId: manifest.activeDatasetId || '',
+      lastCheckedAt: new Date().toISOString(),
+      errorMessage: ''
+    });
+    return {
+      manifest,
+      manifestUrl: manifestUrl.toString(),
+      manifestRequestUrl: fetched.requestUrl
+    };
   },
   async maybeCheckManifestOnStartup() {
     if (window.location && window.location.protocol === 'file:') {
@@ -1614,7 +1772,7 @@ window.ExcelImport = window.ExcelImport || {
       return;
     }
     try {
-      const manifest = await this.fetchOfficialManifest();
+      const { manifest } = await this.fetchOfficialManifest();
       saveOfficialManifestMeta({
         activeDatasetId: manifest.activeDatasetId || '',
         checkedAt: new Date().toISOString(),
@@ -1728,7 +1886,7 @@ function applyOfficialDatasetNewCandidates() {
 }
 
 async function refreshFacilityUpdateData() {
-  await ExcelImport.loadOfficialDatasetFromManifest({ autoSearch: true, preferredMessage: '最新データを確認中です。' });
+  await ExcelImport.loadOfficialDatasetFromManifest({ autoSearch: true, preferredMessage: '最新データを確認しています。' });
 }
 
 async function loadOfficialDatasetFromManifest() {
