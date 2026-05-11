@@ -292,6 +292,20 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .dataset-compare-chip.new{background:var(--blue-bg);border-color:#bfdbfe;color:var(--accent)}
 .dataset-compare-chip.removed{background:var(--red-bg);border-color:#fecaca;color:var(--red)}
 .dataset-compare-note{font-size:11px;color:var(--text2);line-height:1.8;margin:8px 0 12px}
+.dataset-filter-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 10px}
+.dataset-filter-chip{appearance:none;border:1px solid var(--border);background:var(--bg2);color:var(--text2);border-radius:999px;padding:5px 10px;font-size:11px;line-height:1.4;cursor:pointer}
+.dataset-filter-chip:hover{border-color:var(--border2);color:var(--text)}
+.dataset-filter-chip.active{background:var(--blue-bg);border-color:#bfdbfe;color:var(--accent);font-weight:700}
+.official-compare-table-wrap{max-height:min(46vh,480px);min-height:0;overflow-x:auto;overflow-y:auto;align-content:flex-start}
+.official-compare-table{table-layout:auto;border-collapse:collapse}
+.official-compare-table thead,.official-compare-table tbody{height:auto;min-height:0}
+.official-compare-table tbody{display:table-row-group}
+.official-compare-table tr{height:auto}
+.official-compare-table tbody tr[hidden]{display:none}
+.official-compare-table th,.official-compare-table td{vertical-align:top}
+.official-compare-table td:nth-child(10){min-width:260px;max-width:340px}
+.official-compare-table .dataset-compare-note{display:block;max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:6px 0 0;line-height:1.6}
+.official-compare-filter-empty{margin:8px 0 0;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px}
 .official-update-details,.official-update-details-subtle{margin:0 0 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px}
 .official-update-details summary,.official-update-details-subtle summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:12px;font-weight:700;color:var(--text)}
 .official-update-details summary::-webkit-details-marker,.official-update-details-subtle summary::-webkit-details-marker{display:none}

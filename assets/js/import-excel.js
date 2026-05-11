@@ -1694,14 +1694,14 @@ window.ExcelImport = window.ExcelImport || {
   renderOfficialDatasetCompareResult(compareResult, medicalId) {
     const result = document.getElementById('official-dataset-result');
     if (!result) return;
-    const rows = compareResult.ledgerRows.map(item => {
+    const renderCompareRow = item => {
       const compareClass = item.compareStatus === 'existing'
         ? 'exact'
         : item.compareStatus === 'review'
           ? 'changed'
           : 'new';
       return `
-        <tr>
+        <tr data-compare-status="${this.escapeHtml(item.compareStatus)}">
           <td>${this.escapeHtml(item.name)}</td>
           <td>${this.escapeHtml(item.abbr)}</td>
           <td>${this.escapeHtml(item.number)}</td>
@@ -1717,7 +1717,8 @@ window.ExcelImport = window.ExcelImport || {
           </td>
         </tr>
       `;
-    }).join('');
+    };
+    const rows = compareResult.ledgerRows.map(renderCompareRow).join('');
     const removedRows = compareResult.removedCandidates.map(item => `
       <tr>
         <td>${this.escapeHtml(item.name || '—')}</td>
@@ -1726,6 +1727,17 @@ window.ExcelImport = window.ExcelImport || {
         <td>${this.escapeHtml(item.date || '—')}</td>
         <td>${this.escapeHtml(item.memo || '—')}</td>
       </tr>
+    `).join('');
+    const filterChips = [
+      ['all', '全件', compareResult.ledgerRows.length + compareResult.removedCandidates.length],
+      ['new', '新規候補', compareResult.newCandidates.length],
+      ['existing', 'すでに台帳にある項目', compareResult.existingMatches.length],
+      ['review', '要確認', compareResult.reviewCandidates.length],
+      ['removed', '公式データでは見つからない項目', compareResult.removedCandidates.length]
+    ].map(([filter, label, count]) => `
+      <button type="button" class="dataset-filter-chip ${filter === 'all' ? 'active' : ''}" data-filter="${this.escapeHtml(filter)}" onclick="filterOfficialDatasetCompareRows('${this.escapeHtml(filter)}')">
+        ${this.escapeHtml(label)} ${count}件
+      </button>
     `).join('');
     result.innerHTML = `
       <div class="excel-search-meta">検索コード: ${this.escapeHtml(medicalId)}</div>
@@ -1741,18 +1753,20 @@ window.ExcelImport = window.ExcelImport || {
         <span class="excel-ledger-chip is-new" style="background:var(--yellow-bg);border-color:#fde68a;color:var(--yellow)">要確認 ${compareResult.reviewCandidates.length}件</span>
         <span class="excel-ledger-chip" style="background:var(--red-bg);border-color:#fecaca;color:var(--red)">公式データでは見つからない項目 ${compareResult.removedCandidates.length}件</span>
       </div>
-      <div class="dataset-compare-note">既存項目は自動変更されません。台帳へ反映できるのは新規候補のみです。</div>
-      <div class="excel-search-result-table-wrap">
-        <table class="excel-import-table excel-ledger-table">
+      <div class="dataset-compare-note">既存項目は自動変更されません。台帳へ反映できるのは新規候補のみです。略称と受理番号が一致しているため、すでに台帳にある項目として扱います。</div>
+      <div class="dataset-filter-bar" aria-label="比較結果の表示切替">${filterChips}</div>
+      <div class="excel-search-result-table-wrap official-compare-table-wrap" data-official-compare-table>
+        <table class="excel-import-table excel-ledger-table official-compare-table">
           <thead>
             <tr><th>施設基準名</th><th>略称</th><th>受理番号</th><th>算定開始</th><th>カテゴリ</th><th>状態</th><th>改定影響</th><th>定例報告</th><th>メモ</th><th>比較</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
+      <div class="excel-import-empty official-compare-filter-empty" data-official-compare-empty style="display:none">この分類に表示できる項目はありません。</div>
       ${compareResult.removedCandidates.length ? `
         <div class="excel-import-section-title" style="margin:14px 0 8px">公式データでは見つからない項目</div>
-        <div class="excel-search-result-table-wrap">
+        <div class="excel-search-result-table-wrap official-compare-removed-wrap">
           <table class="excel-import-table">
             <thead><tr><th>施設基準名</th><th>略称</th><th>受理番号</th><th>算定開始</th><th>メモ</th></tr></thead>
             <tbody>${removedRows}</tbody>
@@ -1763,6 +1777,33 @@ window.ExcelImport = window.ExcelImport || {
         <span>${compareResult.newCandidates.length ? '新規候補のみ追加します。既存項目・要確認・公式データでは見つからない項目は自動変更しません。' : '追加できる新規候補はありません。'}</span>
       </div>
     `;
+  },
+  filterOfficialDatasetCompareRows(filter = 'all') {
+    const result = document.getElementById('official-dataset-result');
+    if (!result) return;
+    const normalizedFilter = ['all', 'new', 'existing', 'review', 'removed'].includes(filter) ? filter : 'all';
+    result.querySelectorAll('.dataset-filter-chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.filter === normalizedFilter);
+    });
+    const tableWrap = result.querySelector('[data-official-compare-table]');
+    const empty = result.querySelector('[data-official-compare-empty]');
+    const rows = Array.from(result.querySelectorAll('.official-compare-table tbody tr'));
+    let visibleCount = 0;
+    rows.forEach(row => {
+      const show = normalizedFilter === 'all' || row.dataset.compareStatus === normalizedFilter;
+      row.hidden = !show;
+      if (show) visibleCount += 1;
+    });
+    const removedSection = result.querySelector('.official-compare-removed-wrap');
+    const removedTitle = removedSection ? removedSection.previousElementSibling : null;
+    const showRemovedOnly = normalizedFilter === 'removed';
+    const hasRemovedRows = Boolean(removedSection && removedSection.querySelector('tbody tr'));
+    if (tableWrap) tableWrap.style.display = visibleCount ? '' : 'none';
+    if (empty) empty.style.display = visibleCount || (showRemovedOnly && hasRemovedRows) ? 'none' : '';
+    if (removedSection) removedSection.style.display = normalizedFilter === 'all' || showRemovedOnly ? '' : 'none';
+    if (removedTitle && removedTitle.classList.contains('excel-import-section-title')) {
+      removedTitle.style.display = normalizedFilter === 'all' || showRemovedOnly ? '' : 'none';
+    }
   },
   applyOfficialDatasetNewCandidates() {
     if (!this.lastOfficialCompareResult) {
@@ -2018,6 +2059,10 @@ function searchOfficialDatasetMedicalInstitution() {
 
 function applyOfficialDatasetNewCandidates() {
   ExcelImport.applyOfficialDatasetNewCandidates();
+}
+
+function filterOfficialDatasetCompareRows(filter) {
+  ExcelImport.filterOfficialDatasetCompareRows(filter);
 }
 
 async function refreshFacilityUpdateData() {
