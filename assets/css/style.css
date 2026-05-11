@@ -316,6 +316,7 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 #official-dataset-status.is-error{color:var(--red)}
 #official-dataset-status.is-success{color:var(--green)}
 .facility-form-section{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+.facility-form-section-abolished{border-color:#fed7aa;background:#fffaf5}
 .facility-form-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
 .facility-form-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px}
 .facility-form-note{font-size:11px;color:var(--text2);line-height:1.8}

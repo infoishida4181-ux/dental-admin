@@ -153,46 +153,110 @@ function getAllShinkiSupportAbbrs(){
 
 function auditFacilityFormLinksR08(){
   const abbrs=getAllShinkiSupportAbbrs();
-  return abbrs.map(abbr => {
+  const rows=abbrs.map(abbr => {
     const link=typeof getFacilityFormLinkR08 === 'function' ? getFacilityFormLinkR08(abbr) : null;
     const def=typeof SHINKI_MASTER !== 'undefined' ? SHINKI_MASTER[abbr] : null;
     const forms=Array.isArray(link?.forms) ? link.forms : [];
-    const pdfCount=forms.filter(f=>f.pdfUrl).length;
-    const editableCount=forms.filter(f=>f.editableUrl).length;
-    const page=link?.officialPageUrl || '';
+    const directForms=forms.filter(f=>f?.url);
+    const pdfCount=directForms.filter(f=>f.type==='pdf').length;
+    const wordCount=directForms.filter(f=>f.type==='word').length;
+    const excelCount=directForms.filter(f=>f.type==='excel').length;
+    const zipCount=directForms.filter(f=>f.type==='zip').length;
+    const otherCount=directForms.filter(f=>!['pdf','word','excel','zip'].includes(f.type)).length;
+    const page=link?.officialListUrl || link?.officialPageUrl || '';
+    const directFormExempt=link?.directFormStatus === 'abolished' || def?.facilityStandardAbolished;
     const issues=[];
+    const missingTypes=[];
     if(!link) issues.push('様式リンク未登録');
     if(link?.officialCategory==='basic' && page.includes('tokukei_shinryo_r08')) issues.push('区分と公式ページが不一致');
     if(link?.officialCategory==='tokukei' && page.includes('kihon_shinryo_r08')) issues.push('区分と公式ページが不一致');
     if(page.includes('_r06')) issues.push('令和6年度ページがメイン導線');
     if(forms.length===0 && !page) issues.push('公式一覧ページ未登録');
-    if(forms.some(f=>!f.pdfUrl && !f.editableUrl)) issues.push('空の様式リンクあり');
+    if(forms.some(f=>!f.url)) issues.push('空の様式リンクあり');
+    if(!directFormExempt){
+      if(!link || directForms.length===0) missingTypes.push('直接リンク');
+      if(pdfCount===0) missingTypes.push('PDF');
+      if(wordCount+excelCount===0) missingTypes.push('Word/Excel');
+    }
+    const reason=link?.missingReason || link?.note || (missingTypes.length ? '公式ページの掲載状況を確認してください' : '');
     return {
       abbr,
       name: link?.name || def?.name || abbr,
       category: link?.officialCategory || (def?.category==='basic'?'basic':'tokukei'),
       page,
       pdfCount,
-      editableCount,
+      wordCount,
+      excelCount,
+      zipCount,
+      otherCount,
+      directCount: directForms.length,
+      directFormExempt,
+      missingTypes,
+      searchKeywords: Array.isArray(link?.searchKeywords) ? link.searchKeywords.join('、') : '',
       lastChecked: link?.lastChecked || '',
-      note: [link?.note, issues.join(' / ')].filter(Boolean).join(' / ')
+      reason,
+      note: [reason, issues.join(' / ')].filter(Boolean).join(' / ')
     };
   });
+  const summary={
+    supportCount: abbrs.length,
+    registeredCount: rows.filter(r=>r.directCount>0 || r.page).length,
+    pdfFacilityCount: rows.filter(r=>r.pdfCount>0).length,
+    wordFacilityCount: rows.filter(r=>r.wordCount>0).length,
+    excelFacilityCount: rows.filter(r=>r.excelCount>0).length,
+    zipFacilityCount: rows.filter(r=>r.zipCount>0).length,
+    directMissingCount: rows.filter(r=>!r.directFormExempt && r.directCount===0).length,
+    pageOnlyCount: rows.filter(r=>!r.directFormExempt && r.directCount===0 && r.page).length,
+    exemptCount: rows.filter(r=>r.directFormExempt).length
+  };
+  return {rows,summary};
 }
 
 function renderFacilityFormLinkAudit(){
   const el=document.getElementById('facility-form-link-audit');
   if(!el)return;
-  const rows=auditFacilityFormLinksR08();
-  el.innerHTML=`<div class="tw"><table class="admin-form-audit-table">
-    <thead><tr><th>受理番号</th><th>施設基準名</th><th>区分</th><th>公式ページ</th><th>PDF</th><th>Word/Excel</th><th>最終確認日</th><th>注意メモ</th></tr></thead>
+  const audit=auditFacilityFormLinksR08();
+  const rows=audit.rows;
+  const missingRows=rows.filter(r=>r.missingTypes.length>0);
+  const metric=(label,value)=>`<div class="admin-audit-metric"><span>${label}</span><strong>${value}</strong></div>`;
+  const missingTable=missingRows.length?`<div class="admin-audit-alert">
+    <div class="admin-audit-alert-title">不足リンク確認</div>
+    <div class="tw"><table class="admin-form-audit-table">
+      <thead><tr><th>施設基準名</th><th>略称</th><th>区分</th><th>不足しているリンク種別</th><th>理由</th><th>公式一覧ページ</th><th>検索キーワード</th></tr></thead>
+      <tbody>${missingRows.map(r=>`<tr>
+        <td>${r.name}</td>
+        <td><span class="badge bb">${r.abbr}</span></td>
+        <td>${r.category==='basic'?'基本診療料':'特掲診療料'}</td>
+        <td>${r.missingTypes.join(' / ')}</td>
+        <td>${r.reason || '確認理由未入力'}</td>
+        <td>${r.page?`<a href="${r.page}" target="_blank" rel="noopener noreferrer">公式一覧ページ</a>`:'未登録'}</td>
+        <td>${r.searchKeywords || '-'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`:'';
+  el.innerHTML=`<div class="admin-audit-metrics">
+    ${metric('新規届出サポート登録件数',audit.summary.supportCount)}
+    ${metric('様式リンク登録件数',audit.summary.registeredCount)}
+    ${metric('PDFリンクあり件数',audit.summary.pdfFacilityCount)}
+    ${metric('Wordリンクあり件数',audit.summary.wordFacilityCount)}
+    ${metric('Excelリンクあり件数',audit.summary.excelFacilityCount)}
+    ${metric('ZIPリンクあり件数',audit.summary.zipFacilityCount)}
+    ${metric('直接リンク未登録件数',audit.summary.directMissingCount)}
+    ${metric('公式ページ確認のみの件数',audit.summary.pageOnlyCount)}
+    ${metric('廃止・再編で様式なし',audit.summary.exemptCount)}
+  </div>
+  ${missingTable}
+  <div class="tw"><table class="admin-form-audit-table">
+    <thead><tr><th>受理番号</th><th>施設基準名</th><th>区分</th><th>公式ページ</th><th>PDF</th><th>Word</th><th>Excel</th><th>ZIP</th><th>最終確認日</th><th>注意メモ</th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
       <td><span class="badge bb">${r.abbr}</span></td>
       <td>${r.name}</td>
       <td>${r.category==='basic'?'基本診療料':'特掲診療料'}</td>
       <td>${r.page?`<a href="${r.page}" target="_blank" rel="noopener noreferrer">公式一覧ページ</a>`:'未登録'}</td>
       <td>${r.pdfCount}</td>
-      <td>${r.editableCount}</td>
+      <td>${r.wordCount}</td>
+      <td>${r.excelCount}</td>
+      <td>${r.zipCount}</td>
       <td>${r.lastChecked || '未確認'}</td>
       <td>${r.note || '直接リンク登録済み'}</td>
     </tr>`).join('')}</tbody>

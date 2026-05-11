@@ -2275,20 +2275,22 @@ const SHINKI_MASTER = {
     name: '有床義歯咀嚼機能検査2のロ及び咬合圧検査',
     category: 'special',
     score: '咬合圧検査：60点',
-    summary: '咬合圧測定装置を用いて咬合力・咬合バランスを検査する施設基準。義歯製作・口腔機能管理に活用。',
+    summary: '令和8年度改定で施設基準の届出対象としては廃止されました。点数・算定項目そのものは残っており、算定要件を満たせば算定可能です。',
     prereq: [],
-    abolished: false,
-    abolishNote: '⚠️【令和8年6月改定・要確認】咬合圧検査に係る施設基準が廃止され、算定要件に変更された可能性があります。届出不要になる場合は本マスタから削除予定。告示内容を確認のこと。',
+    abolished: true,
+    facilityStandardAbolished: true,
+    abolishNote: '令和8年度改定で施設基準届出は廃止され、届出様式の対象ではなくなりました。点数・算定項目は残るため、算定要件・経過措置は公式告示・通知で確認してください。',
     requirements: [
       '歯科補綴治療に係る専門の知識及び3年以上の経験を有する歯科医師が1名以上',
       '咬合圧測定用の歯科用咬合力計を有すること',
+      '令和8年度以降は新規届出ではなく、算定要件を満たしているかを確認すること',
     ],
-    note: '⚠️ 令和8年6月改定で施設基準届出が不要になる可能性あり。T-ScanやデンタルプレスケールII等の機器が対象。告示内容を要確認。',
+    note: '施設基準の届出対象としては廃止されましたが、検査そのものが算定不可になったわけではありません。届出書作成ではなく、公式告示・通知で算定要件を確認してください。',
     yoshiki: [
       {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'咬合圧'},
     ],
     sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
-    flow: ['咬合圧測定装置を準備','3年以上の経験を有する歯科医師を確認','様式38の1の2を記載して厚生局へ郵送'],
+    flow: ['令和8年度の公式告示・通知を確認','咬合圧測定装置と経験要件を確認','届出様式ではなく算定要件・経過措置の扱いを確認'],
   },
 
   '口細菌': {
@@ -2296,19 +2298,21 @@ const SHINKI_MASTER = {
     name: '口腔細菌定量検査',
     category: 'special',
     score: '口腔細菌定量検査：130点',
-    summary: '口腔内の細菌量を定量的に測定する検査。令和8年6月改定で施設基準の届出が不要になりましたが、装置があれば引き続き算定可能です。',
+    summary: '令和8年度改定で施設基準の届出対象としては廃止されました。点数・算定項目そのものは残っており、算定要件を満たせば算定可能です。',
     prereq: [],
-    abolished: false,
-    abolishNote: '📋【令和8年6月改定】施設基準の届出は不要になりました。廃止届の提出も不要です。口腔細菌定量分析装置を保有していれば、届出なしで引き続き算定できます。',
+    abolished: true,
+    facilityStandardAbolished: true,
+    abolishNote: '令和8年度改定で施設基準届出は廃止され、届出様式の対象ではなくなりました。点数・算定項目は残るため、算定要件・経過措置は公式告示・通知で確認してください。',
     requirements: [
       '口腔細菌定量分析装置（ルシパック等）を有すること（届出は不要）',
+      '令和8年度以降は新規届出ではなく、算定要件を満たしているかを確認すること',
     ],
-    note: '令和8年6月改定で届出不要化。装置を保有していれば算定可能。新規に装置を導入する場合も届出は不要。',
+    note: '施設基準の届出対象としては廃止されましたが、検査そのものが算定不可になったわけではありません。届出書作成ではなく、公式告示・通知で算定要件を確認してください。',
     yoshiki: [
       {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'口菌検'},
     ],
     sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
-    flow: ['口腔細菌定量分析装置を準備','届出書を記載して厚生局へ郵送'],
+    flow: ['令和8年度の公式告示・通知を確認','口腔細菌定量分析装置の保有状況を確認','届出様式ではなく算定要件・経過措置の扱いを確認'],
   },
 
   '歯画診': {
@@ -2744,17 +2748,21 @@ const SHINKI_GROUPS = [
   { label:'🏥 基本診療料（歯科）', abbrs:['歯初診','外安全１','外安全２','外感染１','外感染２','歯情報通信','歯医DX1','歯医DX2'] },
   { label:'🏠 在宅・訪問診療', abbrs:['歯訪診','在支歯','歯地連','在宅ＤＸ'] },
   { label:'💊 管理料・全身管理', abbrs:['口管強','機安歯','医管','在歯管'] },
-  { label:'🔬 検査・機能評価', abbrs:['咀嚼能力','咬合圧','口細菌','歯画診'] },
+  { label:'🔬 検査・機能評価', abbrs:['咀嚼能力','歯画診'] },
   { label:'🦷 補綴・技工', abbrs:['歯ＣＡＤ','光印象','歯技連１','歯技工','補管'] },
   { label:'🔭 外科・精密治療', abbrs:['手顕微加','根切顕微','ＧＴＲ'] },
   { label:'💡 処置・その他', abbrs:['口腔粘膜','う蝕無痛'] },
   { label:'🆕 令和8年6月新設（施設基準）', abbrs:['口腔機能実地','三次元プリント義歯','特別管理加算','歯科麻酔','歯技工所ベースアップ'] },
-  { label:'🚫 令和8年6月廃止・再編', abbrs:['医療ＤＸ'] },
   { label:'💰 賃上げ', abbrs:['歯外在ベⅠ','歯外在ベⅠ注','歯外在ベⅡ','歯外在ベⅡ注'] },
+  { label:'🚫 令和8年で廃止・再編された施設基準', abbrs:['医療ＤＸ','咬合圧','口細菌'] },
 ];
 
 let _shinkiSelected = null;
 let _shinkiListScrollTop = 0;
+
+function isFacilityStandardAbolished(def){
+  return Boolean(def?.facilityStandardAbolished);
+}
 
 function renderShinki(){
   const savedListScrollTop = _shinkiListScrollTop || 0;
@@ -2776,6 +2784,7 @@ function renderShinki(){
       if(!def) return;
       const have = alreadyHave.has(abbr);
       const isSelected = _shinkiSelected === abbr;
+      const facilityAbolished = isFacilityStandardAbolished(def);
       html += `
         <div onclick="selectShinki('${abbr}')" style="
           padding:10px 14px;cursor:pointer;border-left:3px solid ${isSelected?'var(--accent)':'transparent'};
@@ -2787,7 +2796,9 @@ function renderShinki(){
             <div style="font-size:12px;font-weight:600;color:var(--text)">${abbr}</div>
             <div style="font-size:10px;color:var(--text3);margin-top:1px">${def.score.split('・')[0]}</div>
           </div>
-          ${have ? '<span class="badge bg" style="font-size:9px;flex-shrink:0">届出済</span>' : ''}
+          ${facilityAbolished
+            ? '<span class="badge bpu" style="font-size:9px;flex-shrink:0">令和8年 施設基準廃止</span>'
+            : have ? '<span class="badge bg" style="font-size:9px;flex-shrink:0">届出済</span>' : ''}
         </div>`;
     });
   });
@@ -2880,6 +2891,34 @@ function renderFacilityFormSection(abbr, def){
   const searchKeywords = Array.isArray(link.searchKeywords) && link.searchKeywords.length
     ? link.searchKeywords.join('、')
     : [abbr, link.name].filter(Boolean).join('、');
+  if(isFacilityStandardAbolished(def) || link.directFormStatus === 'abolished'){
+    return `
+    <div class="facility-form-section facility-form-section-abolished">
+      <div class="facility-form-head">
+        <div>
+          <div class="facility-form-title">届出様式</div>
+          <div class="facility-form-note">令和8年度改定で施設基準届出は廃止されました。新規届出用のPDF / Word / Excel様式ではなく、算定要件・経過措置を公式告示・通知で確認してください。</div>
+        </div>
+      </div>
+      <div class="facility-form-meta">
+        <div><span>届出区分</span><strong>特掲診療料</strong></div>
+        <div><span>受理番号</span><strong>令和8年で届出対象外</strong></div>
+        <div><span>通知</span><strong>公式告示・通知で確認</strong></div>
+        <div><span>様式</span><strong>新規届出用様式なし</strong></div>
+      </div>
+      <div class="facility-form-caution">施設基準の届出対象としては廃止されましたが、点数・算定項目そのものは残っています。要件を満たせば算定可能なため、算定要件を公式情報で確認してください。</div>
+      <div class="facility-form-group">
+        <div class="facility-form-group-title">公式確認ページ</div>
+        <div class="facility-form-actions">${renderOfficialFormButton(officialPageUrl, '令和8年度 特掲診療料の届出一覧で確認', 'page')}${relatedPage}</div>
+      </div>
+      <div class="facility-form-search">
+        <strong>様式の探し方</strong>
+        1. 令和8年度 特掲診療料の届出一覧または公式通知ページを開く<br>
+        2. Ctrl + Fで「${searchKeywords}」を検索する<br>
+        3. 届出様式ではなく、算定要件・経過措置・廃止項目の扱いを確認する
+      </div>
+    </div>`;
+  }
   return `
     <div class="facility-form-section">
       <div class="facility-form-head">
@@ -2919,6 +2958,7 @@ function showShinkiDetail(abbr){
   const alreadyHave = new Set(entries.map(e => e.abbr));
   if(alreadyHave.has('歯医DX1') || alreadyHave.has('歯医DX2')) alreadyHave.add('電子的歯科連携');
   const have = alreadyHave.has(abbr);
+  const facilityAbolished = isFacilityStandardAbolished(def);
 
   // 前提条件の充足確認
   const prereqStatus = def.prereq.map(p => ({
@@ -2949,9 +2989,11 @@ function showShinkiDetail(abbr){
             <div style="font-size:12px;color:var(--text2)">${def.summary}</div>
             <div style="margin-top:8px;font-size:11px;color:var(--accent);font-weight:700">令和8年度改定モードを標準にしています</div>
           </div>
-          ${have
-            ? '<span class="badge bg" style="font-size:11px;padding:5px 12px;flex-shrink:0">✓ 届出済み</span>'
-            : '<span class="badge by" style="font-size:11px;padding:5px 12px;flex-shrink:0">未届出</span>'}
+          ${facilityAbolished
+            ? '<span class="badge bpu" style="font-size:11px;padding:5px 12px;flex-shrink:0">令和8年 施設基準廃止</span>'
+            : have
+              ? '<span class="badge bg" style="font-size:11px;padding:5px 12px;flex-shrink:0">✓ 届出済み</span>'
+              : '<span class="badge by" style="font-size:11px;padding:5px 12px;flex-shrink:0">未届出</span>'}
         </div>
         ${def.scoreItems ? `
           <div style="margin-top:12px;padding:10px 12px;background:var(--blue-bg);border-radius:6px;font-size:12px;color:var(--accent);font-weight:600">
@@ -2993,13 +3035,14 @@ function showShinkiDetail(abbr){
 
       <!-- 取得要件 -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text)">✅ 施設基準の取得要件</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text)">${facilityAbolished ? '✅ 算定要件の確認' : '✅ 施設基準の取得要件'}</div>
         ${def.requirements.map((r,i) => `
           <div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
             <div style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px">${i+1}</div>
             <div style="font-size:12px;color:var(--text);line-height:1.7">${r}</div>
           </div>`).join('')}
         ${def.note ? `<div style="margin-top:10px;font-size:11px;color:var(--text2);background:var(--bg3);border-radius:5px;padding:8px 10px">💡 ${def.note}</div>` : ''}
+        ${facilityAbolished && def.abolishNote ? `<div style="margin-top:10px;font-size:11px;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:8px 10px">${def.abolishNote}</div>` : ''}
       </div>
 
       ${renderFacilityFormSection(abbr, def)}
@@ -3012,7 +3055,7 @@ function showShinkiDetail(abbr){
           令和8年度 ${primaryPage.includes('kihon') ? '基本診療料' : '特掲診療料'}の届出一覧
           <span style="margin-left:auto;font-size:10px;flex-shrink:0">↗ 開く</span>
         </a>
-        ${actionLinks.map(link => `
+        ${facilityAbolished ? '' : actionLinks.map(link => `
           <a href="${link.url}" target="_blank" rel="noopener noreferrer"
              style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text2);font-size:12px;font-weight:600;margin-bottom:8px">
             ${link.label}
@@ -3031,7 +3074,7 @@ function showShinkiDetail(abbr){
 
       <!-- 届出の流れ -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text)">📋 届出の流れ</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text)">${facilityAbolished ? '📋 確認の流れ' : '📋 届出の流れ'}</div>
         ${def.flow.map((step,i) => `
           <div style="display:flex;align-items:flex-start;gap:10px;padding:6px 0${i<def.flow.length-1?';border-bottom:1px solid var(--border)':''}">
             <div style="background:${i===def.flow.length-1?'var(--green)':'var(--bg3)'};border:1px solid ${i===def.flow.length-1?'var(--green)':'var(--border2)'};color:${i===def.flow.length-1?'#fff':'var(--text2)'};border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">
@@ -3043,10 +3086,16 @@ function showShinkiDetail(abbr){
 
       <!-- 届出後の注意 -->
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--text2);line-height:1.8">
-        <strong style="color:var(--text)">📮 届出方法と算定開始</strong><br>
-        届出は管轄の地方厚生局事務所へ郵送が原則です（東京都の場合：関東信越厚生局東京事務所）。電子申請が可能な届出は「保険医療機関等電子申請・届出システム」を確認してください。<br>
-        各月の末日までに受理された場合は翌月1日から算定可能（月の最初の開庁日に受理された場合は当月1日から）。<br>
-        受理後、受理番号が通知されます。届出台帳に登録してください。
+        ${facilityAbolished ? `
+          <strong style="color:var(--text)">📮 届出不要化と算定確認</strong><br>
+          令和8年度改定後は施設基準届出の対象ではありません。既存台帳に登録がある場合でも、この画面から自動削除・上書きは行いません。<br>
+          点数・算定項目そのものは残っているため、装置や経験要件などの算定要件を満たしているか公式告示・通知で確認してください。
+        ` : `
+          <strong style="color:var(--text)">📮 届出方法と算定開始</strong><br>
+          届出は管轄の地方厚生局事務所へ郵送が原則です（東京都の場合：関東信越厚生局東京事務所）。電子申請が可能な届出は「保険医療機関等電子申請・届出システム」を確認してください。<br>
+          各月の末日までに受理された場合は翌月1日から算定可能（月の最初の開庁日に受理された場合は当月1日から）。<br>
+          受理後、受理番号が通知されます。届出台帳に登録してください。
+        `}
       </div>
     </div>`;
 }

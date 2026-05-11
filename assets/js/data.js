@@ -135,8 +135,8 @@ const FACILITY_FORM_LINKS_R08 = {
   '歯地連': facilityRecord('歯地連','地域医療連携体制加算','tokukei','2-132','別添1 17',[facilityLink('別添2（歯地連）PDF','pdf','r8-2-132.pdf'),facilityLink('様式21 PDF','pdf','r8-t21.pdf'),facilityLink('別添2（歯地連）Word','word','r8-2-132.docx'),facilityLink('様式21 Word','word','r8-t21.docx')],['歯地連','地域医療連携体制加算','様式21']),
   '歯訪診': facilityRecord('歯訪診','歯科訪問診療料の注16に規定する基準','tokukei','2-133','別添1 17の1の2',[facilityLink('別添2（歯訪診）PDF','pdf','r8-2-133.pdf'),facilityLink('様式21の3の2 PDF','pdf','r8-t21-3-2.pdf'),facilityLink('別添2（歯訪診）Word','word','r8-2-133.docx'),facilityLink('様式21の3の2 Word','word','r8-t21-3-2.docx')],['歯訪診','歯科訪問診療料の注16','様式21の3の2']),
   '咀嚼能力': facilityRecord('咀嚼機能','有床義歯咀嚼機能検査','tokukei','2-184','別添1 29の5',[facilityLink('別添2（咀嚼機能）PDF','pdf','r8-2-184.pdf'),facilityLink('様式38の1の2 PDF','pdf','r8-t38-1-2.pdf'),facilityLink('別添2（咀嚼機能）Word','word','r8-2-184.docx'),facilityLink('様式38の1の2 Excel','excel','r8-t38-1-2.xlsx')],['咀嚼機能','有床義歯咀嚼機能検査','様式38の1の2']),
-  '咬合圧': facilityRecord('咬合圧','咬合圧検査','tokukei','','',[],['咬合圧','咬合圧検査'],'','直接PDFなし：令和8年度特掲診療料一覧ページ内に「咬合圧」または「咬合圧検査」の該当行・様式ファイル掲載なし'),
-  '口細菌': facilityRecord('口細菌','口腔細菌定量検査','tokukei','','',[],['口細菌','口腔細菌定量検査'],'','直接PDFなし：令和8年度特掲診療料一覧ページ内に「口腔細菌定量検査」の該当行・様式ファイル掲載なし'),
+  '咬合圧': facilityRecord('咬合圧','咬合圧検査','tokukei','','',[],['咬合圧','咬合圧検査'],'令和8年度改定で施設基準届出は廃止。算定要件は公式告示・通知で確認してください。','廃止・再編のため直接様式なし'),
+  '口細菌': facilityRecord('口細菌','口腔細菌定量検査','tokukei','','',[],['口細菌','口腔細菌定量検査'],'令和8年度改定で施設基準届出は廃止。算定要件は公式告示・通知で確認してください。','廃止・再編のため直接様式なし'),
   '歯画診': facilityRecord('歯画1・2','歯科画像診断管理加算1・2','tokukei','2-191 / 2-192','別添1 31',[facilityLink('別添2（歯画1）PDF','pdf','r8-2-191.pdf'),facilityLink('別添2（歯画2）PDF','pdf','r8-2-192.pdf'),facilityLink('様式33 PDF','pdf','r8-t33.pdf'),facilityLink('別添2（歯画1）Word','word','r8-2-191.docx'),facilityLink('別添2（歯画2）Word','word','r8-2-192.docx'),facilityLink('様式33 Word','word','r8-t33.docx')],['歯画','歯科画像診断管理加算','様式33']),
   '手顕微加': facilityRecord('手顕微加','手術用顕微鏡加算','tokukei','2-295','別添1 57の4の4',[facilityLink('別添2（手顕微加）PDF','pdf','r8-2-295.pdf'),facilityLink('様式49の8 PDF','pdf','r8-t49-8.pdf'),facilityLink('別添2（手顕微加）Word','word','r8-2-295.docx'),facilityLink('様式49の8 Word','word','r8-t49-8.docx')],['手顕微加','手術用顕微鏡加算','様式49の8']),
   '口腔粘膜': facilityRecord('口腔粘膜','口腔粘膜処置','tokukei','2-296','別添1 57の4の5',[facilityLink('別添2（口腔粘膜）PDF','pdf','r8-2-296.pdf'),facilityLink('様式49の9 PDF','pdf','r8-t49-9.pdf'),facilityLink('別添2（口腔粘膜）Word','word','r8-2-296.docx'),facilityLink('様式49の9 Word','word','r8-t49-9.docx')],['口腔粘膜','口腔粘膜処置','様式49の9']),
@@ -158,6 +158,9 @@ const FACILITY_FORM_LINKS_R08 = {
 };
 ['歯外在ベⅠ','歯外在ベⅠ注','歯外在ベⅡ','歯外在ベⅡ注','歯技工所ベースアップ'].forEach(key=>{
   FACILITY_FORM_LINKS_R08[key].relatedPageUrl = FACILITY_OFFICIAL_LINKS_R08.baseup;
+});
+['咬合圧','口細菌'].forEach(key=>{
+  FACILITY_FORM_LINKS_R08[key].directFormStatus = 'abolished';
 });
 FACILITY_FORM_LINKS_R08['外安全１'] = FACILITY_FORM_LINKS_R08['外安全1'];
 FACILITY_FORM_LINKS_R08['外安全２'] = FACILITY_FORM_LINKS_R08['外安全2'];
