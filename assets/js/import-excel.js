@@ -927,9 +927,9 @@ window.ExcelImport = window.ExcelImport || {
           clinicName,
           address,
           phone,
-          acceptedName: this.sanitizePreviewText(facility.acceptedName || facility.acceptanceName),
-          acceptedCode: this.sanitizePreviewText(facility.acceptedCode || facility.acceptanceCode),
-          acceptedNumber: this.sanitizePreviewText(facility.acceptedNumber || facility.acceptanceNumber),
+          acceptedName: this.sanitizePreviewText(facility.acceptedName || facility.acceptanceName || facility['受理届出名称'] || facility['施設基準名']),
+          acceptedCode: this.sanitizePreviewText(facility.acceptedCode || facility.acceptanceCode || facility.abbr || facility['略称'] || facility['受理記号']),
+          acceptedNumber: this.sanitizePreviewText(facility.acceptedNumber || facility.acceptanceNumber || facility.number || facility['受理番号']),
           startDate: this.normalizeDisplayDate(facility.startDate || facility.startDateDisplay),
           remarks: this.sanitizePreviewText(facility.remarks || facility.note || facility.noteData || '')
         })) : [];
@@ -941,9 +941,9 @@ window.ExcelImport = window.ExcelImport || {
         clinicName: this.sanitizePreviewText(record.clinicName),
         address: this.sanitizePreviewText(record.address),
         phone: this.sanitizePreviewText(record.phone),
-        acceptedName: this.sanitizePreviewText(record.acceptedName || record.acceptanceName),
-        acceptedCode: this.sanitizePreviewText(record.acceptedCode || record.acceptanceCode),
-        acceptedNumber: this.sanitizePreviewText(record.acceptedNumber || record.acceptanceNumber),
+        acceptedName: this.sanitizePreviewText(record.acceptedName || record.acceptanceName || record['受理届出名称'] || record['施設基準名']),
+        acceptedCode: this.sanitizePreviewText(record.acceptedCode || record.acceptanceCode || record.abbr || record['略称'] || record['受理記号']),
+        acceptedNumber: this.sanitizePreviewText(record.acceptedNumber || record.acceptanceNumber || record.number || record['受理番号']),
         startDate: this.normalizeDisplayDate(record.startDate || record.startDateDisplay),
         remarks: this.sanitizePreviewText(record.remarks || record.note || '')
       }));
@@ -1116,13 +1116,55 @@ window.ExcelImport = window.ExcelImport || {
       .trim()
       .toLowerCase();
   },
+  normalizeRomanNumeralsForCompare(value) {
+    return String(value || '')
+      .replace(/[Ⅰⅰ]/g, 'I')
+      .replace(/[Ⅱⅱ]/g, 'II')
+      .replace(/[Ⅲⅲ]/g, 'III')
+      .replace(/[Ⅳⅳ]/g, 'IV')
+      .replace(/[Ⅴⅴ]/g, 'V')
+      .replace(/[Ⅵⅵ]/g, 'VI')
+      .replace(/[Ⅶⅶ]/g, 'VII')
+      .replace(/[Ⅷⅷ]/g, 'VIII')
+      .replace(/[Ⅸⅸ]/g, 'IX')
+      .replace(/[Ⅹⅹ]/g, 'X');
+  },
+  normalizeAbbr(value) {
+    const romanMap = { III: '3', II: '2', IV: '4', I: '1' };
+    const normalized = this.normalizeRomanNumeralsForCompare(this.sanitizePreviewText(value))
+      .normalize('NFKC')
+      .replace(/（/g, '(')
+      .replace(/）/g, ')')
+      .replace(/\s+/g, '');
+    return normalized.replace(/III|II|IV|I/g, roman => romanMap[roman] || roman).toLowerCase();
+  },
+  normalizeAcceptedNumber(value) {
+    return this.sanitizePreviewText(value)
+      .normalize('NFKC')
+      .replace(/[第号]/g, '')
+      .replace(/[\s　\-‐‑‒–—―ーｰ]/g, '')
+      .toLowerCase();
+  },
+  buildLedgerCompareParts(abbr, number) {
+    const normalizedAbbr = this.normalizeAbbr(abbr);
+    const normalizedNumber = this.normalizeAcceptedNumber(number);
+    return {
+      abbr: normalizedAbbr,
+      number: normalizedNumber,
+      key: `${normalizedAbbr}::${normalizedNumber}`,
+      hasFullKey: Boolean(normalizedAbbr && normalizedNumber)
+    };
+  },
   buildCompareReference(item, existingEntry) {
     if (!existingEntry) return '';
     const notes = [];
-    if (this.normalizeCompareValue(item.abbr) && this.normalizeCompareValue(item.abbr) !== this.normalizeCompareValue(existingEntry.abbr || '')) {
+    if (this.normalizeFacilityName(item.name) && this.normalizeFacilityName(item.name) !== this.normalizeFacilityName(existingEntry.name || '')) {
+      notes.push(`施設基準名: 台帳「${existingEntry.name || '—'}」 / 公式「${item.name || '—'}」`);
+    }
+    if (this.normalizeAbbr(item.abbr) && this.normalizeAbbr(item.abbr) !== this.normalizeAbbr(existingEntry.abbr || '')) {
       notes.push(`略称: 台帳「${existingEntry.abbr || '—'}」 / 公式「${item.abbr || '—'}」`);
     }
-    if (this.normalizeCompareValue(item.number) && this.normalizeCompareValue(item.number) !== this.normalizeCompareValue(existingEntry.number || '')) {
+    if (this.normalizeAcceptedNumber(item.number) && this.normalizeAcceptedNumber(item.number) !== this.normalizeAcceptedNumber(existingEntry.number || '')) {
       notes.push(`受理番号: 台帳「${existingEntry.number || '—'}」 / 公式「${item.number || '—'}」`);
     }
     if ((item.entryDate || '') && this.normalizeEntryDate(existingEntry.date || '') !== (item.entryDate || '')) {
@@ -1132,11 +1174,11 @@ window.ExcelImport = window.ExcelImport || {
   },
   detectExistingLedgerMatch(abbr, number) {
     if (typeof entries === 'undefined' || !Array.isArray(entries)) return false;
-    const normalizedAbbr = this.normalizeCompareValue(abbr);
-    const normalizedNumber = this.normalizeCompareValue(number);
+    const itemKey = this.buildLedgerCompareParts(abbr, number);
+    if (!itemKey.hasFullKey) return false;
     return entries.some(entry => {
-      return this.normalizeCompareValue(entry.abbr) === normalizedAbbr
-        && this.normalizeCompareValue(entry.number) === normalizedNumber;
+      const entryKey = this.buildLedgerCompareParts(entry.abbr, entry.number);
+      return entryKey.hasFullKey && entryKey.key === itemKey.key;
     });
   },
   normalizeCompareValue(value) {
@@ -1518,9 +1560,10 @@ window.ExcelImport = window.ExcelImport || {
   },
   convertOfficialRecordsToLedgerPreview(records) {
     return records.map((record, idx) => {
-      const abbr = this.inferLedgerAbbr(record.acceptedCode || record.acceptanceCode, record.acceptedName || record.acceptanceName);
-      const acceptedName = record.acceptedName || record.acceptanceName;
-      const acceptedNumber = record.acceptedNumber || record.acceptanceNumber;
+      const acceptedName = record.acceptedName || record.acceptanceName || record['受理届出名称'] || record['施設基準名'];
+      const acceptedCode = record.acceptedCode || record.acceptanceCode || record.abbr || record['略称'] || record['受理記号'];
+      const acceptedNumber = record.acceptedNumber || record.acceptanceNumber || record.number || record['受理番号'];
+      const abbr = this.inferLedgerAbbr(acceptedCode, acceptedName);
       const category = this.inferLedgerCategory(abbr, acceptedName);
       return {
         id: `official-${record.medicalInstitutionNumber || record.medicalId}-${idx}`,
@@ -1549,43 +1592,77 @@ window.ExcelImport = window.ExcelImport || {
     const reviewCandidates = [];
     const newCandidates = [];
     const comparedRows = [];
-    const officialNames = new Set();
     const safeEntries = Array.isArray(entries) ? entries : [];
+    const officialKeys = new Set();
+    const usedEntryIds = new Set();
+    const entryRows = safeEntries.map((entry, idx) => ({
+      entry,
+      idx,
+      parts: this.buildLedgerCompareParts(entry.abbr, entry.number)
+    }));
+    const entryToken = row => String(row.entry?.id ?? `idx-${row.idx}`);
     ledgerRows.forEach(item => {
-      const normalizedName = this.normalizeFacilityName(item.name);
-      if (normalizedName) officialNames.add(normalizedName);
-      const sameNameEntries = normalizedName
-        ? safeEntries.filter(entry => this.normalizeFacilityName(entry.name) === normalizedName)
-        : [];
-      if (sameNameEntries.length) {
-        const existing = sameNameEntries.find(entry => this.normalizeCompareValue(entry.abbr) === this.normalizeCompareValue(item.abbr)) || sameNameEntries[0];
-        const compareReference = this.buildCompareReference(item, existing);
+      const officialParts = this.buildLedgerCompareParts(item.abbr, item.number);
+      if (officialParts.hasFullKey) officialKeys.add(officialParts.key);
+      const exactMatch = officialParts.hasFullKey
+        ? entryRows.find(row => row.parts.hasFullKey && row.parts.key === officialParts.key)
+        : null;
+      if (exactMatch) {
+        const existing = exactMatch.entry;
+        const reference = this.buildCompareReference(item, existing);
         const compared = {
           ...item,
           compareStatus: 'existing',
           compareLabel: 'すでに台帳にある項目',
-          compareReference,
+          compareReference: [
+            '略称と受理番号が一致しているため、すでに台帳にある項目として扱います。',
+            reference
+          ].filter(Boolean).join(' / '),
           existingEntry: existing
         };
+        usedEntryIds.add(entryToken(exactMatch));
         existingMatches.push(compared);
         comparedRows.push(compared);
         return;
       }
-      const normalizedAbbr = this.normalizeCompareValue(item.abbr);
-      const normalizedNumber = this.normalizeCompareValue(item.number);
-      const auxiliaryMatch = safeEntries.find(entry => {
-        const entryAbbr = this.normalizeCompareValue(entry.abbr);
-        const entryNumber = this.normalizeCompareValue(entry.number);
-        return (normalizedAbbr && entryAbbr === normalizedAbbr) || (normalizedNumber && entryNumber === normalizedNumber);
-      });
-      if (auxiliaryMatch) {
+      const sameAbbrMatch = officialParts.abbr
+        ? entryRows.find(row => row.parts.abbr && row.parts.abbr === officialParts.abbr)
+        : null;
+      if (sameAbbrMatch) {
+        const existing = sameAbbrMatch.entry;
         const compared = {
           ...item,
           compareStatus: 'review',
           compareLabel: '要確認',
-          compareReference: this.buildCompareReference(item, auxiliaryMatch) || '略称または受理番号が近い既存項目があります。既存項目は自動変更しません。',
-          existingEntry: auxiliaryMatch
+          compareReference: [
+            '同じ略称ですが受理番号が異なります。',
+            this.buildCompareReference(item, existing),
+            '既存項目は自動変更しません。'
+          ].filter(Boolean).join(' / '),
+          existingEntry: existing
         };
+        usedEntryIds.add(entryToken(sameAbbrMatch));
+        reviewCandidates.push(compared);
+        comparedRows.push(compared);
+        return;
+      }
+      const sameNumberMatch = officialParts.number
+        ? entryRows.find(row => row.parts.number && row.parts.number === officialParts.number)
+        : null;
+      if (sameNumberMatch) {
+        const existing = sameNumberMatch.entry;
+        const compared = {
+          ...item,
+          compareStatus: 'review',
+          compareLabel: '要確認',
+          compareReference: [
+            '同じ受理番号ですが略称が異なります。',
+            this.buildCompareReference(item, existing),
+            '既存項目は自動変更しません。'
+          ].filter(Boolean).join(' / '),
+          existingEntry: existing
+        };
+        usedEntryIds.add(entryToken(sameNumberMatch));
         reviewCandidates.push(compared);
         comparedRows.push(compared);
         return;
@@ -1594,18 +1671,21 @@ window.ExcelImport = window.ExcelImport || {
       newCandidates.push(compared);
       comparedRows.push(compared);
     });
-    const removedCandidates = safeEntries
-      .filter(entry => !officialNames.has(this.normalizeFacilityName(entry.name)))
-      .map(entry => ({
-          id: `removed-${entry.id}`,
-          name: entry.name,
-          abbr: entry.abbr,
-          number: entry.number,
-          date: entry.date ? entry.date.replace(/-/g, '/') : '—',
-          memo: entry.memo || '—',
-          compareStatus: 'removed',
-          compareLabel: '公式データでは見つからない項目'
-        }));
+    const removedCandidates = entryRows
+      .filter(row => {
+        if (usedEntryIds.has(entryToken(row))) return false;
+        return !row.parts.hasFullKey || !officialKeys.has(row.parts.key);
+      })
+      .map(row => ({
+        id: `removed-${row.entry.id}`,
+        name: row.entry.name,
+        abbr: row.entry.abbr,
+        number: row.entry.number,
+        date: row.entry.date ? row.entry.date.replace(/-/g, '/') : '—',
+        memo: row.entry.memo || '—',
+        compareStatus: 'removed',
+        compareLabel: '公式データでは見つからない項目'
+      }));
     const clinicName = ledgerRows[0]?.clinicName || '要確認';
     const address = ledgerRows[0]?.address || '—';
     const phone = ledgerRows[0]?.phone || '—';
