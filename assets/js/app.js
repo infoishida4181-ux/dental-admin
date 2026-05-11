@@ -2754,8 +2754,10 @@ const SHINKI_GROUPS = [
 ];
 
 let _shinkiSelected = null;
+let _shinkiListScrollTop = 0;
 
 function renderShinki(){
+  const savedListScrollTop = _shinkiListScrollTop || 0;
   const alreadyHave = new Set(entries.map(e => e.abbr));
   if(alreadyHave.has('歯医DX1') || alreadyHave.has('歯医DX2')) alreadyHave.add('電子的歯科連携');
 
@@ -2802,9 +2804,15 @@ function renderShinki(){
 
   document.getElementById('shinki-body').innerHTML = html;
   if(_shinkiSelected) showShinkiDetail(_shinkiSelected);
+  requestAnimationFrame(()=>{
+    const list=document.getElementById('shinki-list-col');
+    if(list) list.scrollTop=savedListScrollTop;
+  });
 }
 
 function selectShinki(abbr){
+  const list=document.getElementById('shinki-list-col');
+  if(list) _shinkiListScrollTop=list.scrollTop;
   _shinkiSelected = abbr;
   renderShinki();
 }
@@ -2826,8 +2834,20 @@ function getFacilityFormLinkR08(abbr){
 
 function renderOfficialFormButton(url,label,kind){
   if(!url) return '';
-  const cls = kind === 'editable' ? 'facility-form-link editable' : kind === 'page' ? 'facility-form-link page' : 'facility-form-link pdf';
+  const cls = kind === 'editable' ? 'facility-form-link editable' : kind === 'page' ? 'facility-form-link page' : kind === 'other' ? 'facility-form-link other' : 'facility-form-link pdf';
   return `<a class="${cls}" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+}
+
+function renderFacilityFormGroup(title,forms,kind){
+  const buttons=forms
+    .filter(f=>f?.url)
+    .map(f=>renderOfficialFormButton(f.url, `${f.label}を開く`, kind))
+    .join('');
+  if(!buttons) return '';
+  return `<div class="facility-form-group">
+    <div class="facility-form-group-title">${title}</div>
+    <div class="facility-form-actions">${buttons}</div>
+  </div>`;
 }
 
 function renderFacilityFormSection(abbr, def){
@@ -2835,21 +2855,31 @@ function renderFacilityFormSection(abbr, def){
     receiptCode: abbr,
     name: def?.name || abbr,
     officialCategory: def?.category === 'basic' ? 'basic' : 'tokukei',
+    officialListUrl: getShinkiPrimaryPage(def),
     officialPageUrl: getShinkiPrimaryPage(def),
     officialItemNumber: '',
     noticeRef: '',
+    searchKeywords: [abbr, def?.name].filter(Boolean),
     forms: [],
-    note: '',
+    note: 'この施設基準の直接様式リンクは未登録です。',
+    missingReason: '公式ページ上の該当ファイルを確認してください。',
     lastChecked: ''
   };
   const forms = Array.isArray(link.forms) ? link.forms : [];
-  const pdfButtons = forms.map(f => renderOfficialFormButton(f.pdfUrl, `${f.label} PDFを開く`, 'pdf')).join('');
-  const editableButtons = forms.map(f => renderOfficialFormButton(f.editableUrl, `${f.label} Word/Excelを開く`, 'editable')).join('');
-  const hasDirect = Boolean(pdfButtons || editableButtons);
-  const officialPageUrl = link.officialPageUrl || getShinkiPrimaryPage(def);
+  const pdfForms = forms.filter(f=>f?.url && f.type === 'pdf');
+  const editableForms = forms.filter(f=>f?.url && ['word','excel'].includes(f.type));
+  const otherForms = forms.filter(f=>f?.url && !['pdf','word','excel'].includes(f.type));
+  const hasDirect = forms.some(f=>f?.url);
+  const officialPageUrl = link.officialListUrl || link.officialPageUrl || getShinkiPrimaryPage(def);
   const relatedPage = link.relatedPageUrl && link.relatedPageUrl !== officialPageUrl
     ? renderOfficialFormButton(link.relatedPageUrl, '関連公式ページで確認', 'page')
     : '';
+  const formSummary = forms.length
+    ? forms.map(f=>f.label.replace(/を開く$/,'')).join(' / ')
+    : (link.missingReason || '公式一覧ページで確認');
+  const searchKeywords = Array.isArray(link.searchKeywords) && link.searchKeywords.length
+    ? link.searchKeywords.join('、')
+    : [abbr, link.name].filter(Boolean).join('、');
   return `
     <div class="facility-form-section">
       <div class="facility-form-head">
@@ -2862,20 +2892,24 @@ function renderFacilityFormSection(abbr, def){
         <div><span>届出区分</span><strong>${link.officialCategory === 'basic' ? '基本診療料' : '特掲診療料'}</strong></div>
         <div><span>受理番号</span><strong>${link.receiptCode || abbr}</strong></div>
         <div><span>通知</span><strong>${link.noticeRef || '公式一覧ページで確認'}</strong></div>
-        <div><span>様式</span><strong>${forms.map(f=>f.label).join(' / ') || '公式一覧ページで確認'}</strong></div>
+        <div><span>様式</span><strong>${formSummary}</strong></div>
       </div>
       ${link.note ? `<div class="facility-form-caution">${link.note}</div>` : ''}
       ${hasDirect ? `
-        <div class="facility-form-actions">
-          ${pdfButtons}
-          ${editableButtons}
-          ${renderOfficialFormButton(officialPageUrl, '公式一覧ページで確認', 'page')}
-          ${relatedPage}
-        </div>
+        ${renderFacilityFormGroup('PDFファイル',pdfForms,'pdf')}
+        ${renderFacilityFormGroup('Word / Excelファイル',editableForms,'editable')}
+        ${renderFacilityFormGroup('その他ファイル',otherForms,'other')}
       ` : `
-        <div class="facility-form-empty">この施設基準の直接様式リンクは未登録です。公式一覧ページで様式を確認してください。</div>
-        <div class="facility-form-actions">${renderOfficialFormButton(officialPageUrl, '公式一覧ページで確認', 'page')}${relatedPage}</div>
+        <div class="facility-form-empty">${link.missingReason || '公式ページ上に該当する直接様式ファイルが確認できませんでした。公式一覧ページで最新の掲載状況を確認してください。'}</div>
       `}
+      <div class="facility-form-group">
+        <div class="facility-form-group-title">公式一覧ページ</div>
+        <div class="facility-form-actions">${renderOfficialFormButton(officialPageUrl, '公式一覧ページで確認', 'page')}${relatedPage}</div>
+      </div>
+      <div class="facility-form-search">
+        <strong>様式の探し方</strong>
+        公式一覧ページを開いたあと、Ctrl + Fで「${searchKeywords}」を検索してください。
+      </div>
     </div>`;
 }
 

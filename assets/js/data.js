@@ -107,66 +107,58 @@ const FACILITY_OFFICIAL_LINKS_R08 = {
   baseup: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html'
 };
 const FACILITY_FILE_BASE_R08 = 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/';
-function facilityFormFileR08(name){ return name ? FACILITY_FILE_BASE_R08 + name : ''; }
-function facilityForm(label,type,pdfFile,editableFile){
-  return { label, type, pdfUrl: facilityFormFileR08(pdfFile), editableUrl: facilityFormFileR08(editableFile) };
-}
-function facilityFormFallback(receiptCode,name,officialCategory,officialItemNumber,noticeRef,note=''){
-  return {
-    receiptCode,
-    name,
-    officialCategory,
-    officialPageUrl: officialCategory === 'basic' ? FACILITY_OFFICIAL_LINKS_R08.basic : FACILITY_OFFICIAL_LINKS_R08.tokukei,
-    officialItemNumber,
-    noticeRef,
-    forms: [],
-    note,
-    lastChecked: '2026-05-11'
-  };
+function facilityFileR08(path){ return path ? (path.startsWith('http') ? path : FACILITY_FILE_BASE_R08 + path.replace(/^\/kantoshinetsu\//,'')) : ''; }
+function facilityLink(label,type,path){ return { label, type, url: facilityFileR08(path) }; }
+function facilityRecord(receiptCode,name,officialCategory,officialItemNumber,noticeRef,forms,searchKeywords,note='',missingReason=''){
+  const officialListUrl = officialCategory === 'basic' ? FACILITY_OFFICIAL_LINKS_R08.basic : FACILITY_OFFICIAL_LINKS_R08.tokukei;
+  return { facilityKey: receiptCode, receiptCode, name, category: officialCategory, officialCategory, officialListUrl, officialPageUrl: officialListUrl, officialItemNumber, noticeRef, searchKeywords, forms, note, missingReason, lastChecked: '2026-05-11' };
 }
 const BASEUP_FORM_NOTE = 'ベースアップ評価料は、専用Excel様式やメール提出が必要となる場合があります。提出方法・様式は公式ページで必ず確認してください。';
 const FACILITY_FORM_LINKS_R08 = {
-  '歯初診': { ...facilityFormFallback('歯初診','初診料（歯科）の注1に掲げる基準','basic','1-16','別添1 2の7'), forms:[facilityForm('別添7（歯初診）','cover','r8-1-016.pdf','r8-1-016.docx'), facilityForm('様式2の6','form','r8-k02-6.pdf','r8-k02-6.docx')] },
-  '外安全1': { ...facilityFormFallback('外安全1','歯科外来診療医療安全対策加算1','basic','1-18','別添1 4'), forms:[facilityForm('別添7（外安全1）','cover','r8-1-018.pdf','r8-1-018.docx'), facilityForm('様式4','form','r8-k04.pdf','r8-k04.docx')] },
-  '外安全2': { ...facilityFormFallback('外安全2','歯科外来診療医療安全対策加算2','basic','1-19','別添1 4'), forms:[facilityForm('別添7（外安全2）','cover','r8-1-019.pdf','r8-1-019.docx'), facilityForm('様式4の1の2','form','r8-k04-1-2.pdf','r8-k04-1-2.docx')] },
-  '外感染1': { ...facilityFormFallback('外感染1','歯科外来診療感染対策加算1','basic','1-20','別添1 4の2'), forms:[facilityForm('別添7（外感染1）','cover','r8-1-020.pdf','r8-1-020.docx'), facilityForm('様式4','form','r8-k04.pdf','r8-k04.docx')] },
-  '外感染2': { ...facilityFormFallback('外感染2','歯科外来診療感染対策加算2','basic','1-21','別添1 4の2'), forms:[facilityForm('別添7（外感染2）','cover','r8-1-021.pdf','r8-1-021.docx'), facilityForm('様式4','form','r8-k04.pdf','r8-k04.docx')] },
-  '歯医DX1': { ...facilityFormFallback('歯医DX1','電子的歯科診療情報連携体制整備加算1','basic','1-8','別添1 1の8','令和6年度の医療DX推進体制整備加算を届け出ていても、令和8年6月1日以降に算定する場合は改めて届出が必要です。'), forms:[facilityForm('別添7（歯医DX1）','cover','r8-1-008.pdf','r8-1-008.docx'), facilityForm('様式1の6','form','r8-k01-6.pdf','r8-k01-6.docx')] },
-  '歯医DX2': { ...facilityFormFallback('歯医DX2','電子的歯科診療情報連携体制整備加算2','basic','1-8-2','別添1 1の8','令和6年度の医療DX推進体制整備加算を届け出ていても、令和8年6月1日以降に算定する場合は改めて届出が必要です。'), forms:[facilityForm('別添7（歯医DX2）','cover','r8-1-008-2.pdf','r8-1-008-2.docx'), facilityForm('様式1の6','form','r8-k01-6.pdf','r8-k01-6.docx')] },
-  '口管強': { ...facilityFormFallback('口管強','小児口腔機能管理料の注5に規定する口腔管理体制強化加算','tokukei','2-89','別添1 13の2'), forms:[facilityForm('別添2（口管強）','cover','r8-2-089.pdf','r8-2-089.docx'), facilityForm('様式17の2','form','r8-t17-2.pdf','r8-t17-2.docx')] },
-  '歯訪診': { ...facilityFormFallback('歯訪診','歯科訪問診療料の注16に規定する基準','tokukei','2-133','別添1 17の1の2'), forms:[facilityForm('別添2（歯訪診）','cover','r8-2-133.pdf','r8-2-133.docx'), facilityForm('様式21の3の2','form','r8-t21-3-2.pdf','r8-t21-3-2.docx')] },
-  '歯ＣＡＤ': { ...facilityFormFallback('歯ＣＡＤ','CAD/CAM冠及びCAD/CAMインレー','tokukei','2-301','別添1 57の2'), forms:[facilityForm('別添2（歯ＣＡＤ）','cover','r8-2-301.pdf','r8-2-301.docx'), facilityForm('様式50の2','form','r8-t50-2.pdf','r8-t50-2.docx')] },
-  '光印象': { ...facilityFormFallback('光印象','光学印象歯科技工士連携加算','tokukei','2-300','別添1 57の2'), forms:[facilityForm('別添2（光印象）','cover','r8-2-300.pdf','r8-2-300.docx')] },
-  '補管': { ...facilityFormFallback('補管','クラウン・ブリッジ維持管理料','tokukei','2-580','別添1 85'), forms:[facilityForm('別添2（補管）','cover','r8-2-580.pdf','r8-2-580.docx'), facilityForm('様式81','form','r8-t81.pdf','r8-t81.docx')] },
-  '根切顕微': { ...facilityFormFallback('根切顕微','歯根端切除手術の注3','tokukei','2-541','別添1 80の9'), forms:[facilityForm('別添2（根切顕微）','cover','r8-2-541.pdf','r8-2-541.docx'), facilityForm('様式49の8','form','r8-t49-8.pdf','r8-t49-8.docx')] },
-  '手顕微加': { ...facilityFormFallback('手顕微加','手術用顕微鏡加算','tokukei','2-251','別添1 50'), forms:[facilityForm('別添2（手顕微加）','cover','r8-2-251.pdf','r8-2-251.docx'), facilityForm('様式49の8','form','r8-t49-8.pdf','r8-t49-8.docx')] },
-  '咬合圧': { ...facilityFormFallback('咬合圧','咬合圧検査','tokukei','2-193','別添1 38の1'), forms:[facilityForm('別添2（咬合圧）','cover','r8-2-193.pdf','r8-2-193.docx')] },
-  '歯外在ベⅠ': { ...facilityFormFallback('歯外在ベⅠ','歯科外来・在宅ベースアップ評価料（Ⅰ）','tokukei','2-611','別添1 106の2',`${BASEUP_FORM_NOTE} 要再届出。`), forms:[facilityForm('別添2（歯外在ベⅠ）','cover','r8-2-611.pdf',''), facilityForm('様式95','form','r8-t95.pdf','')], relatedPageUrl:FACILITY_OFFICIAL_LINKS_R08.baseup },
-  '歯外在ベⅠ注': { ...facilityFormFallback('歯外在ベⅠ注','歯科外来・在宅ベースアップ評価料（Ⅰ）の注5','tokukei','2-612','別添1 106の2',`${BASEUP_FORM_NOTE} 新規届出。`), forms:[facilityForm('別添2（歯外在ベⅠ注）','cover','r8-2-612.pdf',''), facilityForm('様式95','form','r8-t95.pdf',''), facilityForm('様式98','form','r8-t98.pdf','')], relatedPageUrl:FACILITY_OFFICIAL_LINKS_R08.baseup },
-  '歯外在ベⅡ': { ...facilityFormFallback('歯外在ベⅡ','歯科外来・在宅ベースアップ評価料（Ⅱ）（1～24）','tokukei','2-613','別添1 106の3',`${BASEUP_FORM_NOTE} 要再届出。`), forms:[facilityForm('別添2（歯外在ベⅡ）','cover','r8-2-613.pdf',''), facilityForm('様式96','form','r8-t96.pdf','')], relatedPageUrl:FACILITY_OFFICIAL_LINKS_R08.baseup },
-  '歯外在ベⅡ注': { ...facilityFormFallback('歯外在ベⅡ注','歯科外来・在宅ベースアップ評価料（Ⅱ）の注5及び注6','tokukei','2-614','別添1 106の3',`${BASEUP_FORM_NOTE} 新規届出。`), forms:[facilityForm('別添2（歯外在ベⅡ注）','cover','r8-2-614.pdf',''), facilityForm('様式96','form','r8-t96.pdf',''), facilityForm('様式98','form','r8-t98.pdf','')], relatedPageUrl:FACILITY_OFFICIAL_LINKS_R08.baseup },
-  '歯情報通信': facilityFormFallback('歯情報通信','情報通信機器を用いた診療に係る基準','basic','1-1','別添1 第1'),
-  '医療ＤＸ': facilityFormFallback('医療ＤＸ','医療DX推進体制整備加算（令和8年6月廃止・再編）','basic','',''),
-  '機安歯': facilityFormFallback('機安歯','医療機器安全管理料（歯科）','tokukei','',''),
-  '医管': facilityFormFallback('医管','歯科治療時医療管理料','tokukei','',''),
-  '在歯管': facilityFormFallback('在歯管','在宅患者歯科治療時医療管理料','tokukei','',''),
-  '在支歯': facilityFormFallback('在支歯','在宅療養支援歯科診療所','tokukei','',''),
-  '歯地連': facilityFormFallback('歯地連','地域医療連携体制加算','tokukei','2-132','別添1 17'),
-  '在宅ＤＸ': facilityFormFallback('在宅ＤＸ','在宅医療DX情報活用加算','tokukei','',''),
-  '咀嚼能力': facilityFormFallback('咀嚼能力','有床義歯咀嚼機能検査','tokukei','',''),
-  '口細菌': facilityFormFallback('口細菌','口腔細菌定量検査','tokukei','',''),
-  '歯画診': facilityFormFallback('歯画診','歯科画像診断管理加算','tokukei','',''),
-  '歯技連１': facilityFormFallback('歯技連１','歯科技工士連携加算1','tokukei','',''),
-  '歯技工': facilityFormFallback('歯技工','歯科技工加算','tokukei','',''),
-  'ＧＴＲ': facilityFormFallback('ＧＴＲ','歯周組織再生誘導手術','tokukei','2-538','別添1 80の6'),
-  '口腔粘膜': facilityFormFallback('口腔粘膜','口腔粘膜処置','tokukei','',''),
-  'う蝕無痛': facilityFormFallback('う蝕無痛','う蝕歯無痛的窩洞形成加算','tokukei','',''),
-  '口腔機能実地': facilityFormFallback('口腔機能実地','口腔機能実地指導料','tokukei','',''),
-  '三次元プリント義歯': facilityFormFallback('三次元プリント義歯','3次元プリント有床義歯','tokukei','',''),
-  '特別管理加算': facilityFormFallback('特別管理加算','特別管理加算（歯科疾患管理料）','tokukei','',''),
-  '歯科麻酔': facilityFormFallback('歯科麻酔','歯科吸入麻酔 又は 歯科静脈麻酔（Ⅱ）','tokukei','',''),
-  '歯技工所ベースアップ': facilityFormFallback('歯技工所ベースアップ','歯科技工所ベースアップ支援料','tokukei','2-616','別添1 108',BASEUP_FORM_NOTE)
+  '歯初診': facilityRecord('歯初診','初診料（歯科）の注1に掲げる基準','basic','1-16','別添1 2の7',[facilityLink('別添7（歯初診）PDF','pdf','r8-1-016.pdf'),facilityLink('様式2の6 PDF','pdf','r8-k02-6.pdf'),facilityLink('別添7（歯初診）Word','word','r8-1-016.docx'),facilityLink('様式2の6 Word','word','r8-k02-6.docx')],['歯初診','初診料（歯科）','様式2の6']),
+  '外安全1': facilityRecord('外安全1','歯科外来診療医療安全対策加算1','basic','1-18','別添1 4',[facilityLink('別添7（外安全1）PDF','pdf','r8-1-018.pdf'),facilityLink('様式4 PDF','pdf','r8-k04.pdf'),facilityLink('別添7（外安全1）Word','word','r8-1-018.docx'),facilityLink('様式4 Word','word','r8-k04.docx')],['外安全1','医療安全対策加算1','様式4']),
+  '外安全2': facilityRecord('外安全2','歯科外来診療医療安全対策加算2','basic','1-19','別添1 4',[facilityLink('別添7（外安全2）PDF','pdf','r8-1-019.pdf'),facilityLink('様式4の1の2 PDF','pdf','r8-k04-1-2.pdf'),facilityLink('別添7（外安全2）Word','word','r8-1-019.docx'),facilityLink('様式4の1の2 Word','word','r8-k04-1-2.docx')],['外安全2','医療安全対策加算2','様式4の1の2']),
+  '外感染1': facilityRecord('外感染1','歯科外来診療感染対策加算1','basic','1-20','別添1 4の2',[facilityLink('別添7（外感染1）PDF','pdf','r8-1-020.pdf'),facilityLink('様式4 PDF','pdf','r8-k04.pdf'),facilityLink('別添7（外感染1）Word','word','r8-1-020.docx'),facilityLink('様式4 Word','word','r8-k04.docx')],['外感染1','感染対策加算1','様式4']),
+  '外感染2': facilityRecord('外感染2','歯科外来診療感染対策加算2','basic','1-21','別添1 4の2',[facilityLink('別添7（外感染2）PDF','pdf','r8-1-021.pdf'),facilityLink('様式4 PDF','pdf','r8-k04.pdf'),facilityLink('別添7（外感染2）Word','word','r8-1-021.docx'),facilityLink('様式4 Word','word','r8-k04.docx')],['外感染2','感染対策加算2','様式4']),
+  '歯情報通信': facilityRecord('歯情報通信','初診料（歯科）の注16及び再診料（歯科）の注13に掲げる基準','basic','1-25','別添1 5の2',[facilityLink('別添7（歯情報通信）PDF','pdf','r8-1-025.pdf'),facilityLink('様式4の3 PDF','pdf','r8-k04-3.pdf'),facilityLink('別添7（歯情報通信）Word','word','r8-1-025.docx'),facilityLink('様式4の3 Word','word','r8-k04-3.docx')],['歯情報通信','情報通信','様式4の3']),
+  '歯医DX1': facilityRecord('歯医DX1','電子的歯科診療情報連携体制整備加算1','basic','1-8','別添1 1の8',[facilityLink('別添7（歯医DX1）PDF','pdf','r8-1-008.pdf'),facilityLink('様式1の6 PDF','pdf','r8-k01-6.pdf'),facilityLink('別添7（歯医DX1）Word','word','r8-1-008.docx'),facilityLink('様式1の6 Excel','excel','r8-k01-6.xlsx')],['歯医DX1','電子的歯科診療情報連携体制整備加算1','様式1の6'],'令和6年度の医療DX推進体制整備加算を届け出ていても、令和8年6月1日以降に算定する場合は改めて届出が必要です。'),
+  '歯医DX2': facilityRecord('歯医DX2','電子的歯科診療情報連携体制整備加算2','basic','1-8-2','別添1 1の8',[facilityLink('別添7（歯医DX2）PDF','pdf','r8-1-008-2.pdf'),facilityLink('様式1の6 PDF','pdf','r8-k01-6.pdf'),facilityLink('別添7（歯医DX2）Word','word','r8-1-008-2.docx'),facilityLink('様式1の6 Excel','excel','r8-k01-6.xlsx')],['歯医DX2','電子的歯科診療情報連携体制整備加算2','様式1の6'],'令和6年度の医療DX推進体制整備加算を届け出ていても、令和8年6月1日以降に算定する場合は改めて届出が必要です。'),
+  '医療ＤＸ': facilityRecord('医療ＤＸ','医療DX推進体制整備加算（令和8年6月廃止・再編）','basic','1-8','別添1 1の8',[facilityLink('後継 別添7（歯医DX1）PDF','pdf','r8-1-008.pdf'),facilityLink('後継 様式1の6 PDF','pdf','r8-k01-6.pdf'),facilityLink('後継 別添7（歯医DX1）Word','word','r8-1-008.docx'),facilityLink('後継 様式1の6 Excel','excel','r8-k01-6.xlsx')],['医療DX','歯医DX','電子的歯科'],'令和8年度は廃止・再編のため、後継の電子的歯科診療情報連携体制整備加算の様式を表示します。'),
+  '機安歯': facilityRecord('機安歯','医療機器安全管理料（歯科）','tokukei','2-86','別添1 12の2',[facilityLink('別添2（機安歯）PDF','pdf','r8-2-086.pdf'),facilityLink('様式15 PDF','pdf','r8-t15.pdf'),facilityLink('別添2（機安歯）Word','word','r8-2-086.docx'),facilityLink('様式15 Word','word','r8-t15.docx')],['機安歯','医療機器安全管理料（歯科）','様式15']),
+  '医管': facilityRecord('医管','歯科治療時医療管理料','tokukei','2-88','別添1 13',[facilityLink('別添2（医管）PDF','pdf','r8-2-088.pdf'),facilityLink('様式17 PDF','pdf','r8-t17.pdf'),facilityLink('別添2（医管）Word','word','r8-2-088.docx'),facilityLink('様式17 Word','word','r8-t17.docx')],['医管','歯科治療時医療管理料','様式17']),
+  '口管強': facilityRecord('口管強','小児口腔機能管理料の注5に規定する口腔管理体制強化加算','tokukei','2-89','別添1 13の2',[facilityLink('別添2（口管強）PDF','pdf','r8-2-089.pdf'),facilityLink('様式17の2 PDF','pdf','r8-t17-2.pdf'),facilityLink('別添2（口管強）Word','word','r8-2-089.docx'),facilityLink('様式17の2 Word','word','r8-t17-2.docx')],['口管強','口腔管理体制強化加算','様式17の2']),
+  '特別管理加算': facilityRecord('特管','特別管理加算','tokukei','2-90','別添1 13の3',[facilityLink('別添2（特管）PDF','pdf','r8-2-090.pdf'),facilityLink('様式17の3 PDF','pdf','r8-t17-3.pdf'),facilityLink('別添2（特管）Word','word','r8-2-090.docx'),facilityLink('様式17の3 Excel','excel','r8-t17-3.xlsx')],['特管','特別管理加算','様式17の3']),
+  '口腔機能実地': facilityRecord('口実地','口腔機能実地指導料','tokukei','2-91','別添1 13の4',[facilityLink('別添2（口実地）PDF','pdf','r8-2-091.pdf'),facilityLink('様式17の4 PDF','pdf','r8-t17-4.pdf'),facilityLink('別添2（口実地）Word','word','r8-2-091.docx'),facilityLink('様式17の4 Excel','excel','r8-t17-4.xlsx')],['口実地','口腔機能実地指導料','様式17の4']),
+  '在支歯': facilityRecord('歯援診1・2','在宅療養支援歯科診療所1・2','tokukei','2-92 / 2-93','別添1 14',[facilityLink('別添2（歯援診1）PDF','pdf','r8-2-092.pdf'),facilityLink('別添2（歯援診2）PDF','pdf','r8-2-093.pdf'),facilityLink('様式18 PDF','pdf','r8-t18.pdf'),facilityLink('別添2（歯援診1）Word','word','r8-2-092.docx'),facilityLink('別添2（歯援診2）Word','word','r8-2-093.docx'),facilityLink('様式18 Excel','excel','r8-t18.xlsx')],['歯援診','在宅療養支援歯科診療所','様式18']),
+  '在歯管': facilityRecord('在歯管','在宅患者歯科治療時医療管理料','tokukei','2-101','別添1 14の3',[facilityLink('別添2（在歯管）PDF','pdf','r8-2-101.pdf'),facilityLink('様式17 PDF','pdf','r8-t17.pdf'),facilityLink('別添2（在歯管）Word','word','r8-2-101.docx'),facilityLink('様式17 Word','word','r8-t17.docx')],['在歯管','在宅患者歯科治療時医療管理料','様式17']),
+  '在宅ＤＸ': facilityRecord('在宅DX','在宅医療DX情報活用加算','tokukei','2-103','別添1 14の5',[facilityLink('別添2（在宅DX）PDF','pdf','r8-2-103.pdf'),facilityLink('様式11の6 PDF','pdf','r8-t11-6.pdf'),facilityLink('別添2（在宅DX）Word','word','r8-2-103.docx'),facilityLink('様式11の6 Excel','excel','r8-t11-6.xlsx')],['在宅DX','在宅医療DX','様式11の6']),
+  '歯地連': facilityRecord('歯地連','地域医療連携体制加算','tokukei','2-132','別添1 17',[facilityLink('別添2（歯地連）PDF','pdf','r8-2-132.pdf'),facilityLink('様式21 PDF','pdf','r8-t21.pdf'),facilityLink('別添2（歯地連）Word','word','r8-2-132.docx'),facilityLink('様式21 Word','word','r8-t21.docx')],['歯地連','地域医療連携体制加算','様式21']),
+  '歯訪診': facilityRecord('歯訪診','歯科訪問診療料の注16に規定する基準','tokukei','2-133','別添1 17の1の2',[facilityLink('別添2（歯訪診）PDF','pdf','r8-2-133.pdf'),facilityLink('様式21の3の2 PDF','pdf','r8-t21-3-2.pdf'),facilityLink('別添2（歯訪診）Word','word','r8-2-133.docx'),facilityLink('様式21の3の2 Word','word','r8-t21-3-2.docx')],['歯訪診','歯科訪問診療料の注16','様式21の3の2']),
+  '咀嚼能力': facilityRecord('咀嚼機能','有床義歯咀嚼機能検査','tokukei','2-184','別添1 29の5',[facilityLink('別添2（咀嚼機能）PDF','pdf','r8-2-184.pdf'),facilityLink('様式38の1の2 PDF','pdf','r8-t38-1-2.pdf'),facilityLink('別添2（咀嚼機能）Word','word','r8-2-184.docx'),facilityLink('様式38の1の2 Excel','excel','r8-t38-1-2.xlsx')],['咀嚼機能','有床義歯咀嚼機能検査','様式38の1の2']),
+  '咬合圧': facilityRecord('咬合圧','咬合圧検査','tokukei','','',[],['咬合圧','咬合圧検査'],'','直接PDFなし：令和8年度特掲診療料一覧ページ内に「咬合圧」または「咬合圧検査」の該当行・様式ファイル掲載なし'),
+  '口細菌': facilityRecord('口細菌','口腔細菌定量検査','tokukei','','',[],['口細菌','口腔細菌定量検査'],'','直接PDFなし：令和8年度特掲診療料一覧ページ内に「口腔細菌定量検査」の該当行・様式ファイル掲載なし'),
+  '歯画診': facilityRecord('歯画1・2','歯科画像診断管理加算1・2','tokukei','2-191 / 2-192','別添1 31',[facilityLink('別添2（歯画1）PDF','pdf','r8-2-191.pdf'),facilityLink('別添2（歯画2）PDF','pdf','r8-2-192.pdf'),facilityLink('様式33 PDF','pdf','r8-t33.pdf'),facilityLink('別添2（歯画1）Word','word','r8-2-191.docx'),facilityLink('別添2（歯画2）Word','word','r8-2-192.docx'),facilityLink('様式33 Word','word','r8-t33.docx')],['歯画','歯科画像診断管理加算','様式33']),
+  '手顕微加': facilityRecord('手顕微加','手術用顕微鏡加算','tokukei','2-295','別添1 57の4の4',[facilityLink('別添2（手顕微加）PDF','pdf','r8-2-295.pdf'),facilityLink('様式49の8 PDF','pdf','r8-t49-8.pdf'),facilityLink('別添2（手顕微加）Word','word','r8-2-295.docx'),facilityLink('様式49の8 Word','word','r8-t49-8.docx')],['手顕微加','手術用顕微鏡加算','様式49の8']),
+  '口腔粘膜': facilityRecord('口腔粘膜','口腔粘膜処置','tokukei','2-296','別添1 57の4の5',[facilityLink('別添2（口腔粘膜）PDF','pdf','r8-2-296.pdf'),facilityLink('様式49の9 PDF','pdf','r8-t49-9.pdf'),facilityLink('別添2（口腔粘膜）Word','word','r8-2-296.docx'),facilityLink('様式49の9 Word','word','r8-t49-9.docx')],['口腔粘膜','口腔粘膜処置','様式49の9']),
+  'う蝕無痛': facilityRecord('う蝕無痛','う蝕歯無痛的窩洞形成加算','tokukei','2-297','別添1 57の5',[facilityLink('別添2（う蝕無痛）PDF','pdf','r8-2-297.pdf'),facilityLink('様式50 PDF','pdf','r8-t50.pdf'),facilityLink('別添2（う蝕無痛）Word','word','r8-2-297.docx'),facilityLink('様式50 Word','word','r8-t50.docx')],['う蝕無痛','う蝕歯無痛的窩洞形成加算','様式50']),
+  '歯技連１': facilityRecord('歯技連1','歯科技工士連携加算1','tokukei','2-298','別添1 57の5の2',[facilityLink('別添2（歯技連1）PDF','pdf','r8-2-298.pdf'),facilityLink('様式50の2の2 PDF','pdf','r8-t50-2-2.pdf'),facilityLink('別添2（歯技連1）Word','word','r8-2-298.docx'),facilityLink('様式50の2の2 Excel','excel','r8-t50-2-2.xlsx')],['歯技連1','歯科技工士連携加算1','様式50の2の2']),
+  '光印象': facilityRecord('光印象','光学印象','tokukei','2-300','別添1 57の5の4',[facilityLink('別添2（光印象）PDF','pdf','r8-2-300.pdf'),facilityLink('様式50の2 PDF','pdf','r8-t50-2.pdf'),facilityLink('別添2（光印象）Word','word','r8-2-300.docx'),facilityLink('様式50の2 Word','word','r8-t50-2.docx')],['光印象','光学印象','様式50の2']),
+  '歯ＣＡＤ': facilityRecord('歯CAD','CAD／CAM冠及びCAD／CAMインレー','tokukei','2-301','別添1 57の6',[facilityLink('別添2（歯CAD）PDF','pdf','r8-2-301.pdf'),facilityLink('様式50の2 PDF','pdf','r8-t50-2.pdf'),facilityLink('別添2（歯CAD）Word','word','r8-2-301.docx'),facilityLink('様式50の2 Word','word','r8-t50-2.docx')],['歯CAD','CAD/CAM','様式50の2']),
+  '三次元プリント義歯': facilityRecord('3DFD','3次元プリント有床義歯','tokukei','2-302','別添1 57の7',[facilityLink('別添2（3DFD）PDF','pdf','r8-2-302.pdf'),facilityLink('様式50の3の2 PDF','pdf','r8-t50-3-2.pdf'),facilityLink('別添2（3DFD）Word','word','r8-2-302.docx'),facilityLink('様式50の3の2 Excel','excel','r8-t50-3-2.xlsx')],['3DFD','3次元プリント有床義歯','様式50の3の2']),
+  '歯技工': facilityRecord('歯技工','歯科技工加算1及び2','tokukei','2-303','別添1 57の7の2',[facilityLink('別添2（歯技工）PDF','pdf','r8-2-303.pdf'),facilityLink('様式50の3 PDF','pdf','r8-t50-3.pdf'),facilityLink('別添2（歯技工）Word','word','r8-2-303.docx'),facilityLink('様式50の3 Word','word','r8-t50-3.docx')],['歯技工','歯科技工加算','様式50の3']),
+  'ＧＴＲ': facilityRecord('GTR','歯周組織再生誘導手術','tokukei','2-538','別添1 80の6',[facilityLink('別添2（GTR）PDF','pdf','r8-2-538.pdf'),facilityLink('様式74 PDF','pdf','r8-t74.pdf'),facilityLink('別添2（GTR）Word','word','r8-2-538.docx'),facilityLink('様式74 Word','word','r8-t74.docx')],['GTR','歯周組織再生誘導手術','様式74']),
+  '根切顕微': facilityRecord('根切顕微','歯根端切除手術の注3','tokukei','2-541','別添1 80の9',[facilityLink('別添2（根切顕微）PDF','pdf','r8-2-541.pdf'),facilityLink('様式49の8 PDF','pdf','r8-t49-8.pdf'),facilityLink('別添2（根切顕微）Word','word','r8-2-541.docx'),facilityLink('様式49の8 Word','word','r8-t49-8.docx')],['根切顕微','歯根端切除手術','様式49の8']),
+  '歯科麻酔': facilityRecord('歯麻酔2','歯科吸入麻酔又は歯科静脈麻酔（2）','tokukei','2-551','別添1 81の5',[facilityLink('別添2（歯麻酔2）PDF','pdf','r8-2-551.pdf'),facilityLink('様式75の5 PDF','pdf','r8-t75-5.pdf'),facilityLink('別添2（歯麻酔2）Word','word','r8-2-551.docx'),facilityLink('様式75の5 Excel','excel','r8-t75-5.xlsx')],['歯麻酔2','歯科吸入麻酔','様式75の5']),
+  '補管': facilityRecord('補管','クラウン・ブリッジ維持管理料','tokukei','2-580','別添1 85',[facilityLink('別添2（補管）PDF','pdf','r8-2-580.pdf'),facilityLink('様式81 PDF','pdf','r8-t81.pdf'),facilityLink('別添2（補管）Word','word','r8-2-580.docx'),facilityLink('様式81 Word','word','r8-t81.docx')],['補管','クラウン・ブリッジ維持管理料','様式81']),
+  '歯外在ベⅠ': facilityRecord('歯外在ベⅠ','歯科外来・在宅ベースアップ評価料（Ⅰ）','tokukei','2-611','別添1 106の2',[facilityLink('別添2（歯外在ベⅠ）PDF','pdf','r8-2-611.pdf'),facilityLink('様式95 PDF','pdf','r8-t95.pdf'),facilityLink('賃金改善計画書 Excel（歯科診療所）','excel','000399374.xlsx'),facilityLink('賃金改善計画書 記載例PDF（歯科診療所）','pdf','000399380.pdf')],['歯外在ベⅠ','様式95','賃金改善計画書'],BASEUP_FORM_NOTE + ' 要再届出。'),
+  '歯外在ベⅠ注': facilityRecord('歯外在ベⅠ注','歯科外来・在宅ベースアップ評価料（Ⅰ）の注5','tokukei','2-612','別添1 106の2',[facilityLink('別添2（歯外在ベⅠ注）PDF','pdf','r8-2-612.pdf'),facilityLink('様式95 PDF','pdf','r8-t95.pdf'),facilityLink('様式98 PDF','pdf','r8-t98.pdf'),facilityLink('賃金改善計画書 Excel（歯科診療所）','excel','000399374.xlsx'),facilityLink('賃金改善計画書 記載例PDF（歯科診療所）','pdf','000399380.pdf')],['歯外在ベⅠ注','様式95','様式98','賃金改善計画書'],BASEUP_FORM_NOTE + ' 新規届出。'),
+  '歯外在ベⅡ': facilityRecord('歯外在ベⅡ','歯科外来・在宅ベースアップ評価料（Ⅱ）（1～24）','tokukei','2-613','別添1 106の3',[facilityLink('別添2（歯外在ベⅡ）PDF','pdf','r8-2-613.pdf'),facilityLink('様式96 PDF','pdf','r8-t96.pdf'),facilityLink('賃金改善計画書 Excel（歯科診療所・従来版）','excel','000399375.xlsx'),facilityLink('賃金改善計画書 記載例PDF（歯科診療所）','pdf','000399383.pdf')],['歯外在ベⅡ','様式96','賃金改善計画書'],BASEUP_FORM_NOTE + ' 要再届出。'),
+  '歯外在ベⅡ注': facilityRecord('歯外在ベⅡ注','歯科外来・在宅ベースアップ評価料（Ⅱ）の注5及び注6','tokukei','2-614','別添1 106の3',[facilityLink('別添2（歯外在ベⅡ注）PDF','pdf','r8-2-614.pdf'),facilityLink('様式96 PDF','pdf','r8-t96.pdf'),facilityLink('様式98 PDF','pdf','r8-t98.pdf'),facilityLink('賃金改善計画書 Excel（歯科診療所・従来版）','excel','000399375.xlsx'),facilityLink('賃金改善計画書 記載例PDF（歯科診療所）','pdf','000399383.pdf')],['歯外在ベⅡ注','様式96','様式98','賃金改善計画書'],BASEUP_FORM_NOTE + ' 新規届出。'),
+  '歯技工所ベースアップ': facilityRecord('歯技ベ','歯科技工所ベースアップ支援料','tokukei','2-616','別添1 108',[facilityLink('別添2（歯技ベ）PDF','pdf','r8-2-616.pdf'),facilityLink('様式101 PDF','pdf','r8-t101.pdf'),facilityLink('厚生労働省 歯科技工所ベースアップ様式案内','other','https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000188411_00053.html#歯科技工所についてはこちら')],['歯技ベ','歯科技工所ベースアップ','様式101'],BASEUP_FORM_NOTE)
 };
+['歯外在ベⅠ','歯外在ベⅠ注','歯外在ベⅡ','歯外在ベⅡ注','歯技工所ベースアップ'].forEach(key=>{
+  FACILITY_FORM_LINKS_R08[key].relatedPageUrl = FACILITY_OFFICIAL_LINKS_R08.baseup;
+});
 FACILITY_FORM_LINKS_R08['外安全１'] = FACILITY_FORM_LINKS_R08['外安全1'];
 FACILITY_FORM_LINKS_R08['外安全２'] = FACILITY_FORM_LINKS_R08['外安全2'];
 FACILITY_FORM_LINKS_R08['外感染１'] = FACILITY_FORM_LINKS_R08['外感染1'];
