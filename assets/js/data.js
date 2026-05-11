@@ -78,8 +78,12 @@ const KB={none:'<span class="badge bgr">変更なし</span>',reapply:'<span clas
 /* ═══ STATE ═══ */
 let entries=JSON.parse(localStorage.getItem('shisetsu_kijun')||'[]');
 let clinicName=localStorage.getItem('clinic_name')||'○○歯科医院';
+const CLINIC_PROFILE_KEY='clinic_profile_v1';
+const LAST_MEDICAL_ID_KEY='last_medical_institution_number_v1';
+const OFFICIAL_LAST_MEDICAL_ID_KEY='official_dataset_last_medical_id_v1';
 const OFFICIAL_DATASET_KEY='official_dataset_cache_v1';
 const OFFICIAL_MANIFEST_META_KEY='official_dataset_manifest_meta_v1';
+let clinicProfile=loadStoredJson(CLINIC_PROFILE_KEY,{medicalInstitutionNumber:''});
 let officialDataset=loadStoredJson(OFFICIAL_DATASET_KEY,null);
 let officialManifestMeta=loadStoredJson(OFFICIAL_MANIFEST_META_KEY,null);
 let fStat='all', fCatV='all';
@@ -121,6 +125,50 @@ function loadStoredJson(key,fallback){
     return fallback;
   }
 }
+function normalizeStoredMedicalInstitutionNumber(value){
+  if(value==null) return '';
+  const digits=String(value).trim().replace(/\.0+$/,'').replace(/[^\d]/g,'');
+  if(!digits) return '';
+  return digits.padStart(7,'0');
+}
+function getClinicProfile(){
+  if(!clinicProfile || typeof clinicProfile!=='object'){
+    clinicProfile={medicalInstitutionNumber:''};
+  }
+  return clinicProfile;
+}
+function setLastMedicalInstitutionNumber(value){
+  const normalized=normalizeStoredMedicalInstitutionNumber(value);
+  if(normalized) localStorage.setItem(LAST_MEDICAL_ID_KEY,normalized);
+  else localStorage.removeItem(LAST_MEDICAL_ID_KEY);
+  return normalized;
+}
+function getLastMedicalInstitutionNumber(){
+  return normalizeStoredMedicalInstitutionNumber(localStorage.getItem(LAST_MEDICAL_ID_KEY)||'');
+}
+function setOfficialDatasetLastMedicalInstitutionNumber(value){
+  const normalized=normalizeStoredMedicalInstitutionNumber(value);
+  if(normalized) localStorage.setItem(OFFICIAL_LAST_MEDICAL_ID_KEY,normalized);
+  else localStorage.removeItem(OFFICIAL_LAST_MEDICAL_ID_KEY);
+  if(normalized) setLastMedicalInstitutionNumber(normalized);
+  return normalized;
+}
+function getOfficialDatasetLastMedicalInstitutionNumber(){
+  return normalizeStoredMedicalInstitutionNumber(localStorage.getItem(OFFICIAL_LAST_MEDICAL_ID_KEY)||'');
+}
+function saveClinicProfile(profile){
+  const current=getClinicProfile();
+  clinicProfile={
+    ...current,
+    ...(profile&&typeof profile==='object'?profile:{})
+  };
+  clinicProfile.medicalInstitutionNumber=normalizeStoredMedicalInstitutionNumber(clinicProfile.medicalInstitutionNumber);
+  localStorage.setItem(CLINIC_PROFILE_KEY,JSON.stringify(clinicProfile));
+  if(clinicProfile.medicalInstitutionNumber){
+    setLastMedicalInstitutionNumber(clinicProfile.medicalInstitutionNumber);
+  }
+  return clinicProfile;
+}
 function saveOfficialDataset(data){
   officialDataset=data||null;
   if(data)localStorage.setItem(OFFICIAL_DATASET_KEY,JSON.stringify(data));
@@ -158,6 +206,9 @@ const APP_DATE    = '2026-03-18';
 // エクスポート対象のlocalStorageキー一覧
 const DATA_KEYS = {
   shisetsu_kijun:    '届出台帳',
+  clinic_profile_v1: '医院情報',
+  last_medical_institution_number_v1: '直近の医療機関コード',
+  official_dataset_last_medical_id_v1: '更新確認に使った医療機関コード',
   official_dataset_cache_v1: '公式配布データセット',
   official_dataset_manifest_meta_v1: '公式データセット更新情報',
   teirei_records:    '定例報告記録（旧）',

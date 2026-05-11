@@ -292,6 +292,15 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .dataset-compare-chip.new{background:var(--blue-bg);border-color:#bfdbfe;color:var(--accent)}
 .dataset-compare-chip.removed{background:var(--red-bg);border-color:#fecaca;color:var(--red)}
 .dataset-compare-note{font-size:11px;color:var(--text2);line-height:1.8;margin:8px 0 12px}
+.official-update-details,.official-update-details-subtle{margin:0 0 14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px}
+.official-update-details summary,.official-update-details-subtle summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:12px;font-weight:700;color:var(--text)}
+.official-update-details summary::-webkit-details-marker,.official-update-details-subtle summary::-webkit-details-marker{display:none}
+.official-update-details summary::after,.official-update-details-subtle summary::after{content:'＋';float:right;color:var(--text3)}
+.official-update-details[open] summary::after,.official-update-details-subtle[open] summary::after{content:'－'}
+.official-update-details-body{padding:0 14px 14px}
+.official-update-manual-tools{margin-bottom:0}
+#official-dataset-status.is-error{color:var(--red)}
+#official-dataset-status.is-success{color:var(--green)}
 
 /* ─── SUCCESS ─── */
 .success-fl{display:none;position:fixed;inset:0;background:rgba(15,20,40,.6);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(3px)}

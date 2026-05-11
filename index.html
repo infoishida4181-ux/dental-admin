@@ -22,7 +22,7 @@
     <div class="settings-menu" id="settings-menu">
       <button class="settings-btn" id="settings-btn" type="button" onclick="toggleSettingsMenu(event)" aria-haspopup="true" aria-expanded="false">⚙ 設定</button>
       <div class="settings-panel" id="settings-panel" onclick="event.stopPropagation()">
-        <button class="settings-item" type="button" onclick="handleSettingsAction('clinic')">🏥 医院名を設定</button>
+        <button class="settings-item" type="button" onclick="handleSettingsAction('clinic')">🏥 医院情報を設定</button>
         <button class="settings-item" type="button" onclick="handleSettingsAction('data')">💾 データ管理</button>
         <div class="settings-divider"></div>
         <button class="settings-item admin" type="button" onclick="handleSettingsAction('admin')">🛠 管理者用</button>
@@ -71,7 +71,7 @@
     <div class="ph">
       <div class="ph-left"><h2>施設基準 届出台帳</h2><p>令和8年度診療報酬改定 対応状況を含む</p></div>
       <div class="ph-right">
-        <button class="btn btn-secondary" onclick="openOfficialDatasetModal()">📦 公式JSON読込</button>
+        <button class="btn btn-secondary" onclick="openFacilityUpdateModal()">施設基準の更新</button>
         <button class="btn btn-secondary" onclick="openAiModal()">🤖 改定影響分析</button>
         <button class="btn btn-primary" onclick="openAddModal()">＋ 届出を追加</button>
       </div>
@@ -86,7 +86,7 @@
       ⚠️ <span><strong>令和8年度改定対応中</strong>：再届出・経過措置の期限を確認してください。<a href="#" onclick="openAiModal();return false">詳細を確認 →</a></span>
     </div>
     <div class="abanner" id="official-data-banner" style="display:none;background:var(--blue-bg);border-color:#bfdbfe">
-      📦 <span id="official-data-banner-text">公式データセットの状態をここに表示します。</span>
+      📦 <span id="official-data-banner-text">更新データの状態をここに表示します。</span>
     </div>
     <div class="toolbar">
       <div class="filter-pills" id="status-pills">
@@ -114,7 +114,7 @@
         <p>届出データがありません。</p>
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px">
           <button class="btn btn-primary" onclick="resetToDefault()" style="font-size:12px">🔄 初期データを読み込む</button>
-          <button class="btn btn-ghost" onclick="openOfficialDatasetModal()" style="font-size:12px">📦 公式JSONを読み込む</button>
+          <button class="btn btn-ghost" onclick="openFacilityUpdateModal()" style="font-size:12px">施設基準の更新</button>
           <button class="btn btn-ghost" onclick="openImport()" style="font-size:12px">📥 届出済み施設基準を取込む</button>
           <button class="btn btn-ghost" onclick="openAddModal()" style="font-size:12px">＋ 手動で追加</button>
         </div>
@@ -563,33 +563,44 @@
 <!-- OFFICIAL DATASET MODAL -->
 <div class="overlay" id="official-dataset-overlay">
   <div class="modal modal-lg excel-import-modal">
-    <div class="mt">📦 公式配布JSONデータセット</div>
-    <div class="ms">管理者が作成した公式JSONデータセットを読み込み、医療機関番号で自院データを抽出して差分確認します。既存台帳は自動上書きしません。</div>
-    <div class="form-note">まずはローカルJSONファイル選択に対応し、将来的には <code>./assets/data/manifest.json</code> から最新版データセットを読める構成にします。</div>
+    <div class="mt">施設基準の更新</div>
+    <div class="ms">最新の公式データをもとに、自院の届出済み施設基準を確認します。現在の台帳は自動では上書きされません。</div>
+    <div class="form-note" id="official-dataset-status">最新データを確認する準備ができています。</div>
     <div class="form-error" id="official-dataset-error"></div>
     <div class="excel-import-toolbar">
-      <label class="btn btn-primary excel-import-picker">
-        <span>📂 JSONファイルを選択</span>
-        <input type="file" id="official-dataset-file" class="excel-import-native-input" accept=".json,application/json" onchange="handleOfficialDatasetFileSelect(event)">
-      </label>
-      <button class="btn btn-secondary" type="button" onclick="loadOfficialDatasetFromManifest()">🛰 manifestから最新版確認</button>
-      <div class="excel-import-file" id="official-dataset-file-name">データセット未読込</div>
+      <button class="btn btn-primary" type="button" onclick="refreshFacilityUpdateData()">最新データを確認</button>
+      <div class="excel-import-file" id="official-dataset-file-name">更新データ未読込</div>
     </div>
     <div class="excel-import-panel" style="margin-bottom:14px">
-      <div class="excel-import-section-title">現在の公式データセット</div>
-      <div id="official-dataset-summary" class="excel-import-empty">公式JSONを読み込むと、ここに datasetId・作成日・件数などを表示します。</div>
+      <div class="excel-import-section-title">最新データ</div>
+      <div id="official-dataset-summary" class="excel-import-empty">最新データを確認すると、ここに作成日や収録件数を表示します。</div>
+    </div>
+    <details class="official-update-details">
+      <summary>管理者・トラブル対応用</summary>
+      <div class="official-update-details-body">
+        <div class="form-note">通常は使いません。公開版で自動確認できない場合のみ、管理者が用意した更新データを手動で読み込みます。</div>
+        <div class="excel-import-toolbar official-update-manual-tools">
+          <label class="btn btn-secondary excel-import-picker">
+            <span>更新データファイルを選択</span>
+            <input type="file" id="official-dataset-file" class="excel-import-native-input" accept=".json,application/json" onchange="handleOfficialDatasetFileSelect(event)">
+          </label>
+        </div>
+      </div>
+    </details>
+    <div class="excel-import-panel" style="margin-bottom:14px">
+      <div class="excel-import-section-title">自院の施設基準候補</div>
+      <div class="form-note">保存済みの医療機関コードがある場合は自動で使います。見つからない場合のみ、下で入力してください。</div>
+      <div class="form-note" id="official-dataset-medical-id-help">医療機関コードを確認中です。</div>
     </div>
     <div class="excel-import-panel" style="margin-bottom:14px">
-      <div class="excel-import-section-title">医療機関番号で抽出</div>
-      <div class="form-note">読み込んだ公式JSONから自院データを抽出し、届出台帳形式プレビューへ変換します。比較結果は「新規候補 / 既存一致 / 変更候補 / 公式データから消えた候補」で表示します。</div>
       <div class="excel-search-toolbar">
         <div class="fr" style="margin:0;flex:1;min-width:220px">
-          <div class="fl">医療機関番号</div>
+          <div class="fl">医療機関コード</div>
           <input type="text" class="fi" id="official-dataset-medical-id" placeholder="例：0117093" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onkeydown="if(event.key==='Enter')searchOfficialDatasetMedicalInstitution()">
         </div>
-        <button class="btn btn-primary" onclick="searchOfficialDatasetMedicalInstitution()">🔍 抽出して比較</button>
+        <button class="btn btn-primary" onclick="searchOfficialDatasetMedicalInstitution()">自院の施設基準を確認</button>
       </div>
-      <div id="official-dataset-result" class="excel-import-empty">公式JSONを読み込んでから医療機関番号を入力してください。</div>
+      <div id="official-dataset-result" class="excel-import-empty">「施設基準の更新」を押すと、ここに差分確認結果を表示します。</div>
     </div>
     <div class="mf">
       <button class="btn btn-ghost" onclick="closeOfficialDatasetModal()">閉じる</button>
