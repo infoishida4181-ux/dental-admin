@@ -1860,6 +1860,30 @@ function deleteKijunHist(entryId, recId) {
    新規届出サポート
 ═══════════════════════════════════════════════════════ */
 
+const SHINKI_OFFICIAL_LINKS = {
+  r08Basic: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html',
+  r08Special: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
+  r06Basic: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r06.html',
+  r06Special: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+  withdrawal: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/shisetsu_kijun.html',
+  electronic: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/chousa/denshishinsei_00001.html',
+  office: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/gyomu/bu_ka/jimusho.html'
+};
+
+function getShinkiPrimaryPage(def){
+  const url = String(def?.sourcePage || def?.yoshiki?.[0]?.url || '');
+  if(url.includes('tokukei_shinryo')) return SHINKI_OFFICIAL_LINKS.r08Special;
+  if(url.includes('kihon_shinryo')) return SHINKI_OFFICIAL_LINKS.r08Basic;
+  return def?.category === 'basic' ? SHINKI_OFFICIAL_LINKS.r08Basic : SHINKI_OFFICIAL_LINKS.r08Special;
+}
+
+function getShinkiPastPage(def){
+  const url = String(def?.sourcePage || def?.yoshiki?.[0]?.url || '');
+  if(url.includes('tokukei_shinryo')) return SHINKI_OFFICIAL_LINKS.r06Special;
+  if(url.includes('kihon_shinryo')) return SHINKI_OFFICIAL_LINKS.r06Basic;
+  return def?.category === 'basic' ? SHINKI_OFFICIAL_LINKS.r06Basic : SHINKI_OFFICIAL_LINKS.r06Special;
+}
+
 const SHINKI_MASTER = {
 
   /* ════════════════════════════════
@@ -1881,9 +1905,9 @@ const SHINKI_MASTER = {
     ],
     note: '研修はオンライン・e-learningでも可。歯科医師会主催の講習会が活用できます。',
     yoshiki: [
-      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r06.html', keyword:'歯初診'},
+      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html', keyword:'歯初診'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html',
     flow: ['院内感染防止対策研修を受講','院内掲示・ウェブサイト掲載を準備','様式2の6を記載して厚生局へ郵送','受理後、翌月1日から算定可'],
   },
 
@@ -1905,9 +1929,9 @@ const SHINKI_MASTER = {
     ],
     note: '医療安全研修は歯科医師会等主催の講習会で受講可。AED等の設備投資が必要です。',
     yoshiki: [
-      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r06.html', keyword:'外安全1'},
+      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html', keyword:'外安全1'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html',
     flow: ['歯初診の届出（未届の場合）','医療安全研修を受講','AED等の設備を整備','医療安全管理者を選任','ヒヤリ・ハット事業に登録','様式4を記載して厚生局へ郵送'],
   },
 
@@ -1926,9 +1950,9 @@ const SHINKI_MASTER = {
     ],
     note: '口腔外バキュームの設置が必須。外安全1と同時に申請する診療所が多い。',
     yoshiki: [
-      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r06.html', keyword:'外感染1'},
+      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html', keyword:'外感染1'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html',
     flow: ['歯初診の届出（未届の場合）','院内感染管理者を選任','口腔外バキュームを設置','様式4を記載して厚生局へ郵送'],
   },
 
@@ -1950,9 +1974,9 @@ const SHINKI_MASTER = {
     ],
     note: '令和6年改定で「か強診」から名称変更済み。令和8年改定では口腔機能実地指導料（新設）との関係が要確認。厚生局告示で最新要件を確認のこと。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'口管強'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'口管強'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['外安全1・外感染1の届出（未届の場合）','訪問診療・歯周安定期治療の実績を積む','追加研修を受講','様式17の2を記載して厚生局へ郵送'],
   },
 
@@ -1970,9 +1994,9 @@ const SHINKI_MASTER = {
     ],
     note: '🚫 令和8年6月廃止・再編。新設の「電子的歯科診療情報連携体制加算」（略称：電子的歯科連携）を参照のこと。',
     yoshiki: [
-      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r06.html', keyword:'医療ＤＸ'},
+      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html', keyword:'医療ＤＸ'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html',
     flow: ['電子資格確認の導入','マイナ保険証の利用促進','電子処方箋の導入','様式1の6を記載して厚生局へ郵送'],
   },
 
@@ -1991,9 +2015,9 @@ const SHINKI_MASTER = {
     ],
     note: 'スマートフォンやPCのビデオ通話で対応可能な場合もあります。',
     yoshiki: [
-      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r06.html', keyword:'歯情報通信'},
+      {label:'🔍 基本診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html', keyword:'歯情報通信'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/kihon_shinryo_r08.html',
     flow: ['オンライン診療の手順書を作成','通信環境を整備','様式4の3を記載して厚生局へ郵送'],
   },
 
@@ -2015,9 +2039,9 @@ const SHINKI_MASTER = {
     ],
     note: '多くの歯科診療所で届出可能。要件が比較的満たしやすい施設基準です。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'機安歯'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'機安歯'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['医療機器安全管理責任者を選任','保守点検計画を作成','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2036,9 +2060,9 @@ const SHINKI_MASTER = {
     ],
     note: '外安全1の体制に加えて酸素供給装置が必要。全身疾患患者が多い診療所に有用。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'医管'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'医管'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['外安全1の届出（未届の場合）','酸素供給装置等の設備を整備','様式を記載して厚生局へ郵送'],
   },
 
@@ -2056,9 +2080,9 @@ const SHINKI_MASTER = {
     ],
     note: '訪問診療を積極的に行っている診療所向け。医管の届出が前提となります。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'在歯管'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'在歯管'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['医管の届出（未届の場合）','訪問診療の開始','携行用の医療機器を準備','様式を記載して厚生局へ郵送'],
   },
 
@@ -2079,9 +2103,9 @@ const SHINKI_MASTER = {
     ],
     note: '訪問診療を開始した診療所が最初に届出する施設基準。在支歯より要件が少ない。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'歯訪診'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'歯訪診'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['訪問診療を開始（患者割合95%未満を確認）','歯初診の届出（未届の場合）','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2104,9 +2128,9 @@ const SHINKI_MASTER = {
     ],
     note: '在支歯1と在支歯2では要件が異なります。訪問診療の実績を積んでから届出します。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'歯援診'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'歯援診'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['訪問診療の実績を積む（年15回以上）','高齢者対応研修を受講','連携体制を整備','届出書を記載して郵送','毎年8月に定例報告（様式18の2）'],
   },
 
@@ -2124,9 +2148,9 @@ const SHINKI_MASTER = {
     ],
     note: '在支歯の届出が前提となります。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'歯地連'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'歯地連'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['在支歯の届出（未届の場合）','医科・歯科連携体制を整備','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2144,9 +2168,9 @@ const SHINKI_MASTER = {
     ],
     note: '医療DX加算と訪問診療施設基準の両方が前提。令和6年度改定の新加算。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'在宅ＤＸ'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'在宅ＤＸ'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['医療ＤＸ・歯訪診の届出（未届の場合）','訪問時のオンライン資格確認体制を整備','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2171,9 +2195,9 @@ const SHINKI_MASTER = {
     ],
     note: '⚠️ 令和8年6月改定で施設基準届出が不要になる可能性あり。グルコース分析装置（ガムテスト用機器）は比較的安価。改定後の要件を厚生局告示で要確認。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'咀嚼'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'咀嚼'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['測定機器を準備','3年以上の経験を有する歯科医師を確認','様式38の1の2を記載して厚生局へ郵送'],
   },
 
@@ -2192,9 +2216,9 @@ const SHINKI_MASTER = {
     ],
     note: '⚠️ 令和8年6月改定で施設基準届出が不要になる可能性あり。T-ScanやデンタルプレスケールII等の機器が対象。告示内容を要確認。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'咬合圧'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'咬合圧'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['咬合圧測定装置を準備','3年以上の経験を有する歯科医師を確認','様式38の1の2を記載して厚生局へ郵送'],
   },
 
@@ -2212,9 +2236,9 @@ const SHINKI_MASTER = {
     ],
     note: '令和8年6月改定で届出不要化。装置を保有していれば算定可能。新規に装置を導入する場合も届出は不要。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'口菌検'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'口菌検'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['口腔細菌定量分析装置を準備','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2232,9 +2256,9 @@ const SHINKI_MASTER = {
     ],
     note: '加算2は大病院・専門機関向け。一般診療所は加算1から検討。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'歯画'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'歯画'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['担当歯科医師の確認','デジタル画像診断装置の整備','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2256,9 +2280,9 @@ const SHINKI_MASTER = {
     ],
     note: '院内に技工士がいない場合は連携技工所を通じた届出が可能。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'歯ＣＡＤ'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'歯ＣＡＤ'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['使用するCAD/CAM装置の情報を確認','届出書に装置情報を記載','厚生局へ郵送'],
   },
 
@@ -2277,9 +2301,9 @@ const SHINKI_MASTER = {
     ],
     note: '口腔内スキャナーがあればCAD/CAMインレーの印象をデジタルで行える。精度向上と患者負担軽減が期待できます。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'光印象'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'光印象'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['歯ＣＡＤの届出（未届の場合）','口腔内スキャナーを準備','院内技工士の配置（連携加算の場合）','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2298,9 +2322,9 @@ const SHINKI_MASTER = {
     ],
     note: '院内技工士を配置する診療所向け。加算2は義歯の口腔内調整等を行う場合に算定。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'歯技連'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'歯技連'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['歯科技工士を採用・配置','歯科技工室を整備','院内掲示を準備','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2319,9 +2343,9 @@ const SHINKI_MASTER = {
     ],
     note: '歯技連1と要件が重複する部分が多い。義歯患者が多い診療所向け。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'歯技工'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'歯技工'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['歯科技工士を採用・配置','歯科技工室を整備','院内掲示を準備','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2338,9 +2362,9 @@ const SHINKI_MASTER = {
     ],
     note: '要件が少なく届出しやすい施設基準。多くの歯科診療所で取得可能。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'補管'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'補管'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['院内掲示の準備','届出書を記載','厚生局へ郵送'],
   },
 
@@ -2362,9 +2386,9 @@ const SHINKI_MASTER = {
     ],
     note: '手術用顕微鏡と歯科用CT（CBCT）の両方が必要。保存科・根管治療に力を入れる診療所向け。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'手顕微加'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'手顕微加'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['手術用顕微鏡・歯科用CTを設置','3年以上の経験を有する歯科医師を確認','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2382,9 +2406,9 @@ const SHINKI_MASTER = {
     ],
     note: '手顕微加の届出があれば追加要件は少ない。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'根切顕微'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'根切顕微'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['手顕微加の届出（未届の場合）','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2400,9 +2424,9 @@ const SHINKI_MASTER = {
     ],
     note: '歯周外科の経験がある歯科医師が必要。歯周病への再生療法で保険対応できる。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'ＧＴＲ'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'ＧＴＲ'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['3年以上の歯周病治療経験を有する歯科医師を確認','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2419,9 +2443,9 @@ const SHINKI_MASTER = {
     ],
     note: 'CO2レーザーやEr:YAGレーザー等が対象機器として使用される場合が多い。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'口腔粘膜'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'口腔粘膜'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['レーザー機器を準備','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2438,9 +2462,9 @@ const SHINKI_MASTER = {
     ],
     note: 'Er:YAGレーザーが主に使用される。小児や歯科恐怖症の患者への低侵襲治療として有用。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'う蝕無痛'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'う蝕無痛'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['無痛的窩洞形成装置を準備','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2465,9 +2489,9 @@ const SHINKI_MASTER = {
     ],
     note: '令和8年6月改定で新設。口管強を算定している診療所が新たに届出が必要な施設基準。様式番号は厚生局告示で要確認。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'口腔機能実地'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'口腔機能実地'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['口腔機能実地指導を実施するユニットを確保','歯科衛生士の配置確認','届出書を記載して厚生局へ郵送','口管強の届出（維持の場合は継続届出不要だが要件確認）'],
   },
 
@@ -2487,9 +2511,9 @@ const SHINKI_MASTER = {
     ],
     note: '令和8年6月新設。4,000点と高点数。3次元CAD/CAM装置の整備が前提。届出様式は厚生局告示で確認のこと。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'3次元プリント'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'3次元プリント'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['3次元CAD/CAMシステムの導入','歯科技工士の配置確認','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2507,9 +2531,9 @@ const SHINKI_MASTER = {
     ],
     note: '令和8年6月新設。届出様式・詳細要件は厚生局告示で要確認。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'特別管理加算'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'特別管理加算'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['要件を厚生局告示で確認','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2528,9 +2552,9 @@ const SHINKI_MASTER = {
     ],
     note: '令和8年6月新設。届出様式・詳細要件は厚生局告示で要確認。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'歯科麻酔'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'歯科麻酔'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['麻酔体制の整備','要件を厚生局告示で確認','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2549,9 +2573,9 @@ const SHINKI_MASTER = {
     ],
     note: '令和8年6月新設。院内技工士ではなく外部歯科技工所の賃上げ支援が目的。届出様式・詳細要件は厚生局告示で要確認。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'歯科技工所'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'歯科技工所'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['連携歯科技工所の賃上げ計画を確認','要件を厚生局告示で確認','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2571,9 +2595,9 @@ const SHINKI_MASTER = {
     ],
     note: '令和8年6月新設。旧医療DX加算から一新されているため、既届出施設も新規届出が必要。届出様式・詳細要件は厚生局告示で確認のこと。',
     yoshiki: [
-      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html', keyword:'電子的歯科'},
+      {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'電子的歯科'},
     ],
-    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r06.html',
+    sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
     flow: ['医療ＤＸ届出確認','電子カルテ情報共有サービスへの対応','届出書を記載して厚生局へ郵送'],
   },
 
@@ -2686,6 +2710,13 @@ function showShinkiDetail(abbr){
     ok: alreadyHave.has(p)
   }));
   const allPrereqOk = prereqStatus.every(p => p.ok);
+  const primaryPage = getShinkiPrimaryPage(def);
+  const pastPage = getShinkiPastPage(def);
+  const actionLinks = [
+    { label: '施設基準に係る辞退届', url: SHINKI_OFFICIAL_LINKS.withdrawal },
+    { label: '保険医療機関等電子申請・届出システム', url: SHINKI_OFFICIAL_LINKS.electronic },
+    { label: '届出先（事務所・指導監査課）', url: SHINKI_OFFICIAL_LINKS.office }
+  ];
 
   const el = document.getElementById('shinki-detail');
   if(!el) return;
@@ -2699,6 +2730,7 @@ function showShinkiDetail(abbr){
             <div style="font-size:11px;font-family:var(--mono);color:var(--text2);margin-bottom:4px">${abbr}</div>
             <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px">${def.name}</div>
             <div style="font-size:12px;color:var(--text2)">${def.summary}</div>
+            <div style="margin-top:8px;font-size:11px;color:var(--accent);font-weight:700">令和8年度改定モードを標準にしています</div>
           </div>
           ${have
             ? '<span class="badge bg" style="font-size:11px;padding:5px 12px;flex-shrink:0">✓ 届出済み</span>'
@@ -2743,7 +2775,7 @@ function showShinkiDetail(abbr){
 
       <!-- 届出様式DL -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px">
-        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">📥 届出様式のダウンロード</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">📥 令和8年度改定の届出様式</div>
         ${def.yoshiki.map(y => `
           <a href="${y.url}" target="_blank" rel="noopener"
              style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px;text-decoration:none;color:var(--accent);font-size:12px;font-weight:600;margin-bottom:8px;transition:opacity .15s"
@@ -2761,6 +2793,31 @@ function showShinkiDetail(abbr){
         `).join('')}
       </div>
 
+      <!-- 関連手続きリンク -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">🔗 関連手続きリンク</div>
+        <a href="${primaryPage}" target="_blank" rel="noopener"
+           style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px;text-decoration:none;color:var(--accent);font-size:12px;font-weight:600;margin-bottom:8px">
+          令和8年度 ${primaryPage.includes('kihon') ? '基本診療料' : '特掲診療料'}の届出一覧
+          <span style="margin-left:auto;font-size:10px;flex-shrink:0">↗ 開く</span>
+        </a>
+        ${actionLinks.map(link => `
+          <a href="${link.url}" target="_blank" rel="noopener"
+             style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text2);font-size:12px;font-weight:600;margin-bottom:8px">
+            ${link.label}
+            <span style="margin-left:auto;font-size:10px;flex-shrink:0">↗ 開く</span>
+          </a>
+        `).join('')}
+        <details style="margin-top:4px">
+          <summary style="cursor:pointer;font-size:11px;color:var(--text3);font-weight:700">過年度参照（令和6年度）</summary>
+          <a href="${pastPage}" target="_blank" rel="noopener"
+             style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text2);font-size:12px;font-weight:600;margin-top:8px">
+            令和6年度 ${pastPage.includes('kihon') ? '基本診療料' : '特掲診療料'}の届出一覧
+            <span style="margin-left:auto;font-size:10px;flex-shrink:0">↗ 開く</span>
+          </a>
+        </details>
+      </div>
+
       <!-- 届出の流れ -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px">
         <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text)">📋 届出の流れ</div>
@@ -2776,7 +2833,7 @@ function showShinkiDetail(abbr){
       <!-- 届出後の注意 -->
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:11px;color:var(--text2);line-height:1.8">
         <strong style="color:var(--text)">📮 届出方法と算定開始</strong><br>
-        届出は管轄の地方厚生局事務所へ郵送が原則です（東京都の場合：関東信越厚生局東京事務所）。<br>
+        届出は管轄の地方厚生局事務所へ郵送が原則です（東京都の場合：関東信越厚生局東京事務所）。電子申請が可能な届出は「保険医療機関等電子申請・届出システム」を確認してください。<br>
         各月の末日までに受理された場合は翌月1日から算定可能（月の最初の開庁日に受理された場合は当月1日から）。<br>
         受理後、受理番号が通知されます。届出台帳に登録してください。
       </div>
