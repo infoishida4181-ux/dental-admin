@@ -2086,20 +2086,27 @@ const SHINKI_MASTER = {
     ryakusho: '（機安歯）',
     name: '医療機器安全管理料（歯科）',
     category: 'special',
-    score: '医療機器安全管理料（歯科）：100点',
-    summary: '歯科用医療機器の安全管理体制を評価する施設基準。保守点検計画の整備が必要。',
+    score: '医療機器安全管理料（歯科）：1,100点（一連につき）',
+    scoreNote: '照射計画に基づく放射線治療を行った場合に算定対象となります。通常の歯科用医療機器の保守点検のみで算定できるものではありません。',
+    summary: '放射線治療機器の安全管理、保守点検及び安全使用のための精度管理を行う体制を評価する施設基準です。照射計画に基づく放射線治療を行う医療機関が対象となるため、一般的な歯科診療所では該当しない可能性があります。',
     prereq: [],
+    limitedBadge: '放射線治療設備が必要',
     requirements: [
-      '医療機器の安全管理を行うにつき十分な体制が整備されていること',
-      '医療機器安全管理責任者（常勤の歯科医師または歯科衛生士等）が配置されていること',
-      '医療機器の保守点検に関する計画を作成・管理していること',
+      '放射線治療機器の安全管理、保守点検及び安全使用のための精度管理を行う体制があること',
+      '対象となる放射線治療機器は、高エネルギー放射線治療装置、直線加速器、密封小線源治療機器等であること',
+      '医療機器の安全使用のための職員研修を計画的に実施していること',
+      '医療機器の保守点検に関する計画を策定し、保守点検を適切に実施していること',
+      '医療機器の安全使用のための情報収集等を適切に行っていること',
+      '照射計画に基づく放射線治療を行う医療機関であること',
     ],
-    note: '多くの歯科診療所で届出可能。要件が比較的満たしやすい施設基準です。',
+    note: 'この施設基準は、通常の歯科用ユニット・レントゲン・CT等の保守点検体制を評価するものではなく、放射線治療機器に関する安全管理体制が対象です。届出対象となるかは、必ず厚生労働省通知・地方厚生局の届出様式で確認してください。',
+    sourceMemo: '厚生労働省「歯科診療報酬点数表に関する事項」B018 医療機器安全管理料。放射線治療機器の安全管理、保守点検、安全使用のための精度管理体制を評価するもの。',
+    sourceNoticeUrl: 'https://www.mhlw.go.jp/stf/newpage_67729.html',
     yoshiki: [
       {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'機安歯'},
     ],
     sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
-    flow: ['医療機器安全管理責任者を選任','保守点検計画を作成','届出書を記載して厚生局へ郵送'],
+    flow: ['放射線治療を行う医療機関に該当するか確認','対象となる放射線治療機器と精度管理体制を確認','職員研修・保守点検計画・情報収集体制を確認','厚生労働省通知と厚生局様式を確認して届出要否を判断'],
   },
 
   '医管': {
@@ -2735,13 +2742,14 @@ const SHINKI_MASTER = {
 const SHINKI_GROUPS = [
   { label:'🏥 基本診療料（歯科）', abbrs:['歯初診','外安全１','外安全２','外感染１','外感染２','歯情報通信','歯医DX1','歯医DX2'] },
   { label:'🏠 在宅・訪問診療', abbrs:['歯訪診','在支歯','歯地連','在宅ＤＸ'] },
-  { label:'💊 管理料・全身管理', abbrs:['口管強','機安歯','医管','在歯管'] },
+  { label:'💊 管理料・全身管理', abbrs:['口管強','医管','在歯管'] },
   { label:'🔬 検査・機能評価', abbrs:['咀嚼能力','歯画診'] },
   { label:'🦷 補綴・技工', abbrs:['歯ＣＡＤ','光印象','歯技連１','歯技工','補管'] },
   { label:'🔭 外科・精密治療', abbrs:['手顕微加','根切顕微','ＧＴＲ'] },
   { label:'💡 処置・その他', abbrs:['口腔粘膜','う蝕無痛'] },
   { label:'🆕 令和8年6月新設（施設基準）', abbrs:['口腔機能実地','三次元プリント義歯','特別管理加算','歯科麻酔','歯技工所ベースアップ'] },
   { label:'💰 賃上げ', abbrs:['歯外在ベⅠ','歯外在ベⅠ注','歯外在ベⅡ','歯外在ベⅡ注'] },
+  { label:'⚠️ 対象限定・高度設備が必要な施設基準', abbrs:['機安歯'] },
   { label:'🚫 令和8年で廃止・再編された施設基準', abbrs:['医療ＤＸ','咬合圧','口細菌'] },
 ];
 
@@ -2778,6 +2786,7 @@ function renderShinki(){
       const isSelected = _shinkiSelected === abbr;
       const facilityAbolished = isFacilityStandardAbolished(def);
       const isNewFacility = isShinkiNewFacility(def);
+      const limitedBadge = def.limitedBadge || '';
       html += `
         <div onclick="selectShinki('${abbr}')" style="
           padding:10px 14px;cursor:pointer;border-left:3px solid ${isSelected?'var(--accent)':'transparent'};
@@ -2794,6 +2803,7 @@ function renderShinki(){
           </div>
           ${facilityAbolished
             ? '<span class="badge bpu" style="font-size:9px;flex-shrink:0">令和8年 施設基準廃止</span>'
+            : limitedBadge ? `<span class="badge br" style="font-size:9px;flex-shrink:0">${limitedBadge}</span>`
             : have ? '<span class="badge bg" style="font-size:9px;flex-shrink:0">届出済</span>' : ''}
         </div>`;
     });
@@ -2956,6 +2966,7 @@ function showShinkiDetail(abbr){
   const have = alreadyHave.has(abbr);
   const facilityAbolished = isFacilityStandardAbolished(def);
   const isNewFacility = isShinkiNewFacility(def);
+  const limitedBadge = def.limitedBadge || '';
 
   // 前提条件の充足確認
   const prereqStatus = def.prereq.map(p => ({
@@ -2991,6 +3002,8 @@ function showShinkiDetail(abbr){
           </div>
           ${facilityAbolished
             ? '<span class="badge bpu" style="font-size:11px;padding:5px 12px;flex-shrink:0">令和8年 施設基準廃止</span>'
+            : limitedBadge
+              ? `<span class="badge br" style="font-size:11px;padding:5px 12px;flex-shrink:0">${limitedBadge}</span>`
             : have
               ? '<span class="badge bg" style="font-size:11px;padding:5px 12px;flex-shrink:0">✓ 届出済み</span>'
               : '<span class="badge by" style="font-size:11px;padding:5px 12px;flex-shrink:0">未届出</span>'}
@@ -3008,6 +3021,7 @@ function showShinkiDetail(abbr){
         ` : `
           <div style="margin-top:12px;padding:8px 12px;background:var(--blue-bg);border-radius:6px;font-size:12px;color:var(--accent);font-weight:600">
             💰 算定点数：${def.score}
+            ${def.scoreNote ? `<div style="margin-top:6px;color:var(--text2);font-size:11px;font-weight:500;line-height:1.7">${def.scoreNote}</div>` : ''}
           </div>
         `}
       </div>
@@ -3042,6 +3056,7 @@ function showShinkiDetail(abbr){
             <div style="font-size:12px;color:var(--text);line-height:1.7">${r}</div>
           </div>`).join('')}
         ${def.note ? `<div style="margin-top:10px;font-size:11px;color:var(--text2);background:var(--bg3);border-radius:5px;padding:8px 10px">💡 ${def.note}</div>` : ''}
+        ${def.sourceMemo ? `<div style="margin-top:10px;font-size:11px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:8px 10px">出典: ${def.sourceMemo}${def.sourceNoticeUrl ? `<br><a href="${def.sourceNoticeUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);font-weight:700">厚生労働省通知を開く</a>` : ''}</div>` : ''}
         ${facilityAbolished && def.abolishNote ? `<div style="margin-top:10px;font-size:11px;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;padding:8px 10px">${def.abolishNote}</div>` : ''}
       </div>
 
