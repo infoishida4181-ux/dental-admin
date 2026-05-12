@@ -578,15 +578,15 @@
     <div class="ms" id="official-dataset-subtitle">管理者が更新した最新データをもとに、自院の届出済み施設基準を確認します。現在の台帳は自動では上書きされません。</div>
     <div class="form-note" id="official-dataset-status">最新データを確認する準備ができています。</div>
     <div class="form-error" id="official-dataset-error"></div>
-    <div class="excel-import-toolbar">
+    <div class="excel-import-toolbar" id="official-dataset-toolbar">
       <button class="btn btn-primary" type="button" onclick="refreshFacilityUpdateData()">最新データを確認</button>
       <div class="excel-import-file" id="official-dataset-file-name">更新データ未読込</div>
     </div>
-    <div class="excel-import-panel" style="margin-bottom:14px">
+    <div class="excel-import-panel" id="official-dataset-summary-panel" style="margin-bottom:14px">
       <div class="excel-import-section-title">最新データ</div>
       <div id="official-dataset-summary" class="excel-import-empty">最新データを確認すると、ここに作成日や収録件数を表示します。</div>
     </div>
-    <details class="official-update-details">
+    <details class="official-update-details" id="official-dataset-manual-details">
       <summary>管理者・トラブル対応用</summary>
       <div class="official-update-details-body">
         <div class="form-note">通常は使いません。公開版で自動確認できない場合のみ、管理者が用意した更新データを手動で読み込みます。PDF取り込みはトラブル時の予備方法です。</div>
@@ -599,7 +599,7 @@
         </div>
       </div>
     </details>
-    <div class="excel-import-panel" style="margin-bottom:14px">
+    <div class="excel-import-panel" id="official-dataset-help-panel" style="margin-bottom:14px">
       <div class="excel-import-section-title" id="official-dataset-candidate-title">自院の施設基準候補</div>
       <div class="form-note">標準の取り込み元はGitHub上の管理者更新データです。保存済みの医療機関コードがある場合は自動で使います。見つからない場合のみ、下で入力してください。</div>
       <div class="form-note">本データは、管理者が公式資料をもとに作成・更新した補助データです。届出要否や算定可否の最終判断は、必ず厚生労働省・地方厚生局等の公式情報をご確認ください。</div>
@@ -611,12 +611,12 @@
           <div class="fl">医療機関コード</div>
           <input type="text" class="fi" id="official-dataset-medical-id" placeholder="例：3441680" inputmode="numeric" onkeydown="if(event.key==='Enter')searchOfficialDatasetMedicalInstitution()">
         </div>
-        <button class="btn btn-primary" onclick="searchOfficialDatasetMedicalInstitution()">自院の施設基準を確認</button>
+        <button class="btn btn-primary" id="official-dataset-search-btn" onclick="searchOfficialDatasetMedicalInstitution()">自院の施設基準を確認</button>
       </div>
       <div id="official-dataset-result" class="excel-import-empty">「施設基準の更新」を押すと、ここに差分確認結果を表示します。</div>
     </div>
     <div class="mf">
-      <button class="btn btn-ghost" onclick="closeOfficialDatasetModal()">閉じる</button>
+      <button class="btn btn-ghost" id="official-dataset-close-btn" onclick="closeOfficialDatasetModal()">閉じる</button>
     </div>
   </div>
 </div>

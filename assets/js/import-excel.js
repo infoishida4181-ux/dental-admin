@@ -36,6 +36,7 @@ window.ExcelImport = window.ExcelImport || {
   lastDatasetPreview: null,
   lastOfficialCompareResult: null,
   lastOfficialDatasetDebug: null,
+  officialDatasetMode: 'update',
   init() {
     this.reset();
     this.renderStoredOfficialDatasetSummary();
@@ -1215,6 +1216,7 @@ window.ExcelImport = window.ExcelImport || {
     const el = document.getElementById('official-dataset-status');
     if (!el) return;
     el.textContent = message || '';
+    el.style.display = message ? '' : 'none';
     el.classList.remove('is-error', 'is-success');
     if (tone === 'error') el.classList.add('is-error');
     if (tone === 'success') el.classList.add('is-success');
@@ -1421,29 +1423,60 @@ window.ExcelImport = window.ExcelImport || {
   },
   configureOfficialDatasetModal(mode = 'update') {
     const isInitial = mode === 'initial';
+    this.officialDatasetMode = isInitial ? 'initial' : 'update';
     const title = document.getElementById('official-dataset-title');
     if (title) title.textContent = isInitial ? '施設基準取り込み' : '施設基準の更新';
     const subtitle = document.getElementById('official-dataset-subtitle');
     if (subtitle) {
       subtitle.textContent = isInitial
-        ? '医療機関コードを入力すると、管理者が更新した最新データから届出済み施設基準を取り込めます。PDFやExcelを自分でアップロードする必要はありません。'
+        ? '医療機関コードを入力すると、管理者が更新した最新データから自院の届出済み施設基準を検索できます。'
         : '管理者が更新した最新データをもとに、自院の届出済み施設基準を確認します。現在の台帳は自動では上書きされません。';
     }
     const section = document.getElementById('official-dataset-candidate-title');
     if (section) section.textContent = isInitial ? '医療機関コードから取り込む' : '自院の施設基準候補';
+    const searchButton = document.getElementById('official-dataset-search-btn');
+    if (searchButton) searchButton.textContent = isInitial ? '検索' : '自院の施設基準を確認';
+    const closeButton = document.getElementById('official-dataset-close-btn');
+    if (closeButton) closeButton.textContent = isInitial ? 'キャンセル' : '閉じる';
+    const status = document.getElementById('official-dataset-status');
+    if (status) status.style.display = isInitial ? 'none' : '';
+    const toolbar = document.getElementById('official-dataset-toolbar');
+    if (toolbar) toolbar.style.display = isInitial ? 'none' : '';
+    const summaryPanel = document.getElementById('official-dataset-summary-panel');
+    if (summaryPanel) summaryPanel.style.display = isInitial ? 'none' : '';
+    const manualDetails = document.getElementById('official-dataset-manual-details');
+    if (manualDetails) {
+      manualDetails.style.display = isInitial ? 'none' : '';
+      manualDetails.open = false;
+    }
+    const helpPanel = document.getElementById('official-dataset-help-panel');
+    if (helpPanel) {
+      const notes = helpPanel.querySelectorAll('.form-note');
+      notes.forEach((note, index) => {
+        note.style.display = isInitial && index === 0 ? 'none' : '';
+      });
+    }
+    const input = document.getElementById('official-dataset-medical-id');
+    if (input && isInitial) input.value = '';
+    this.lastOfficialCompareResult = isInitial ? null : this.lastOfficialCompareResult;
     const result = document.getElementById('official-dataset-result');
-    if (result && !this.lastOfficialCompareResult) {
-      result.innerHTML = `<div class="excel-import-empty">${isInitial ? '医療機関コードを入力して最新データを確認すると、ここに取り込み前の確認内容を表示します。' : '「施設基準の更新」を押すと、ここに差分確認結果を表示します。'}</div>`;
+    if (result && (isInitial || !this.lastOfficialCompareResult)) {
+      result.innerHTML = `<div class="excel-import-empty">${isInitial ? '医療機関コードを入力して検索してください。' : '「施設基準の更新」を押すと、ここに差分確認結果を表示します。'}</div>`;
     }
   },
   async openOfficialDatasetModal(options = {}) {
-    this.configureOfficialDatasetModal(options.mode || 'update');
+    const mode = options.mode || 'update';
+    this.configureOfficialDatasetModal(mode);
     this.setOfficialDatasetError('');
-    this.renderStoredOfficialDatasetSummary();
+    if (mode !== 'initial') this.renderStoredOfficialDatasetSummary();
     if (!this.lastOfficialCompareResult) {
-      this.setOfficialDatasetResultPlaceholder('最新データを確認すると、ここに自院の施設基準候補を表示します。');
+      this.setOfficialDatasetResultPlaceholder(mode === 'initial' ? '医療機関コードを入力して検索してください。' : '最新データを確認すると、ここに自院の施設基準候補を表示します。');
     }
     document.getElementById('official-dataset-overlay').classList.add('open');
+    if (mode === 'initial') {
+      this.setOfficialMedicalIdHelp('医療機関コードを入力して検索してください。');
+      return;
+    }
     if (options.autoStart === false) {
       this.setOfficialDatasetStatus('確認したい場合は「最新データを確認」を押してください。');
       this.applyResolvedMedicalInstitutionNumber(this.resolveSavedMedicalInstitutionNumber());
@@ -1584,21 +1617,31 @@ window.ExcelImport = window.ExcelImport || {
     this.lastOfficialCompareResult = compareResult;
     return this.applyOfficialDatasetNewCandidates();
   },
-  searchOfficialDatasetMedicalInstitution(forcedMedicalId = '') {
+  async searchOfficialDatasetMedicalInstitution(forcedMedicalId = '') {
     this.setOfficialDatasetError('');
-    const records = this.flattenOfficialDatasetRecords(officialDataset);
-    if (!officialDataset || !records.length) {
-      this.setOfficialDatasetStatus('まだ最新データを確認できていません。', 'error');
-      this.setOfficialDatasetError('先に最新データを確認してください。');
-      return;
-    }
     const input = document.getElementById('official-dataset-medical-id');
     const medicalId = this.normalizeMedicalId(forcedMedicalId || (input ? input.value.trim() : ''));
     if (input && medicalId) input.value = medicalId;
     if (!medicalId) {
       this.setOfficialDatasetStatus('医療機関コードの入力が必要です。', 'error');
       this.setOfficialDatasetError('医療機関コードを入力してください。');
-      this.setOfficialMedicalIdHelp('保存済みの医療機関コードが見つからなかったため、7桁の医療機関コードを入力してください。');
+      this.setOfficialMedicalIdHelp('医療機関コードを入力してください。');
+      return;
+    }
+    let records = this.flattenOfficialDatasetRecords(officialDataset);
+    if (!officialDataset || !records.length) {
+      try {
+        await this.loadOfficialDatasetFromManifest({ autoSearch: false, preferredMessage: '最新データを取得しています。' });
+        records = this.flattenOfficialDatasetRecords(officialDataset);
+      } catch (err) {
+        this.setOfficialDatasetStatus('最新データの取得に失敗しました。', 'error');
+        this.setOfficialDatasetError(this.buildOfficialDatasetFriendlyError(err));
+        return;
+      }
+    }
+    if (!officialDataset || !records.length) {
+      this.setOfficialDatasetStatus('最新データを取得できませんでした。', 'error');
+      this.setOfficialDatasetError('GitHub上のデータ形式が想定と異なるため、取り込みできませんでした。');
       return;
     }
     this.setOfficialDatasetStatus('自院の施設基準候補を確認しています。');
@@ -1612,7 +1655,7 @@ window.ExcelImport = window.ExcelImport || {
       return;
     }
     if (typeof setOfficialDatasetLastMedicalInstitutionNumber === 'function') {
-      setOfficialDatasetLastMedicalInstitutionNumber(medicalId);
+      if (this.officialDatasetMode !== 'initial') setOfficialDatasetLastMedicalInstitutionNumber(medicalId);
     }
     const compareResult = this.previewFacilityImport(filtered);
     if (!compareResult.ledgerRows.length) {
@@ -1623,7 +1666,7 @@ window.ExcelImport = window.ExcelImport || {
     }
     this.lastOfficialCompareResult = compareResult;
     this.setOfficialDatasetStatus('自院の施設基準候補を確認しました。', 'success');
-    this.setOfficialMedicalIdHelp(`医療機関コード ${medicalId} で確認しました。必要に応じて別のコードでも確認できます。`);
+    this.setOfficialMedicalIdHelp(this.officialDatasetMode === 'initial' ? '検索結果を確認し、問題なければ取り込んでください。' : `医療機関コード ${medicalId} で確認しました。必要に応じて別のコードでも確認できます。`);
     this.renderOfficialDatasetCompareResult(compareResult, medicalId);
   },
   convertOfficialRecordsToLedgerPreview(records) {
@@ -1762,6 +1805,10 @@ window.ExcelImport = window.ExcelImport || {
   renderOfficialDatasetCompareResult(compareResult, medicalId) {
     const result = document.getElementById('official-dataset-result');
     if (!result) return;
+    if (this.officialDatasetMode === 'initial') {
+      this.renderSimpleFacilityImportResult(compareResult, medicalId);
+      return;
+    }
     const renderCompareRow = item => {
       const compareClass = item.compareStatus === 'existing'
         ? 'exact'
@@ -1853,6 +1900,37 @@ window.ExcelImport = window.ExcelImport || {
         <button class="btn btn-primary" onclick="applyOfficialDatasetNewCandidates()" ${compareResult.newCandidates.length ? '' : 'disabled'}>この内容を取り込む</button>
         <button class="btn btn-ghost" onclick="closeOfficialDatasetModal()">キャンセル</button>
         <span>${compareResult.newCandidates.length ? '新規候補のみ追加します。既存項目・要確認・公式データでは見つからない項目は自動変更しません。' : '追加できる新規候補はありません。'}</span>
+      </div>
+    `;
+  },
+  renderSimpleFacilityImportResult(compareResult, medicalId) {
+    const result = document.getElementById('official-dataset-result');
+    if (!result) return;
+    const rows = compareResult.ledgerRows.map(item => `
+      <tr>
+        <td>${this.escapeHtml(item.name)}</td>
+        <td>${this.escapeHtml(item.abbr)}</td>
+        <td>${this.escapeHtml(item.number)}</td>
+        <td>${this.escapeHtml(item.date)}</td>
+      </tr>
+    `).join('');
+    result.innerHTML = `
+      <div class="excel-search-summary">
+        <div class="excel-search-card"><div class="excel-search-label">医療機関名</div><div class="excel-search-value">${this.escapeHtml(compareResult.clinicName)}</div></div>
+        <div class="excel-search-card"><div class="excel-search-label">医療機関コード</div><div class="excel-search-value">${this.escapeHtml(medicalId)}</div></div>
+        <div class="excel-search-card"><div class="excel-search-label">届出済み施設基準</div><div class="excel-search-value">${compareResult.ledgerRows.length}件</div></div>
+      </div>
+      <div class="excel-search-result-table-wrap official-compare-table-wrap">
+        <table class="excel-import-table excel-ledger-table official-compare-table">
+          <thead><tr><th>施設基準名</th><th>略称</th><th>受理番号</th><th>算定開始</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="dataset-compare-note">既存の手入力メモやローカル管理情報は上書きしません。台帳へ追加できる新規候補のみ取り込みます。</div>
+      <div class="excel-search-placeholder">
+        <button class="btn btn-primary" onclick="applyOfficialDatasetNewCandidates()" ${compareResult.newCandidates.length ? '' : 'disabled'}>この内容を取り込む</button>
+        <button class="btn btn-ghost" onclick="closeOfficialDatasetModal()">キャンセル</button>
+        <span>${compareResult.newCandidates.length ? `新規候補 ${compareResult.newCandidates.length}件を追加します。` : '追加できる新規候補はありません。'}</span>
       </div>
     `;
   },
@@ -1953,7 +2031,9 @@ window.ExcelImport = window.ExcelImport || {
     if (window.location && window.location.protocol === 'file:') {
       this.setOfficialDatasetStatus('この画面は公開版で利用してください。', 'error');
       this.setOfficialDatasetError('このローカル表示では最新データの自動確認は使えません。公開版で利用するか、「管理者・トラブル対応用」から手動で更新データを読み込んでください。');
-      this.applyResolvedMedicalInstitutionNumber(this.resolveSavedMedicalInstitutionNumber());
+      if (this.officialDatasetMode !== 'initial') {
+        this.applyResolvedMedicalInstitutionNumber(this.resolveSavedMedicalInstitutionNumber());
+      }
       return;
     }
     try {
@@ -1992,8 +2072,12 @@ window.ExcelImport = window.ExcelImport || {
           this.setOfficialDatasetResultPlaceholder('最新データを確認しました。医療機関コードを入力すると自院の施設基準候補を表示します。');
         }
       } else {
-        this.applyResolvedMedicalInstitutionNumber(this.resolveSavedMedicalInstitutionNumber());
-        this.setOfficialDatasetResultPlaceholder('最新データを確認しました。医療機関コードを入力すると自院の施設基準候補を表示します。');
+        if (this.officialDatasetMode !== 'initial') {
+          this.applyResolvedMedicalInstitutionNumber(this.resolveSavedMedicalInstitutionNumber());
+          this.setOfficialDatasetResultPlaceholder('最新データを確認しました。医療機関コードを入力すると自院の施設基準候補を表示します。');
+        } else {
+          this.setOfficialDatasetResultPlaceholder('医療機関コードを入力して検索してください。');
+        }
       }
     } catch (err) {
       this.setOfficialDatasetStatus('最新データの確認に失敗しました。', 'error');
