@@ -74,16 +74,37 @@ function shouldRequireReview(entry){
   }
   return {requiresReview:reasons.length>0,reasons};
 }
+function isBaseUpStandard(entry){
+  const text=[
+    entry?.name,
+    entry?.abbr,
+    entry?.shortName,
+    entry?.officialName,
+    entry?.category,
+    entry?.id
+  ].map(v=>String(v||'')).join(' ');
+  return /ベースアップ評価料|歯外在ベ|外在ベ|base.?up/i.test(text);
+}
+function getBaseUpAlertReason(){
+  return {
+    type:'baseup',
+    badge:'報告・届出確認',
+    message:'ベースアップ評価料は、継続算定中であっても年度ごとの報告書提出や、改定に伴う届出・区分確認が必要となる場合があります。'
+  };
+}
 function getLedgerDisplayStatus(entry){
   if(entry.status==='red')return 'red';
+  if(isBaseUpStandard(entry))return 'yellow';
   return shouldRequireReview(entry).requiresReview?'yellow':'green';
 }
 function renderReviewBadges(entry){
-  const assessment=shouldRequireReview(entry);
-  if(!assessment.reasons.length)return '';
-  return `<div class="ledger-review-badges">${assessment.reasons.map(r=>`<span class="badge by">${r.badge}</span>`).join('')}</div>`;
+  const reasons=[...shouldRequireReview(entry).reasons];
+  if(isBaseUpStandard(entry))reasons.unshift(getBaseUpAlertReason());
+  if(!reasons.length)return '';
+  return `<div class="ledger-review-badges">${reasons.map(r=>`<span class="badge by">${r.badge}</span>`).join('')}</div>`;
 }
 function renderLedgerStatus(entry){
+  if(isBaseUpStandard(entry))return '<span class="badge by"><span class="dot dy"></span>要対応</span>';
   const displayStatus=getLedgerDisplayStatus(entry);
   return SB[displayStatus]||SB.green;
 }
@@ -93,7 +114,12 @@ function render(){
   document.getElementById('s-ok').textContent=entries.filter(e=>getLedgerDisplayStatus(e)==='green').length;
   document.getElementById('s-check').textContent=entries.filter(e=>getLedgerDisplayStatus(e)==='yellow').length;
   document.getElementById('s-alert').textContent=entries.filter(e=>getLedgerDisplayStatus(e)==='red').length;
-  document.getElementById('abanner').style.display=entries.some(e=>e.status==='red'||e.kaitei==='reapply')?'flex':'none';
+  const baseUpCount=entries.filter(isBaseUpStandard).length;
+  const abanner=document.getElementById('abanner');
+  abanner.style.display=entries.some(e=>e.status==='red'||e.kaitei==='reapply'||isBaseUpStandard(e))?'flex':'none';
+  abanner.innerHTML=baseUpCount
+    ? `⚠️ <span><strong>ベースアップ評価料</strong>：昨年度分報告書・今年度届出の確認が必要です。<a href="#" onclick="nav('baseup');return false">確認する →</a></span>`
+    : `⚠️ <span><strong>令和8年度改定対応中</strong>：再届出・経過措置の期限を確認してください。<a href="#" onclick="openAiModal();return false">詳細を確認 →</a></span>`;
   const tb=document.getElementById('tbody');
   tb.innerHTML='';
   document.getElementById('empty-state').style.display=f.length?'none':'block';
@@ -227,6 +253,19 @@ function openDP(id){
   }
 
   const reviewAssessment=shouldRequireReview(e);
+  const baseUpBlock=isBaseUpStandard(e)?`
+    <div class="ds ledger-review-panel">
+      <div class="dst">ベースアップ評価料の確認</div>
+      <div class="ledger-review-badges" style="margin-bottom:8px"><span class="badge by">報告・届出確認</span><span class="badge by">ベースアップ</span></div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:8px">
+        ベースアップ評価料は、継続算定中であっても年度ごとの報告書提出や、改定に伴う届出・区分確認が必要となる場合があります。「要件充足」として放置せず、昨年度分の報告書と今年度の届出・計画書の要否を確認してください。
+      </div>
+      <ul class="checklist">
+        <li><span class="ci" style="color:var(--yellow)">⚠</span>昨年度から算定していた医院：昨年度分の報告書提出を確認</li>
+        <li><span class="ci" style="color:var(--yellow)">⚠</span>今年度から新規算定・変更する医院：今年度の届出・計画書を確認</li>
+        <li><span class="ci" style="color:var(--yellow)">⚠</span>区分変更が必要な医院：新しい区分での届出要否を確認</li>
+      </ul>
+    </div>`:'';
   const reviewBlock=reviewAssessment.reasons.length?`
     <div class="ds ledger-review-panel">
       <div class="dst">要確認の理由</div>
@@ -242,6 +281,7 @@ function openDP(id){
       <div class="dr2"><span class="dk">算定開始</span><span class="dv">${e.date||'—'}</span></div>
       <div class="dr2"><span class="dk">カテゴリ</span><span class="dv">${CL[e.category]||'—'}</span></div>
     </div>
+    ${baseUpBlock}
     ${reviewBlock}
     ${koushuBlock}
     <div class="ai-box"><div class="ai-box-title">⚡ 令和8年度改定 影響判定</div>
