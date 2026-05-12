@@ -3142,7 +3142,18 @@ function exportCSV(){
    ※ 施設基準は「次の医療機関の番号の直前」にある
    ※ 番号の「前」のブロックを取得する必要がある
 ═══════════════════════════════════════════════ */
-function openImport(){resetImport();document.getElementById('import-overlay').classList.add('open');}
+async function openImport(){
+  if(window.ExcelImport && typeof ExcelImport.openOfficialDatasetModal === 'function'){
+    await ExcelImport.openOfficialDatasetModal({ mode: 'initial' });
+    return;
+  }
+  openManualPdfImport();
+}
+function openManualPdfImport(){
+  resetImport();
+  closeOverlay('official-dataset-overlay');
+  document.getElementById('import-overlay').classList.add('open');
+}
 function resetImport(){
   pdfPages=[];pdfPageItems=[];parsedImport=[];
   window._parsedClinicName='';

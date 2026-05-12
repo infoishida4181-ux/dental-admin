@@ -86,6 +86,7 @@ const LAST_MEDICAL_ID_KEY='last_medical_institution_number_v1';
 const OFFICIAL_LAST_MEDICAL_ID_KEY='official_dataset_last_medical_id_v1';
 const OFFICIAL_DATASET_KEY='official_dataset_cache_v1';
 const OFFICIAL_MANIFEST_META_KEY='official_dataset_manifest_meta_v1';
+const FACILITY_STANDARD_JSON_URL='./assets/data/manifest.json';
 let clinicProfile=loadStoredJson(CLINIC_PROFILE_KEY,{medicalInstitutionNumber:''});
 let officialDataset=loadStoredJson(OFFICIAL_DATASET_KEY,null);
 let officialManifestMeta=loadStoredJson(OFFICIAL_MANIFEST_META_KEY,null);
@@ -196,7 +197,7 @@ function loadStoredJson(key,fallback){
 }
 function normalizeStoredMedicalInstitutionNumber(value){
   if(value==null) return '';
-  const digits=String(value).trim().replace(/\.0+$/,'').replace(/[^\d]/g,'');
+  const digits=String(value).trim().normalize('NFKC').replace(/\.0+$/,'').replace(/[^\d]/g,'');
   if(!digits) return '';
   return digits.padStart(7,'0');
 }

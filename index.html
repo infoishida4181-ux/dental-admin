@@ -58,10 +58,10 @@
     <div class="nav-item" style="opacity:.4;cursor:default"><span class="ni">🏥</span>保健所届出</div>
   </div>
   <div class="nav-sec" id="nav-pdf-btn">
-    <button class="pdf-import-btn" onclick="openImport()"><span style="font-size:18px;line-height:1">📥</span><span>施設基準取込</span></button>
+    <button class="pdf-import-btn" onclick="openImport()"><span style="font-size:18px;line-height:1">📥</span><span>コードで取込</span></button>
   </div>
   <div class="sidebar-footer">
-    <button class="pdf-import-btn" onclick="openImport()">📥 届出済み施設基準を取込む</button>
+    <button class="pdf-import-btn" onclick="openImport()">📥 医療機関コードで施設基準を取込む</button>
   </div>
 </div>
 
@@ -115,7 +115,7 @@
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px">
           <button class="btn btn-primary" onclick="resetToDefault()" style="font-size:12px">🔄 初期データを読み込む</button>
           <button class="btn btn-ghost" onclick="openFacilityUpdateModal()" style="font-size:12px">施設基準の更新</button>
-          <button class="btn btn-ghost" onclick="openImport()" style="font-size:12px">📥 届出済み施設基準を取込む</button>
+          <button class="btn btn-ghost" onclick="openImport()" style="font-size:12px">📥 医療機関コードで取込む</button>
           <button class="btn btn-ghost" onclick="openAddModal()" style="font-size:12px">＋ 手動で追加</button>
         </div>
       </div>
@@ -574,8 +574,8 @@
 <!-- OFFICIAL DATASET MODAL -->
 <div class="overlay" id="official-dataset-overlay">
   <div class="modal modal-lg excel-import-modal">
-    <div class="mt">施設基準の更新</div>
-    <div class="ms">最新の公式データをもとに、自院の届出済み施設基準を確認します。現在の台帳は自動では上書きされません。</div>
+    <div class="mt" id="official-dataset-title">施設基準の更新</div>
+    <div class="ms" id="official-dataset-subtitle">管理者が更新した最新データをもとに、自院の届出済み施設基準を確認します。現在の台帳は自動では上書きされません。</div>
     <div class="form-note" id="official-dataset-status">最新データを確認する準備ができています。</div>
     <div class="form-error" id="official-dataset-error"></div>
     <div class="excel-import-toolbar">
@@ -589,25 +589,27 @@
     <details class="official-update-details">
       <summary>管理者・トラブル対応用</summary>
       <div class="official-update-details-body">
-        <div class="form-note">通常は使いません。公開版で自動確認できない場合のみ、管理者が用意した更新データを手動で読み込みます。</div>
+        <div class="form-note">通常は使いません。公開版で自動確認できない場合のみ、管理者が用意した更新データを手動で読み込みます。PDF取り込みはトラブル時の予備方法です。</div>
         <div class="excel-import-toolbar official-update-manual-tools">
           <label class="btn btn-secondary excel-import-picker">
             <span>更新データファイルを選択</span>
             <input type="file" id="official-dataset-file" class="excel-import-native-input" accept=".json,application/json" onchange="handleOfficialDatasetFileSelect(event)">
           </label>
+          <button class="btn btn-ghost" type="button" onclick="openManualPdfImport()">PDF手動取り込みを開く</button>
         </div>
       </div>
     </details>
     <div class="excel-import-panel" style="margin-bottom:14px">
-      <div class="excel-import-section-title">自院の施設基準候補</div>
-      <div class="form-note">保存済みの医療機関コードがある場合は自動で使います。見つからない場合のみ、下で入力してください。</div>
+      <div class="excel-import-section-title" id="official-dataset-candidate-title">自院の施設基準候補</div>
+      <div class="form-note">標準の取り込み元はGitHub上の管理者更新データです。保存済みの医療機関コードがある場合は自動で使います。見つからない場合のみ、下で入力してください。</div>
+      <div class="form-note">本データは、管理者が公式資料をもとに作成・更新した補助データです。届出要否や算定可否の最終判断は、必ず厚生労働省・地方厚生局等の公式情報をご確認ください。</div>
       <div class="form-note" id="official-dataset-medical-id-help">医療機関コードを確認中です。</div>
     </div>
     <div class="excel-import-panel" style="margin-bottom:14px">
       <div class="excel-search-toolbar">
         <div class="fr" style="margin:0;flex:1;min-width:220px">
           <div class="fl">医療機関コード</div>
-          <input type="text" class="fi" id="official-dataset-medical-id" placeholder="例：0117093" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onkeydown="if(event.key==='Enter')searchOfficialDatasetMedicalInstitution()">
+          <input type="text" class="fi" id="official-dataset-medical-id" placeholder="例：3441680" inputmode="numeric" onkeydown="if(event.key==='Enter')searchOfficialDatasetMedicalInstitution()">
         </div>
         <button class="btn btn-primary" onclick="searchOfficialDatasetMedicalInstitution()">自院の施設基準を確認</button>
       </div>
