@@ -57,10 +57,11 @@ function shouldRequireReview(entry){
   const reasons=[];
   const master=getFacilityMasterForEntry(entry);
   const abolishedAbbrs=new Set(['咬合圧','口細菌']);
+  const reportEndedAbbrs=new Set(['歯初診','外感染２']);
   if(abolishedAbbrs.has(entry.abbr)||entry.kaitei==='expire'||master?.facilityStandardAbolished){
     reasons.push({type:'abolished',badge:'廃止・再編',message:'令和8年度改定で施設基準として廃止・再編されています。算定項目が残る場合は算定要件を確認してください。'});
   }
-  if(['reapply','grace'].includes(entry.kaitei)||entry.requiresResubmission||entry.transitionDeadline){
+  if(entry.kaitei==='reapply'||(entry.kaitei==='grace'&&!reportEndedAbbrs.has(entry.abbr))||entry.requiresResubmission||entry.transitionDeadline){
     const badge=entry.kaitei==='grace'?'経過措置':entry.requiresResubmission||entry.kaitei==='reapply'?'再届出注意':'期限あり';
     reasons.push({type:'transition',badge,message:'経過措置・再届出・期限付きの確認が必要です。'});
   }
@@ -92,10 +93,78 @@ function getBaseUpAlertReason(){
     message:'ベースアップ評価料は、継続算定中であっても年度ごとの報告書提出や、改定に伴う届出・区分確認が必要となる場合があります。'
   };
 }
+function getRevisionImpact(entry){
+  const master=getFacilityMasterForEntry(entry);
+  if(isBaseUpStandard(entry)){
+    return {
+      key:'baseup',
+      badge:'<span class="badge by">ベースアップ要対応</span>',
+      label:'ベースアップ要対応',
+      className:'v-warn',
+      message:'ベースアップ評価料は、昨年度分の報告書提出、今年度の届出・計画書、区分確認が必要となる場合があります。昨年度から算定していた医院と、今年度から新規算定・変更する医院で確認すべき書類が異なります。'
+    };
+  }
+  if(entry.kaitei==='expire'||master?.facilityStandardAbolished||['咬合圧','口細菌'].includes(entry.abbr)){
+    return {
+      key:'abolished',
+      badge:'<span class="badge bpu">廃止・再編</span>',
+      label:'廃止・再編',
+      className:'v-warn',
+      message:'令和8年度改定により施設基準としては廃止・再編されています。算定項目が残る場合があるため、算定可否や届出要否は公式情報で確認してください。'
+    };
+  }
+  if(['歯初診','外感染２'].includes(entry.abbr)){
+    return {
+      key:'report-ended',
+      badge:'<span class="badge bgr">定例報告廃止</span>',
+      label:'定例報告廃止',
+      className:'v-ok',
+      message:'令和8年度改定により、従来必要だった定例報告は不要となりました。必要に応じて自己点検として管理してください。'
+    };
+  }
+  if(entry.kaitei==='reapply'||entry.requiresResubmission){
+    return {
+      key:'reapply',
+      badge:'<span class="badge br">再届出注意</span>',
+      label:'再届出注意',
+      className:'v-ng',
+      message:'令和8年度改定に伴い、再届出や様式変更の確認が必要です。期限と提出方法を確認してください。'
+    };
+  }
+  if(entry.kaitei==='grace'||entry.transitionDeadline){
+    return {
+      key:'grace',
+      badge:'<span class="badge bb">経過措置</span>',
+      label:'経過措置',
+      className:'v-warn',
+      message:'経過措置・期限付きの項目です。終了日や継続要件を確認してください。'
+    };
+  }
+  if(TEIREI_ROW[entry.abbr]){
+    return {
+      key:'report',
+      badge:'<span class="badge by">報告対象</span>',
+      label:'定例報告あり',
+      className:'v-warn',
+      message:'この施設基準は定例報告または報告書提出の対象です。提出期限・様式を確認してください。'
+    };
+  }
+  return {
+    key:'none',
+    badge:'<span class="badge bgr">変更なし</span>',
+    label:'変更なし',
+    className:'v-ok',
+    message:'令和8年度改定で、現時点で特別な変更情報はありません。'
+  };
+}
 function getLedgerDisplayStatus(entry){
   if(entry.status==='red')return 'red';
   if(isBaseUpStandard(entry))return 'yellow';
   return shouldRequireReview(entry).requiresReview?'yellow':'green';
+}
+function getLedgerDisplayStatusLabel(entry){
+  if(isBaseUpStandard(entry))return '要対応';
+  return {green:'要件充足',yellow:'要確認',red:'要対応'}[getLedgerDisplayStatus(entry)]||'要件充足';
 }
 function renderReviewBadges(entry){
   const reasons=[...shouldRequireReview(entry).reasons];
@@ -132,7 +201,7 @@ function render(){
       <td><span class="mono">${e.date?e.date.replace(/-/g,'/'):'—'}</span></td>
       <td><span class="badge bgr">${CL[e.category]||e.category}</span></td>
       <td>${renderLedgerStatus(e)}${renderReviewBadges(e)}</td>
-      <td>${KB[e.kaitei]||KB.none}</td>
+      <td>${getRevisionImpact(e).badge}</td>
       <td>${TEIREI_ROW[e.abbr]
         ? '<span class="badge by">'+TEIREI_ROW[e.abbr]+'</span>'
         : '<span class="badge bgr" style="color:var(--green)">自己点検のみ</span>'
@@ -156,9 +225,10 @@ function openDP(id){
   const e=entries.find(x=>x.id===id);if(!e)return;
   document.getElementById('dp-title').textContent=e.abbr||e.name;
 
-  const kl={none:'変更なし',reapply:'再届出必要',check:'要件確認',grace:'経過措置中',expire:'廃止・統合'}[e.kaitei];
-  const vCls=e.kaitei==='reapply'?'v-ng':e.kaitei==='check'||e.kaitei==='grace'?'v-warn':'v-ok';
-  const vTxt=e.kaitei==='reapply'?'🔴 再届出が必要です':e.kaitei==='check'?'🟡 要件の充足を確認してください':e.kaitei==='grace'?'🔵 経過措置中：期限を確認してください':'🟢 対応不要（現状維持）';
+  const revisionImpact=getRevisionImpact(e);
+  const kl=revisionImpact.label;
+  const vCls=revisionImpact.className;
+  const vTxt=revisionImpact.message;
   const chks=(CHK[e.abbr]||[['ok','施設基準要件を自己点検（8月1日時点）'],['ok','関係書類の保管確認'],['warn','改定通知で変更点を確認']]);
   const cl=chks.map(([t,txt])=>`<li><span class="ci" style="color:${t==='ok'?'var(--green)':t==='warn'?'var(--yellow)':'var(--red)'}">${t==='ok'?'✓':t==='warn'?'⚠':'✕'}</span>${txt}</li>`).join('');
 
@@ -442,12 +512,14 @@ function nav(v,el){
   if(v==='admin')renderAdminSecurityStatus();
 }
 function renderKaitei(){
-  const items=entries.filter(e=>e.kaitei!=='none');
+  const items=entries
+    .map(e=>({entry:e,impact:getRevisionImpact(e)}))
+    .filter(item=>item.impact.key!=='none');
   document.getElementById('kaitei-body').innerHTML=items.length===0
     ?'<div class="empty"><div class="ei">✅</div><p>令和8年度改定による対応が必要な施設基準はありません。<br><small style="color:var(--text3)">※ 初めてご利用の場合は「⚡ 改定影響を一括再判定」ボタンで自動判定してください。</small></p></div>'
-    :items.map(e=>`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;cursor:pointer;box-shadow:var(--shadow)" onclick="nav('daichou');openDP(${e.id})">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">${KB[e.kaitei]||''}<strong style="font-size:13px">${e.name}</strong></div>
-      <div style="font-size:12px;color:var(--text2)">${e.memo||'改定通知を確認し、対応要否を判断してください。'}</div>
+    :items.map(({entry:e,impact})=>`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;cursor:pointer;box-shadow:var(--shadow)" onclick="nav('daichou');openDP(${e.id})">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">${impact.badge}<strong style="font-size:13px">${e.name}</strong></div>
+      <div style="font-size:12px;color:var(--text2)">${impact.message}</div>
     </div>`).join('');
 }
 
@@ -455,14 +527,11 @@ function renderKaitei(){
 const KAITEI_AUTO_MAP = {
   '歯外在ベⅠ':  { kaitei:'reapply', status:'red',    memo:'令和8年改定で施設基準届出が必要（5月7日受付開始・5月31日送付期限（6月1日必着））。賃金改善計画書は算定開始前月末までに専用メールアドレスへ添付送付（6月算定開始なら5月末が期限）。8月報告は継続施設＝前年分実績報告、新規施設＝中間報告。' },
   '歯外在ベⅡ':  { kaitei:'reapply', status:'red',    memo:'令和8年改定で施設基準届出が必要（5月7日受付開始・5月31日送付期限（6月1日必着））。賃金改善計画書は算定開始前月末までに専用メールアドレスへ添付送付（6月算定開始なら5月末が期限）。8月報告は継続施設＝前年分実績報告、新規施設＝中間報告。' },
-  '口管強':      { kaitei:'check',   status:'yellow', memo:'口腔機能実地指導料（令和8年6月新設）との関係要確認。要件への影響は厚生局告示で確認のこと。' },
-  '歯ＣＡＤ':   { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で全大臼歯に拡大・材料区分変更。様式変更の有無を厚生局に確認のこと。' },
+  '歯外在ベⅠ注':{ kaitei:'reapply', status:'red',    memo:'令和8年改定でベースアップ評価料の報告書・届出・区分確認が必要となる場合があります。昨年度分報告書と今年度の届出要否を確認してください。' },
+  '歯外在ベⅡ注':{ kaitei:'reapply', status:'red',    memo:'令和8年改定でベースアップ評価料の報告書・届出・区分確認が必要となる場合があります。昨年度分報告書と今年度の届出要否を確認してください。' },
   '医療ＤＸ':   { kaitei:'expire',  status:'red',    memo:'令和8年6月改定で廃止・再編。後継は「電子的歯科診療情報連携体制整備加算」（新設）。既届出施設は厚生局の案内に従い対応要確認。' },
-  '咀嚼能力':   { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準が廃止→算定要件化の可能性あり。届出不要になる場合は辞退届不要。厚生局告示を要確認。' },
   '咬合圧':     { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準が廃止→算定要件化の可能性あり。届出不要になる場合は辞退届不要。厚生局告示を要確認。' },
-  '外安全１':   { kaitei:'check',   status:'yellow', memo:'令和8年改定で様式変更あり。要件充足を再確認のこと。' },
-  '外感染１':   { kaitei:'check',   status:'yellow', memo:'令和8年改定で要件変更あり。院内感染管理者配置等を再確認のこと。' },
-  '歯初診':     { kaitei:'grace',   status:'yellow', memo:'令和8年改定で様式27の定例報告が廃止。施設基準自体は継続。' },
+  '歯初診':     { kaitei:'none',    status:'green',  memo:'令和8年改定で様式27の定例報告が廃止。施設基準自体は継続し、必要に応じて自己点検として管理します。' },
   '口細菌':     { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準の届出が不要になりました。廃止届は不要。装置があれば引き続き算定可能です。' },
   // kaiteiマップにないものは 'none' / 'green' のまま
 };
@@ -3291,7 +3360,7 @@ function renderDeadline(){
 /* ═══ CSV ═══ */
 function exportCSV(){
   const h=['施設基準名','略称','受理番号','算定開始','カテゴリ','状態','改定影響','定例報告','メモ'];
-  const rows=entries.map(e=>[e.name,e.abbr,e.number,e.date,CL[e.category],{green:'要件充足',yellow:'要確認',red:'要対応'}[e.status],{none:'変更なし',reapply:'再届出必要',check:'要件確認',grace:'経過措置中',expire:'廃止'}[e.kaitei],TEIREI_ROW[e.abbr]||'自己点検のみ',e.memo]);
+  const rows=entries.map(e=>[e.name,e.abbr,e.number,e.date,CL[e.category],getLedgerDisplayStatusLabel(e),getRevisionImpact(e).label,TEIREI_ROW[e.abbr]||'自己点検のみ',e.memo]);
   const csv=[h,...rows].map(r=>r.map(v=>`"${v||''}"`).join(',')).join('\n');
   const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'})),download:`施設基準台帳_${new Date().toISOString().slice(0,10)}.csv`});
   a.click();
@@ -3741,20 +3810,13 @@ function parseKijunBlock(block){
     const needsReport=['在支歯','歯外在ベⅠ','歯外在ベⅡ'];
     // ── 令和8年6月改定 自動影響判定マップ ──────────────────────────
     const KAITEI_DEFAULT = {
-      // 🔴 再届出必要
       '歯外在ベⅠ':  { kaitei:'reapply', status:'red',    memo:'令和8年改定で施設基準届出が必要（5月7日受付開始・5月31日送付期限（6月1日必着））。賃金改善計画書は算定開始前月末までに専用メールアドレスへ添付送付（6月算定開始なら5月末が期限）。8月報告は継続施設＝前年分実績報告、新規施設＝中間報告。' },
       '歯外在ベⅡ':  { kaitei:'reapply', status:'red',    memo:'令和8年改定で施設基準届出が必要（5月7日受付開始・5月31日送付期限（6月1日必着））。賃金改善計画書は算定開始前月末までに専用メールアドレスへ添付送付（6月算定開始なら5月末が期限）。8月報告は継続施設＝前年分実績報告、新規施設＝中間報告。' },
-      // 🟡 要件確認必要
-      '口管強':      { kaitei:'check',   status:'yellow', memo:'口腔機能実地指導料（令和8年6月新設）との関係要確認。要件への影響は厚生局告示で確認のこと。' },
-      '歯ＣＡＤ':   { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で全大臼歯に拡大・材料区分変更。様式変更の有無を厚生局に確認のこと。' },
+      '歯外在ベⅠ注':{ kaitei:'reapply', status:'red',    memo:'令和8年改定でベースアップ評価料の報告書・届出・区分確認が必要となる場合があります。昨年度分報告書と今年度の届出要否を確認してください。' },
+      '歯外在ベⅡ注':{ kaitei:'reapply', status:'red',    memo:'令和8年改定でベースアップ評価料の報告書・届出・区分確認が必要となる場合があります。昨年度分報告書と今年度の届出要否を確認してください。' },
       '医療ＤＸ':   { kaitei:'expire',  status:'red',    memo:'令和8年6月改定で廃止・再編。後継は「電子的歯科診療情報連携体制整備加算」（新設）。既届出施設は厚生局の案内に従い対応要確認。' },
-      '咀嚼能力':   { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準が廃止→算定要件化の可能性あり。届出不要になる場合は辞退届不要。厚生局告示を要確認。' },
       '咬合圧':     { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準が廃止→算定要件化の可能性あり。届出不要になる場合は辞退届不要。厚生局告示を要確認。' },
-      '外安全１':   { kaitei:'check',   status:'yellow', memo:'令和8年改定で様式変更あり。要件充足を再確認のこと。' },
-      '外感染１':   { kaitei:'check',   status:'yellow', memo:'令和8年改定で要件変更あり。院内感染管理者配置等を再確認のこと。' },
-      // 🔵 経過措置中
-      '歯初診':     { kaitei:'grace',   status:'yellow', memo:'令和8年改定で様式27の定例報告が廃止。施設基準自体は継続。' },
-      // ❌ 廃止・統合
+      '歯初診':     { kaitei:'none',    status:'green',  memo:'令和8年改定で様式27の定例報告が廃止。施設基準自体は継続し、必要に応じて自己点検として管理します。' },
       '口細菌':     { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準の届出が不要になりました。廃止届は不要。装置があれば引き続き算定可能です。' },
     };
     // ─────────────────────────────────────────────────────────────
@@ -3779,12 +3841,10 @@ function loadDemoData(){
   // デモデータもKAITEI_DEFAULTで自動影響判定
   const KAITEI_DEFAULT_DEMO = {
     '歯外在ベⅠ':  { kaitei:'reapply', status:'red',    memo:'令和8年改定で施設基準届出が必要（5月7日受付開始・5月31日送付期限（6月1日必着））。賃金改善計画書は算定開始前月末までに専用メールアドレスへ添付送付（6月算定開始なら5月末が期限）。8月報告は継続施設＝前年分実績報告、新規施設＝中間報告。' },
-    '口管強':      { kaitei:'check',   status:'yellow', memo:'口腔機能実地指導料（令和8年6月新設）との関係要確認。要件への影響は厚生局告示で確認のこと。' },
-    '歯ＣＡＤ':   { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で全大臼歯に拡大・材料区分変更。様式変更の有無を厚生局に確認のこと。' },
+    '歯外在ベⅡ':  { kaitei:'reapply', status:'red',    memo:'令和8年改定で施設基準届出が必要（5月7日受付開始・5月31日送付期限（6月1日必着））。賃金改善計画書は算定開始前月末までに専用メールアドレスへ添付送付（6月算定開始なら5月末が期限）。8月報告は継続施設＝前年分実績報告、新規施設＝中間報告。' },
     '医療ＤＸ':   { kaitei:'expire',  status:'red',    memo:'令和8年6月改定で廃止・再編。後継は「電子的歯科診療情報連携体制整備加算」（新設）。既届出施設は厚生局の案内に従い対応要確認。' },
-    '外安全１':   { kaitei:'check',   status:'yellow', memo:'令和8年改定で様式変更あり。要件充足を再確認のこと。' },
-    '外感染１':   { kaitei:'check',   status:'yellow', memo:'令和8年改定で要件変更あり。院内感染管理者配置等を再確認のこと。' },
-    '歯初診':     { kaitei:'grace',   status:'yellow', memo:'令和8年改定で様式27の定例報告が廃止。施設基準自体は継続。' },
+    '歯初診':     { kaitei:'none',    status:'green',  memo:'令和8年改定で様式27の定例報告が廃止。施設基準自体は継続し、必要に応じて自己点検として管理します。' },
+    '咬合圧':     { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準が廃止→算定要件化の可能性あり。届出不要になる場合は辞退届不要。厚生局告示を要確認。' },
     '口細菌':     { kaitei:'check',   status:'yellow', memo:'令和8年6月改定で施設基準の届出が不要になりました。廃止届は不要。装置があれば引き続き算定可能です。' },
   };
   const dk = (abbr) => KAITEI_DEFAULT_DEMO[abbr] || { kaitei:'none', status:'green', memo:'' };
