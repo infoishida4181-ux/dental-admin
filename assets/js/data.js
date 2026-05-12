@@ -241,13 +241,35 @@ function saveClinicProfile(profile){
 }
 function saveOfficialDataset(data){
   officialDataset=data||null;
-  if(data)localStorage.setItem(OFFICIAL_DATASET_KEY,JSON.stringify(data));
-  else localStorage.removeItem(OFFICIAL_DATASET_KEY);
+  try{
+    if(!data){
+      localStorage.removeItem(OFFICIAL_DATASET_KEY);
+      return true;
+    }
+    const serialized=JSON.stringify(data);
+    localStorage.removeItem(OFFICIAL_DATASET_KEY);
+    if(serialized.length>2500000){
+      console.warn('公式配布データは大きいため、ブラウザ内キャッシュ保存を省略しました。');
+      return false;
+    }
+    localStorage.setItem(OFFICIAL_DATASET_KEY,serialized);
+    return true;
+  }catch(err){
+    console.warn('公式配布データのキャッシュ保存を省略しました。',err);
+    try{localStorage.removeItem(OFFICIAL_DATASET_KEY);}catch(_err){}
+    return false;
+  }
 }
 function saveOfficialManifestMeta(meta){
   officialManifestMeta=meta||null;
-  if(meta)localStorage.setItem(OFFICIAL_MANIFEST_META_KEY,JSON.stringify(meta));
-  else localStorage.removeItem(OFFICIAL_MANIFEST_META_KEY);
+  try{
+    if(meta)localStorage.setItem(OFFICIAL_MANIFEST_META_KEY,JSON.stringify(meta));
+    else localStorage.removeItem(OFFICIAL_MANIFEST_META_KEY);
+    return true;
+  }catch(err){
+    console.warn('公式配布データの確認情報を保存できませんでした。',err);
+    return false;
+  }
 }
 function resetToDefault(){
   if(!confirm('台帳をデフォルトデータに戻します。\n現在のデータは消えます。よろしいですか？\n\n（先にデータ管理からバックアップを取ってください）')) return;

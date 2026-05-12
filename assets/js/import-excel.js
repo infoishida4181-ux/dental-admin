@@ -2136,7 +2136,12 @@ window.ExcelImport = window.ExcelImport || {
       });
       const dataset = this.normalizeLoadedOfficialDataset(fetchedDataset.json, active, datasetBaseUrl);
       this.validateOfficialDataset(dataset);
-      saveOfficialDataset(dataset);
+      const cacheSaved = saveOfficialDataset(dataset);
+      if (!cacheSaved) {
+        this.setOfficialDatasetDebug({
+          cacheMessage: 'ブラウザ内キャッシュ保存は省略されました。検索と取り込みは継続できます。'
+        });
+      }
       this.lastOfficialCompareResult = null;
       this.renderStoredOfficialDatasetSummary();
       this.renderOfficialDatasetBanner();
@@ -2174,6 +2179,9 @@ window.ExcelImport = window.ExcelImport || {
   buildOfficialDatasetFriendlyError(err) {
     const message = String(err?.message || '');
     const parts = [];
+    if (message.includes('QuotaExceededError') || message.includes('exceeded the quota') || message.includes('official_dataset_cache_v1')) {
+      return '最新データの一時保存に失敗しましたが、検索結果が表示できている場合はそのまま取り込みできます。';
+    }
     if (message.includes('Failed to fetch') || message.includes('NetworkError')) {
       parts.push('最新データを取得できませんでした。インターネット接続を確認するか、時間をおいて再度お試しください。');
     } else if (message.includes('解析に失敗') || message.includes('JSON')) {
@@ -2183,7 +2191,6 @@ window.ExcelImport = window.ExcelImport || {
     } else {
       parts.push('最新データを取得できませんでした。インターネット接続を確認するか、時間をおいて再度お試しください。');
     }
-    if (message) parts.push(message);
     return parts.join('\n');
   },
   async fetchOfficialManifest() {
