@@ -1023,62 +1023,50 @@ let _selectedDocType = null;
 
 // BASEUP_XLSX_B64 removed (copy mode)
 
+const BASEUP_SUPPORT_LINKS = {
+  previousReport: 'https://www.mhlw.go.jp/stf/newpage_53382.html',
+  currentYear: 'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000188411_00053.html',
+  dentalLab: 'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000188411_00053.html'
+};
+
 function renderBaseup() {
   const body = document.getElementById('baseup-body');
   body.innerHTML = [
-    // 説明
-    '<div style="background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:10px;padding:16px 18px;margin-bottom:20px;font-size:13px;color:var(--text2);line-height:1.9">',
-      '📌 関東信越厚生局の公式ページから様式をダウンロードして記入・提出してください。<br>',
-      '<strong style="color:var(--accent)">提出方法：専用メールアドレスへExcelファイルを送付（郵送不可）</strong>',
+    '<div class="baseup-support-intro">',
+      '<strong>公式ページを用途別に分けて確認できます。</strong><br>',
+      '昨年度から算定している医院の報告、今年度の新規・変更・再届出、歯科技工所ベースアップを混同しないよう、目的に合う公式ページを開いてください。',
     '</div>',
 
-    // 様式ダウンロードカード
-    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">📥 公式様式のダウンロード</div>',
+    '<div class="baseup-support-grid">',
+      '<section class="baseup-support-card">',
+        '<div class="baseup-support-kicker">昨年度分の報告書</div>',
+        '<h3>令和7年度分実績報告</h3>',
+        '<p>昨年度からベースアップ評価料を算定していた医院向けです。賃金改善実績報告書や届出後に行う報告の確認に進みます。</p>',
+        `<a class="baseup-support-link" href="${BASEUP_SUPPORT_LINKS.previousReport}" target="_blank" rel="noopener noreferrer">厚生労働省の昨年度ベースアップ関連ページを開く</a>`,
+      '</section>',
 
-    // 6月末締切：様式95
-    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:12px">',
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">',
-        '<span style="background:#059669;color:#fff;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700">算定前月末締切</span>',
-        '<span style="font-size:13px;font-weight:700;color:var(--text)">賃金改善計画書</span>',
-      '</div>',
-      '<div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.8">',
-        '様式95（歯科外来・在宅ベースアップ評価料（Ⅰ））を記入して提出します。<br>',
-        '※ 令和8年度より届出方法が変更になっている場合があります。必ず最新様式をご確認ください。',
-      '</div>',
-      '<a href="https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html" target="_blank" rel="noopener noreferrer"',
-        ' style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:linear-gradient(135deg,#059669,#0d9488);color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700">',
-        '📥 様式95 ダウンロードページ（関東信越厚生局）↗',
-      '</a>',
+      '<section class="baseup-support-card">',
+        '<div class="baseup-support-kicker">今年度のベースアップ評価料</div>',
+        '<h3>新規届出・変更届出・計画書作成</h3>',
+        '<p>今年度から新規算定する医院、変更届出・再届出・計画書作成を行う医院向けです。令和8年度改定に対応した最新の届出情報を確認します。</p>',
+        `<a class="baseup-support-link" href="${BASEUP_SUPPORT_LINKS.currentYear}" target="_blank" rel="noopener noreferrer">厚生労働省の今年度ベースアップ評価料ページを開く</a>`,
+      '</section>',
+
+      '<section class="baseup-support-card">',
+        '<div class="baseup-support-kicker">歯科技工所ベースアップ</div>',
+        '<h3>技工所ベースアップ支援料</h3>',
+        '<p>歯科技工所ベースアップ支援料の届出、様式101から102、提出方法、賃金改善実績報告の確認に進みます。</p>',
+        `<a class="baseup-support-link" href="${BASEUP_SUPPORT_LINKS.dentalLab}" target="_blank" rel="noopener noreferrer">歯科技工所ベースアップに関する厚生労働省ページを開く</a>`,
+      '</section>',
     '</div>',
 
-    // 8月末締切：様式100・別添1
-    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:12px">',
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">',
-        '<span style="background:#d97706;color:#fff;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700">8月末締切</span>',
-        '<span style="font-size:13px;font-weight:700;color:var(--text)">賃金改善実績報告書・中間報告書</span>',
-      '</div>',
-      '<div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.8">',
-        '様式100（表紙）＋別添1（歯科診療所用）を記入して提出します。<br>',
-        '前年度のベースアップ評価料による収入実績と賃金改善の内容を報告します。',
-      '</div>',
-      '<a href="https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html" target="_blank" rel="noopener noreferrer"',
-        ' style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:linear-gradient(135deg,#d97706,#b45309);color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700">',
-        '📥 様式100・別添1 ダウンロードページ（関東信越厚生局）↗',
-      '</a>',
+    '<div class="baseup-support-note">',
+      '<strong>提出前の確認</strong><br>',
+      'リンク先は厚生労働省の公式ページです。地方厚生局ごとの提出先メールアドレスや締切、様式の更新状況は、提出前に必ず公式ページで確認してください。',
     '</div>',
 
-    // 提出先・注意事項
-    '<div style="background:var(--yellow-bg);border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:12px;color:var(--text2);line-height:1.9">',
-      '<strong style="color:var(--yellow)">⚠ 提出上の注意</strong><br>',
-      '・提出先：関東信越厚生局 東京事務所の専用メールアドレス（様式に記載）<br>',
-      '・ファイル名に保険医療機関コードを含めること<br>',
-      '・計画書は算定開始前月末が期限（6月算定開始なら5月末）。期限を過ぎると翌月から算定不可<br>',
-      '・提出後は必ずアプリの「定例報告」タブに提出記録を保存してください',
-    '</div>',
-
-    // 定例報告へのリンク
-    '<button id="baseup-teirei-btn" style="width:100%;padding:12px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">',
-      '📝 提出後は「定例報告」に記録を保存する →',
+    '<button id="baseup-teirei-btn" class="baseup-teirei-button">',
+      '提出後は「定例報告」に記録を保存する',
     '</button>',
   ].join('');
 
@@ -2764,6 +2752,10 @@ function isFacilityStandardAbolished(def){
   return Boolean(def?.facilityStandardAbolished);
 }
 
+function isShinkiNewFacility(def){
+  return Boolean(def?.isNew || def?.revisionStatus?.isNew || (Array.isArray(def?.statusBadges) && def.statusBadges.includes('new')));
+}
+
 function renderShinki(){
   const savedListScrollTop = _shinkiListScrollTop || 0;
   const alreadyHave = new Set(entries.map(e => e.abbr));
@@ -2785,6 +2777,7 @@ function renderShinki(){
       const have = alreadyHave.has(abbr);
       const isSelected = _shinkiSelected === abbr;
       const facilityAbolished = isFacilityStandardAbolished(def);
+      const isNewFacility = isShinkiNewFacility(def);
       html += `
         <div onclick="selectShinki('${abbr}')" style="
           padding:10px 14px;cursor:pointer;border-left:3px solid ${isSelected?'var(--accent)':'transparent'};
@@ -2793,7 +2786,10 @@ function renderShinki(){
           onmouseover="if('${abbr}'!==_shinkiSelected)this.style.background='var(--bg3)'"
           onmouseout="this.style.background='${isSelected?'var(--blue-bg)':have?'var(--green-bg)':'transparent'}'">
           <div>
-            <div style="font-size:12px;font-weight:600;color:var(--text)">${abbr}</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+              <span>${abbr}</span>
+              ${isNewFacility ? '<span class="shinki-new-badge">新</span>' : ''}
+            </div>
             <div style="font-size:10px;color:var(--text3);margin-top:1px">${def.score.split('・')[0]}</div>
           </div>
           ${facilityAbolished
@@ -2959,6 +2955,7 @@ function showShinkiDetail(abbr){
   if(alreadyHave.has('歯医DX1') || alreadyHave.has('歯医DX2')) alreadyHave.add('電子的歯科連携');
   const have = alreadyHave.has(abbr);
   const facilityAbolished = isFacilityStandardAbolished(def);
+  const isNewFacility = isShinkiNewFacility(def);
 
   // 前提条件の充足確認
   const prereqStatus = def.prereq.map(p => ({
@@ -2985,7 +2982,10 @@ function showShinkiDetail(abbr){
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <div>
             <div style="font-size:11px;font-family:var(--mono);color:var(--text2);margin-bottom:4px">${abbr}</div>
-            <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px">${def.name}</div>
+            <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span>${def.name}</span>
+              ${isNewFacility ? '<span class="shinki-new-badge shinki-new-badge-lg">令和8年新設</span>' : ''}
+            </div>
             <div style="font-size:12px;color:var(--text2)">${def.summary}</div>
             <div style="margin-top:8px;font-size:11px;color:var(--accent);font-weight:700">令和8年度改定モードを標準にしています</div>
           </div>

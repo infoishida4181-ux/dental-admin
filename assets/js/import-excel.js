@@ -1424,6 +1424,8 @@ window.ExcelImport = window.ExcelImport || {
   configureOfficialDatasetModal(mode = 'update') {
     const isInitial = mode === 'initial';
     this.officialDatasetMode = isInitial ? 'initial' : 'update';
+    const overlay = document.getElementById('official-dataset-overlay');
+    if (overlay) overlay.classList.toggle('official-dataset-initial', isInitial);
     const title = document.getElementById('official-dataset-title');
     if (title) title.textContent = isInitial ? '施設基準取り込み' : '施設基準の更新';
     const subtitle = document.getElementById('official-dataset-subtitle');
@@ -1926,11 +1928,11 @@ window.ExcelImport = window.ExcelImport || {
           <tbody>${rows}</tbody>
         </table>
       </div>
-      <div class="dataset-compare-note">既存の手入力メモやローカル管理情報は上書きしません。台帳へ追加できる新規候補のみ取り込みます。</div>
+      <div class="dataset-compare-note">この取込は現在の届出台帳を検索結果で置き換えます。既存データがある場合は、実行前に確認画面を表示します。</div>
       <div class="excel-search-placeholder">
-        <button class="btn btn-primary" onclick="applyOfficialDatasetNewCandidates()" ${compareResult.newCandidates.length ? '' : 'disabled'}>この内容を取り込む</button>
+        <button class="btn btn-primary" onclick="applyOfficialDatasetNewCandidates()" ${compareResult.ledgerRows.length ? '' : 'disabled'}>この内容を取り込む</button>
         <button class="btn btn-ghost" onclick="closeOfficialDatasetModal()">キャンセル</button>
-        <span>${compareResult.newCandidates.length ? `新規候補 ${compareResult.newCandidates.length}件を追加します。` : '追加できる新規候補はありません。'}</span>
+        <span>${compareResult.ledgerRows.length ? `届出台帳を ${compareResult.ledgerRows.length}件の施設基準に置き換えます。` : '取り込める施設基準はありません。'}</span>
       </div>
     `;
   },
@@ -1965,6 +1967,9 @@ window.ExcelImport = window.ExcelImport || {
     if (!this.lastOfficialCompareResult) {
       this.setOfficialDatasetError('先に最新データから自院の施設基準候補を確認してください。');
       return;
+    }
+    if (this.officialDatasetMode === 'initial') {
+      return this.replaceLedgerWithOfficialDatasetResult();
     }
     const newCandidates = this.lastOfficialCompareResult.newCandidates || [];
     const existingCount = this.lastOfficialCompareResult.existingMatches.length;
@@ -2023,6 +2028,75 @@ window.ExcelImport = window.ExcelImport || {
     this.searchOfficialDatasetMedicalInstitution();
     this.setOfficialDatasetStatus('確認した内容を台帳へ反映しました。', 'success');
     alert(`✅ 新規候補 ${added.length}件を届出台帳へ追加しました。\n既存項目は自動変更していません。`);
+  },
+  replaceLedgerWithOfficialDatasetResult() {
+    const compareResult = this.lastOfficialCompareResult;
+    const ledgerRows = compareResult?.ledgerRows || [];
+    if (!ledgerRows.length) {
+      this.setOfficialDatasetError('取り込める施設基準がありません。医療機関コードを確認してください。');
+      return;
+    }
+    const medicalId = ledgerRows[0]?.medicalId || this.normalizeMedicalInstitutionCode(document.getElementById('official-dataset-medical-id')?.value || '');
+    const importedClinicName = compareResult.clinicName && compareResult.clinicName !== '要確認'
+      ? compareResult.clinicName
+      : '';
+    const existingCount = Array.isArray(entries) ? entries.length : 0;
+    if (existingCount) {
+      const ok = confirm([
+        'この内容で届出台帳を置き換えます。',
+        '',
+        `現在の届出台帳に登録されている施設基準データ ${existingCount}件は削除されます。`,
+        '検索結果の医療機関の施設基準データに置き換えられます。',
+        '既存のメモやチェック状態など、届出台帳に紐づくローカル情報も失われる可能性があります。',
+        '現在のデータを残したい場合は、先に右上の設定ボタンなどからデータをエクスポートして保存してください。',
+        '',
+        '続行しますか？'
+      ].join('\n'));
+      if (!ok) return;
+    }
+    const importedAt = new Date().toISOString();
+    const replacementEntries = ledgerRows.map((item, idx) => ({
+      id: String(idx + 1),
+      name: item.name === '要確認' ? '要確認' : item.name,
+      abbr: item.abbr === '要確認' ? '' : item.abbr,
+      number: item.number === '要確認' ? '' : item.number,
+      date: item.entryDate || '',
+      category: item.category || 'other',
+      status: 'yellow',
+      kaitei: 'none',
+      nextCheck: '',
+      memo: this.buildImportedEntryMemo(item, item.medicalId, item.clinicName),
+      importMeta: {
+        source: 'official-dataset',
+        datasetId: officialDataset?.datasetId || '',
+        datasetName: officialDataset?.datasetName || '',
+        medicalInstitutionNumber: item.medicalId,
+        medicalId: item.medicalId,
+        clinicName: item.clinicName,
+        importedAt,
+        mode: 'official-dataset-ledger-replace'
+      }
+    }));
+    entries.length = 0;
+    entries.push(...replacementEntries);
+    if (medicalId && typeof setOfficialDatasetLastMedicalInstitutionNumber === 'function') {
+      setOfficialDatasetLastMedicalInstitutionNumber(medicalId);
+    }
+    if (medicalId && typeof saveClinicProfile === 'function') {
+      saveClinicProfile({ medicalInstitutionNumber: medicalId });
+    }
+    if (importedClinicName) {
+      clinicName = importedClinicName;
+      localStorage.setItem('clinic_name', clinicName);
+    }
+    save();
+    render();
+    if (typeof updateClinicPill === 'function') updateClinicPill();
+    this.renderOfficialDatasetBanner();
+    this.setOfficialDatasetStatus('届出台帳を検索結果で置き換えました。', 'success');
+    this.setOfficialDatasetError('');
+    alert(`✅ 届出台帳を ${replacementEntries.length}件の施設基準に置き換えました。`);
+    closeOfficialDatasetModal();
   },
   async loadOfficialDatasetFromManifest(options = {}) {
     const preferredMessage = options.preferredMessage || '最新データを確認しています。';

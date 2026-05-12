@@ -172,7 +172,7 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .ms{font-size:12px;color:var(--text2);margin-bottom:20px}
 .fr{margin-bottom:14px}
 .fl{font-size:11px;color:var(--text2);margin-bottom:5px;font-family:var(--mono);font-weight:500}
-.fi,.fs,.fta{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;transition:border-color .15s}
+.fi,.fs,.fta{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;transition:border-color .15s}
 .fi:focus,.fs:focus,.fta:focus{border-color:var(--accent);background:var(--bg2);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
 .fs option{background:var(--bg2)}
 .fta{resize:vertical;min-height:72px}
@@ -264,6 +264,11 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .excel-import-table tr:last-child td{border-bottom:none}
 .excel-import-rowno{color:var(--text3);font-family:var(--mono);background:#f8fafc;white-space:nowrap}
 .excel-search-toolbar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.official-dataset-initial #official-dataset-help-panel{background:transparent;border:0;padding:0;margin-bottom:10px}
+.official-dataset-initial #official-dataset-help-panel .form-note{background:transparent;border:0;border-radius:0;padding:0;margin:0 0 8px;color:var(--text2)}
+.official-dataset-initial #official-dataset-medical-id{background:#fff;font-size:16px;font-weight:700;letter-spacing:.08em;min-height:44px}
+.official-dataset-initial .excel-search-toolbar .fl{font-size:16px;font-weight:700;color:var(--text);font-family:var(--font);margin-bottom:8px}
+.official-dataset-initial .excel-search-toolbar{align-items:flex-end}
 .excel-search-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px}
 .excel-search-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
 .excel-search-label{font-size:10px;font-family:var(--mono);letter-spacing:.06em;color:var(--text3);margin-bottom:6px}
@@ -338,6 +343,18 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .facility-form-group-title{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px}
 .facility-form-search{font-size:11px;line-height:1.8;color:var(--text2);background:var(--bg);border:1px dashed var(--border);border-radius:7px;padding:10px 12px;margin-top:12px}
 .facility-form-search strong{display:block;color:var(--text);font-size:11px;margin-bottom:2px}
+.baseup-support-intro,.baseup-support-note{font-size:13px;line-height:1.9;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.baseup-support-intro strong,.baseup-support-note strong{color:var(--text)}
+.baseup-support-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:16px}
+.baseup-support-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-height:220px}
+.baseup-support-kicker{font-size:11px;font-weight:700;color:var(--red);letter-spacing:.04em}
+.baseup-support-card h3{font-size:16px;color:var(--text);margin:0;line-height:1.5}
+.baseup-support-card p{font-size:12px;color:var(--text2);line-height:1.8;margin:0;flex:1}
+.baseup-support-link{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:10px 14px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-size:12px;font-weight:700;text-align:center}
+.baseup-support-link:hover{opacity:.9}
+.baseup-teirei-button{width:100%;padding:12px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.shinki-new-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--red-bg);border:1px solid #fecaca;color:var(--red);border-radius:999px;padding:1px 7px;font-size:10px;font-weight:800;line-height:1.4;white-space:nowrap}
+.shinki-new-badge-lg{font-size:11px;padding:4px 10px}
 .admin-form-audit-table th,.admin-form-audit-table td{font-size:11px;vertical-align:top}
 .admin-form-audit-table td:nth-child(2){min-width:220px}
 .admin-audit-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px}
