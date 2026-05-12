@@ -1,11 +1,98 @@
 /* アプリ本体・画面描画・各機能 */
 /* ═══ RENDER ═══ */
+function normalizeReviewKey(value){
+  return String(value||'')
+    .trim()
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g,ch=>String.fromCharCode(ch.charCodeAt(0)-0xFEE0))
+    .replace(/１/g,'1').replace(/２/g,'2').replace(/Ⅰ/g,'I').replace(/Ⅱ/g,'II')
+    .replace(/\s+/g,'')
+    .toLowerCase();
+}
+function getKnownFacilityStandardKeys(){
+  const keys=new Set();
+  if(typeof SHINKI_MASTER!=='undefined'){
+    Object.entries(SHINKI_MASTER).forEach(([abbr,def])=>{
+      keys.add(normalizeReviewKey(abbr));
+      if(def?.name)keys.add(normalizeReviewKey(def.name));
+    });
+  }
+  if(typeof FACILITY_FORM_LINKS_R08!=='undefined'){
+    Object.entries(FACILITY_FORM_LINKS_R08).forEach(([abbr,def])=>{
+      keys.add(normalizeReviewKey(abbr));
+      if(def?.receiptCode)keys.add(normalizeReviewKey(def.receiptCode));
+      if(def?.name)keys.add(normalizeReviewKey(def.name));
+    });
+  }
+  return keys;
+}
+function getFacilityMasterForEntry(entry){
+  if(typeof SHINKI_MASTER==='undefined')return null;
+  const normalizedAbbr=normalizeReviewKey(entry.abbr);
+  const direct=SHINKI_MASTER[entry.abbr]||SHINKI_MASTER[String(entry.abbr||'').replace(/１/g,'1').replace(/２/g,'2')];
+  if(direct)return direct;
+  return Object.entries(SHINKI_MASTER).find(([abbr,def])=>
+    normalizeReviewKey(abbr)===normalizedAbbr||
+    normalizeReviewKey(def?.name)===normalizeReviewKey(entry.name)
+  )?.[1]||null;
+}
+function assessKoushuRequirement(entry){
+  const requirements={
+    '歯初診':{type:'歯初診_院内感染',label:'院内感染防止対策研修'}
+  };
+  const req=requirements[entry.abbr];
+  if(!req)return null;
+  const list=JSON.parse(localStorage.getItem('koushu_list')||'[]');
+  const records=list.filter(r=>r.type===req.type).sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+  const latest=records[0];
+  if(!latest)return {type:'training',badge:'研修未登録',message:`${req.label}の最終受講日・有効期限・担当者を登録してください。`};
+  if(!latest.date)return {type:'training',badge:'受講日未登録',message:`${req.label}の最終受講日が未登録です。`};
+  if(!latest.expire)return {type:'training',badge:'期限未登録',message:`${req.label}の有効期限が未登録です。`};
+  if(!latest.person)return {type:'training',badge:'担当者未登録',message:`${req.label}の担当者が未登録です。`};
+  const days=Math.floor((new Date(latest.expire)-new Date())/86400000);
+  if(days<0)return {type:'training',badge:'期限切れ',message:`${req.label}の有効期限が切れています。`};
+  if(days<=180)return {type:'training',badge:'期限接近',message:`${req.label}の有効期限が近づいています。`};
+  return null;
+}
+function shouldRequireReview(entry){
+  const reasons=[];
+  const master=getFacilityMasterForEntry(entry);
+  const abolishedAbbrs=new Set(['咬合圧','口細菌']);
+  if(abolishedAbbrs.has(entry.abbr)||entry.kaitei==='expire'||master?.facilityStandardAbolished){
+    reasons.push({type:'abolished',badge:'廃止・再編',message:'令和8年度改定で施設基準として廃止・再編されています。算定項目が残る場合は算定要件を確認してください。'});
+  }
+  if(['reapply','grace'].includes(entry.kaitei)||entry.requiresResubmission||entry.transitionDeadline){
+    const badge=entry.kaitei==='grace'?'経過措置':entry.requiresResubmission||entry.kaitei==='reapply'?'再届出注意':'期限あり';
+    reasons.push({type:'transition',badge,message:'経過措置・再届出・期限付きの確認が必要です。'});
+  }
+  const training=assessKoushuRequirement(entry);
+  if(training)reasons.push(training);
+  const known=getKnownFacilityStandardKeys();
+  const knownByMaster=Boolean(master);
+  const knownByForm=known.has(normalizeReviewKey(entry.abbr))||known.has(normalizeReviewKey(entry.name));
+  if(!knownByMaster&&!knownByForm){
+    reasons.push({type:'unmatched',badge:'未照合',message:'最新データと照合できません。名称変更、廃止、再編、表記ゆれの可能性があります。'});
+  }
+  return {requiresReview:reasons.length>0,reasons};
+}
+function getLedgerDisplayStatus(entry){
+  if(entry.status==='red')return 'red';
+  return shouldRequireReview(entry).requiresReview?'yellow':'green';
+}
+function renderReviewBadges(entry){
+  const assessment=shouldRequireReview(entry);
+  if(!assessment.reasons.length)return '';
+  return `<div class="ledger-review-badges">${assessment.reasons.map(r=>`<span class="badge by">${r.badge}</span>`).join('')}</div>`;
+}
+function renderLedgerStatus(entry){
+  const displayStatus=getLedgerDisplayStatus(entry);
+  return SB[displayStatus]||SB.green;
+}
 function render(){
-  const f=entries.filter(e=>(fStat==='all'||e.status===fStat)&&(fCatV==='all'||e.category===fCatV));
+  const f=entries.filter(e=>(fStat==='all'||getLedgerDisplayStatus(e)===fStat)&&(fCatV==='all'||e.category===fCatV));
   document.getElementById('s-total').textContent=entries.length;
-  document.getElementById('s-ok').textContent=entries.filter(e=>e.status==='green').length;
-  document.getElementById('s-check').textContent=entries.filter(e=>e.status==='yellow').length;
-  document.getElementById('s-alert').textContent=entries.filter(e=>e.status==='red').length;
+  document.getElementById('s-ok').textContent=entries.filter(e=>getLedgerDisplayStatus(e)==='green').length;
+  document.getElementById('s-check').textContent=entries.filter(e=>getLedgerDisplayStatus(e)==='yellow').length;
+  document.getElementById('s-alert').textContent=entries.filter(e=>getLedgerDisplayStatus(e)==='red').length;
   document.getElementById('abanner').style.display=entries.some(e=>e.status==='red'||e.kaitei==='reapply')?'flex':'none';
   const tb=document.getElementById('tbody');
   tb.innerHTML='';
@@ -18,7 +105,7 @@ function render(){
       <td><span class="mono">${e.number||'—'}</span></td>
       <td><span class="mono">${e.date?e.date.replace(/-/g,'/'):'—'}</span></td>
       <td><span class="badge bgr">${CL[e.category]||e.category}</span></td>
-      <td>${SB[e.status]||''}</td>
+      <td>${renderLedgerStatus(e)}${renderReviewBadges(e)}</td>
       <td>${KB[e.kaitei]||KB.none}</td>
       <td>${TEIREI_ROW[e.abbr]
         ? '<span class="badge by">'+TEIREI_ROW[e.abbr]+'</span>'
@@ -139,6 +226,14 @@ function openDP(id){
     </div>`;
   }
 
+  const reviewAssessment=shouldRequireReview(e);
+  const reviewBlock=reviewAssessment.reasons.length?`
+    <div class="ds ledger-review-panel">
+      <div class="dst">要確認の理由</div>
+      <div class="ledger-review-badges" style="margin-bottom:8px">${reviewAssessment.reasons.map(r=>`<span class="badge by">${r.badge}</span>`).join('')}</div>
+      <ul class="checklist">${reviewAssessment.reasons.map(r=>`<li><span class="ci" style="color:var(--yellow)">⚠</span>${r.message}</li>`).join('')}</ul>
+    </div>`:'';
+
   document.getElementById('dp-body').innerHTML=`
     <div class="ds"><div class="dst">基本情報</div>
       <div class="dr2"><span class="dk">施設基準名</span><span class="dv" style="font-size:11px;text-align:right;max-width:200px">${e.name}</span></div>
@@ -147,6 +242,7 @@ function openDP(id){
       <div class="dr2"><span class="dk">算定開始</span><span class="dv">${e.date||'—'}</span></div>
       <div class="dr2"><span class="dk">カテゴリ</span><span class="dv">${CL[e.category]||'—'}</span></div>
     </div>
+    ${reviewBlock}
     ${koushuBlock}
     <div class="ai-box"><div class="ai-box-title">⚡ 令和8年度改定 影響判定</div>
       <div style="font-size:12px;margin-bottom:8px;font-weight:600">判定：${kl}</div>
@@ -163,7 +259,7 @@ function openDP(id){
       <div id="kijun-hist-${id}">${renderKijunHist(id)}</div>
     </div>
     <div class="ds"><div class="dst">ステータス</div>
-      <div class="dr2"><span class="dk">現在の状態</span>${SB[e.status]||''}</div>
+      <div class="dr2"><span class="dk">現在の状態</span>${renderLedgerStatus(e)}</div>
       ${e.memo?`<div style="margin-top:8px;padding:10px;background:var(--bg3);border-radius:6px;font-size:11px;color:var(--text2);border:1px solid var(--border)">📝 ${e.memo}</div>`:''}
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
@@ -174,6 +270,19 @@ function openDP(id){
 }
 
 function closeDP(){document.getElementById('dp').classList.remove('open');}
+function initDetailPanelCloseHandlers(){
+  if(window.__detailPanelCloseHandlersReady)return;
+  window.__detailPanelCloseHandlersReady=true;
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape')closeDP();
+  });
+  document.addEventListener('pointerdown',event=>{
+    const panel=document.getElementById('dp');
+    if(!panel||!panel.classList.contains('open'))return;
+    if(panel.contains(event.target))return;
+    closeDP();
+  });
+}
 
 /* ═══ ADD/EDIT ═══ */
 function openAddModal(){
@@ -3861,6 +3970,7 @@ function saveClinicName(){
 ensureAdminStorageInitialized();
 updateClinicPill();
 renderAdminSecurityStatus();
+initDetailPanelCloseHandlers();
 
 // バージョンバッジを表示
 (function(){

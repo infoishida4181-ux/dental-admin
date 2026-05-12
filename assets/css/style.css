@@ -143,7 +143,8 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .dp{position:fixed;right:0;top:52px;width:400px;height:calc(100vh - 52px);background:var(--bg2);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);z-index:150;overflow-y:auto;padding:20px;box-shadow:-4px 0 20px rgba(0,0,0,.08)}
 .dp.open{transform:translateX(0)}
 .dph{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
-.dpclose{width:28px;height:28px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:13px;font-weight:600}
+.dpclose{min-width:72px;height:30px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:12px;font-weight:700;font-family:var(--font)}
+.dpclose:hover{background:var(--red-bg);border-color:#fecaca;color:var(--red)}
 .dpclose:hover{background:var(--bg4);color:var(--text)}
 .ds{margin-bottom:16px}
 .dst{font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;font-weight:600}
@@ -297,6 +298,9 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .dataset-compare-chip.new{background:var(--blue-bg);border-color:#bfdbfe;color:var(--accent)}
 .dataset-compare-chip.removed{background:var(--red-bg);border-color:#fecaca;color:var(--red)}
 .dataset-compare-note{font-size:11px;color:var(--text2);line-height:1.8;margin:8px 0 12px}
+.ledger-review-badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.ledger-review-badges .badge{font-size:9px;padding:2px 6px}
+.ledger-review-panel{border-color:#fde68a;background:#fffdf5}
 .dataset-filter-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 10px}
 .dataset-filter-chip{appearance:none;border:1px solid var(--border);background:var(--bg2);color:var(--text2);border-radius:999px;padding:5px 10px;font-size:11px;line-height:1.4;cursor:pointer}
 .dataset-filter-chip:hover{border-color:var(--border2);color:var(--text)}
@@ -512,7 +516,7 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
   #nav-future{display:none !important}
 
   /* テキスト折り返し */
-  .badge{white-space:normal;font-size:9px}
+.badge{white-space:normal;font-size:9px}
 
   /* テーブル水平スクロール */
   .tw{-webkit-overflow-scrolling:touch}
