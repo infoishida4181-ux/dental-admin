@@ -2079,6 +2079,9 @@ window.ExcelImport = window.ExcelImport || {
     }));
     entries.length = 0;
     entries.push(...replacementEntries);
+    const revisionAutoResult = typeof applyRevisionImpactAutoAnalysisAfterImport === 'function'
+      ? applyRevisionImpactAutoAnalysisAfterImport(entries)
+      : { analyzed: replacementEntries.length, impacted: 0 };
     if (medicalId && typeof setOfficialDatasetLastMedicalInstitutionNumber === 'function') {
       setOfficialDatasetLastMedicalInstitutionNumber(medicalId);
     }
@@ -2093,9 +2096,9 @@ window.ExcelImport = window.ExcelImport || {
     render();
     if (typeof updateClinicPill === 'function') updateClinicPill();
     this.renderOfficialDatasetBanner();
-    this.setOfficialDatasetStatus('届出台帳を検索結果で置き換えました。', 'success');
+    this.setOfficialDatasetStatus('届出台帳を検索結果で置き換え、令和8年度改定の影響分析を反映しました。', 'success');
     this.setOfficialDatasetError('');
-    alert(`✅ 届出台帳を ${replacementEntries.length}件の施設基準に置き換えました。`);
+    alert(`✅ 施設基準を取り込みました。\n令和8年度改定の影響分析も自動で反映しました。\n廃止・再編、定例報告廃止、ベースアップ要対応などは台帳上に表示されます。\n\n取込件数: ${replacementEntries.length}件\n改定影響の表示対象: ${revisionAutoResult.impacted}件`);
     closeOfficialDatasetModal();
   },
   async loadOfficialDatasetFromManifest(options = {}) {

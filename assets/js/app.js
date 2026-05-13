@@ -536,6 +536,28 @@ const KAITEI_AUTO_MAP = {
   // kaiteiマップにないものは 'none' / 'green' のまま
 };
 
+function applyRevisionImpactAutoAnalysisAfterImport(targetEntries=entries){
+  const list=Array.isArray(targetEntries)?targetEntries:[];
+  let impacted=0;
+  list.forEach(e=>{
+    if(!e)return;
+    const kd=KAITEI_AUTO_MAP[e.abbr];
+    if(kd){
+      e.kaitei=kd.kaitei;
+      e.status=kd.status;
+      if(!e.memo||e.memo==='要確認')e.memo=kd.memo;
+    }else{
+      e.kaitei=e.kaitei||'none';
+    }
+    const impact=getRevisionImpact(e);
+    if(impact.key!=='none')impacted++;
+    if(impact.key==='none'&&!shouldRequireReview(e).requiresReview&&!isBaseUpStandard(e)){
+      e.status='green';
+    }
+  });
+  return {analyzed:list.length,impacted};
+}
+
 function applyKaiteiAuto(){
   let changed = 0;
   entries.forEach(e => {
