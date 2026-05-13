@@ -191,6 +191,37 @@
       <strong>この画面は管理者向けです。</strong> 公式データの取込・最新版データ確認・会員配布用データ作成などを行います。通常利用の先生は操作しないでください。
     </div>
 
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">全施設基準 改定分析レビュー</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">会員向けに表示する前に、アプリ内マスタ・台帳・様式リンク・管理者更新データの照合状況を確認します。</div>
+        </div>
+        <button class="btn btn-secondary" onclick="renderAdminMasterReview()">再集計</button>
+      </div>
+      <div id="admin-master-alerts" class="admin-master-alerts">管理者モードを開くと確認結果を表示します。</div>
+      <div class="admin-master-filters">
+        <input class="fi" id="admin-master-search" placeholder="施設基準名・略称・説明文で検索" oninput="renderAdminMasterReview()">
+        <select class="fs" id="admin-master-filter" onchange="renderAdminMasterReview()">
+          <option value="all">全件</option>
+          <option value="unmatched">未照合のみ</option>
+          <option value="investigate">要調査のみ</option>
+          <option value="abolished">廃止・再編のみ</option>
+          <option value="baseup">ベースアップ関連のみ</option>
+          <option value="report">定例報告関連のみ</option>
+          <option value="new">新設のみ</option>
+          <option value="member-alert">会員画面で要確認・要対応</option>
+        </select>
+        <select class="fs" id="admin-master-category-filter" onchange="renderAdminMasterReview()">
+          <option value="all">カテゴリすべて</option>
+          <option value="basic">基本診療料</option>
+          <option value="special">特掲診療料</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+      <div id="admin-master-review" class="excel-import-empty">管理者モードを開くと一覧を表示します。</div>
+    </div>
+
     <div style="background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:10px;padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)">
       <div style="font-size:13px;color:var(--text2);line-height:1.9">
         <div>この画面は、歯科医師会側・保険委員会側が施設基準データを更新するための準備画面です。</div>

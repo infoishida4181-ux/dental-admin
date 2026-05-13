@@ -263,6 +263,264 @@ function renderFacilityFormLinkAudit(){
   </table></div>`;
 }
 
+function adminEscapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+function adminCategoryLabel(category){
+  if(typeof CL !== 'undefined' && CL[category]) return CL[category];
+  return {basic:'基本診療料',special:'特掲診療料',other:'その他'}[category] || category || '未分類';
+}
+
+function adminNormalizeMasterKey(value){
+  if(typeof normalizeReviewKey === 'function') return normalizeReviewKey(value);
+  return String(value||'').trim().replace(/\s+/g,'').toLowerCase();
+}
+
+function createAdminMasterEntryMap(){
+  const map=new Map();
+  const upsert=(abbr,data={})=>{
+    const key=adminNormalizeMasterKey(abbr || data.name);
+    if(!key)return null;
+    const row=map.get(key)||{
+      abbr:abbr||'',
+      name:data.name||abbr||'',
+      category:data.category||'other',
+      sources:new Set(),
+      sourceUrls:new Set(),
+      notes:[],
+      adminStatus:'未確認',
+      lastChecked:'',
+      searchKeywords:new Set()
+    };
+    if(abbr&&!row.abbr)row.abbr=abbr;
+    if(data.name&&(!row.name||row.name===row.abbr))row.name=data.name;
+    if(data.category&&row.category==='other')row.category=data.category;
+    if(data.category==='basic'||data.category==='special')row.category=data.category;
+    (data.sources||[]).forEach(s=>row.sources.add(s));
+    (data.sourceUrls||[]).filter(Boolean).forEach(u=>row.sourceUrls.add(u));
+    (data.searchKeywords||[]).filter(Boolean).forEach(k=>row.searchKeywords.add(k));
+    if(data.note)row.notes.push(data.note);
+    if(data.adminStatus)row.adminStatus=data.adminStatus;
+    if(data.lastChecked)row.lastChecked=data.lastChecked;
+    map.set(key,row);
+    return row;
+  };
+
+  if(typeof SHINKI_MASTER !== 'undefined'){
+    Object.entries(SHINKI_MASTER).forEach(([abbr,def])=>{
+      const row=upsert(abbr,{
+        name:def?.name||abbr,
+        category:def?.category||'other',
+        sources:['新規届出サポート','アプリ内マスタ'],
+        sourceUrls:[def?.sourcePage, ...(Array.isArray(def?.yoshiki)?def.yoshiki.map(y=>y.url):[])],
+        note:def?.adminMemo||def?.note||'',
+        adminStatus:def?.adminReviewStatus||''
+      });
+      if(row){
+        if(def?.facilityStandardAbolished)row.sources.add('廃止・再編');
+        if(def?.limitedApplicability||def?.limitedBadge)row.sources.add('対象限定');
+        if(def?.lastChecked)row.lastChecked=def.lastChecked;
+      }
+    });
+  }
+  if(typeof SHINKI_GROUPS !== 'undefined'){
+    SHINKI_GROUPS.forEach(group=>{
+      (group.abbrs||[]).forEach(abbr=>{
+        const def=typeof SHINKI_MASTER !== 'undefined' ? SHINKI_MASTER[abbr] : null;
+        const row=upsert(abbr,{
+          name:def?.name||abbr,
+          category:def?.category||'other',
+          sources:['新規届出サポート'],
+          note:group.label||''
+        });
+        if(row){
+          if((group.label||'').includes('廃止'))row.sources.add('廃止・再編');
+          if((group.label||'').includes('対象限定'))row.sources.add('対象限定');
+          if((group.label||'').includes('賃上げ'))row.sources.add('ベースアップ');
+        }
+      });
+    });
+  }
+  if(Array.isArray(entries)){
+    entries.forEach(entry=>{
+      upsert(entry.abbr||entry.name,{
+        name:entry.name||entry.abbr,
+        category:entry.category||'other',
+        sources:['台帳管理'],
+        note:entry.memo||''
+      });
+    });
+  }
+  if(typeof FACILITY_FORM_LINKS_R08 !== 'undefined'){
+    Object.entries(FACILITY_FORM_LINKS_R08).forEach(([abbr,link])=>{
+      const category=link?.officialCategory==='basic'?'basic':link?.officialCategory==='tokukei'?'special':'other';
+      const row=upsert(abbr,{
+        name:link?.name||abbr,
+        category,
+        sources:['様式リンク'],
+        sourceUrls:[link?.officialListUrl, link?.officialPageUrl, link?.sourceUrl],
+        searchKeywords:Array.isArray(link?.searchKeywords)?link.searchKeywords:[],
+        note:link?.note||link?.missingReason||'',
+        lastChecked:link?.lastChecked||''
+      });
+      if(row&&link?.directFormStatus==='abolished')row.sources.add('廃止・再編');
+    });
+  }
+  if(typeof TEIREI_ROW !== 'undefined'){
+    Object.keys(TEIREI_ROW).forEach(abbr=>{
+      const def=typeof SHINKI_MASTER !== 'undefined' ? SHINKI_MASTER[abbr] : null;
+      upsert(abbr,{name:def?.name||abbr,category:def?.category||'other',sources:['定例報告・自己点検']});
+    });
+  }
+  if(typeof CHK !== 'undefined'){
+    Object.keys(CHK).forEach(abbr=>{
+      const def=typeof SHINKI_MASTER !== 'undefined' ? SHINKI_MASTER[abbr] : null;
+      upsert(abbr,{name:def?.name||abbr,category:def?.category||'other',sources:['講習会・研修管理']});
+    });
+  }
+  try{
+    const records=window.ExcelImport&&typeof ExcelImport.flattenOfficialDatasetRecords==='function'
+      ? ExcelImport.flattenOfficialDatasetRecords(officialDataset)
+      : [];
+    records.forEach(record=>{
+      const abbr=record.acceptedCode||record.acceptanceCode||record.abbr||record['略称']||record['受理記号']||record.acceptedName||record.acceptanceName;
+      const name=record.acceptedName||record.acceptanceName||record['受理届出名称']||record['施設基準名']||abbr;
+      const ledgerAbbr=window.ExcelImport&&typeof ExcelImport.inferLedgerAbbr==='function' ? ExcelImport.inferLedgerAbbr(abbr,name) : abbr;
+      upsert(ledgerAbbr,{name,category:'other',sources:['管理者更新JSON'],sourceUrls:[officialDataset?.sourceUrl]});
+    });
+  }catch(_err){}
+  return [...map.values()];
+}
+
+function buildAdminMasterReviewRows(){
+  return createAdminMasterEntryMap().map(row=>{
+    const def=typeof getFacilityMasterForEntry === 'function'
+      ? getFacilityMasterForEntry({abbr:row.abbr,name:row.name})
+      : (typeof SHINKI_MASTER !== 'undefined' ? SHINKI_MASTER[row.abbr] : null);
+    const form=typeof getFacilityFormLinkR08 === 'function' ? getFacilityFormLinkR08(row.abbr) : null;
+    const entry={
+      id:`admin-${row.abbr}`,
+      name:row.name,
+      abbr:row.abbr,
+      number:'',
+      date:'',
+      category:row.category,
+      status:'green',
+      kaitei:'none',
+      memo:row.notes.filter(Boolean).join(' / ')
+    };
+    if(def?.facilityStandardAbolished||form?.directFormStatus==='abolished')entry.kaitei='expire';
+    if(isBaseUpStandard(entry))row.sources.add('ベースアップ');
+    const impact=typeof getRevisionImpact === 'function' ? getRevisionImpact(entry) : {key:'none',label:'変更なし',badge:'<span class="badge bgr">変更なし</span>',message:''};
+    const review=typeof shouldRequireReview === 'function' ? shouldRequireReview(entry) : {requiresReview:false,reasons:[]};
+    const inMaster=Boolean(def);
+    const inForm=Boolean(form);
+    const normalizedName=adminNormalizeMasterKey(row.name);
+    const nameVariant=typeof SHINKI_MASTER !== 'undefined' && !inMaster
+      ? Object.entries(SHINKI_MASTER).some(([,d])=>adminNormalizeMasterKey(d?.name)===normalizedName)
+      : false;
+    const matchStatus=inMaster||inForm ? '照合済み' : nameVariant ? '表記ゆれ候補' : '未照合';
+    const needsInvestigation=matchStatus==='未照合'||impact.key==='abolished'||review.requiresReview||!row.name||!row.notes.join('').trim();
+    const isNew=def ? (typeof isShinkiNewFacility==='function'&&isShinkiNewFacility(def)) : null;
+    const memberStatus=typeof getLedgerDisplayStatusLabel === 'function' ? getLedgerDisplayStatusLabel(entry) : (review.requiresReview?'要確認':'要件充足');
+    const memberLabels=[
+      memberStatus,
+      impact.label,
+      typeof TEIREI_ROW !== 'undefined' && TEIREI_ROW[row.abbr] ? TEIREI_ROW[row.abbr] : '自己点検のみ',
+      def?.limitedBadge||def?.limitedApplicability?'対象限定':''
+    ].filter(Boolean);
+    const adminMemo=matchStatus==='未照合'
+      ? '最新マスタと照合できません。名称変更、廃止、再編、表記ゆれの可能性があります。管理者確認が必要です。'
+      : needsInvestigation
+        ? '会員向け表示前に説明文・出典・分類を確認してください。'
+        : '管理者確認上の大きな不足はありません。';
+    const explanation=def?.summary||impact.message||row.notes.find(Boolean)||'会員向け説明文未設定';
+    const sourceUrl=[...row.sourceUrls].find(Boolean)||def?.sourcePage||form?.officialListUrl||form?.officialPageUrl||'';
+    return {
+      ...row,
+      def,
+      form,
+      impact,
+      review,
+      matchStatus,
+      needsInvestigation,
+      isNew,
+      memberStatus,
+      memberLabels,
+      adminMemo,
+      explanation,
+      sourceUrl,
+      lastChecked:row.lastChecked||form?.lastChecked||def?.lastChecked||''
+    };
+  }).sort((a,b)=>adminCategoryLabel(a.category).localeCompare(adminCategoryLabel(b.category),'ja')||String(a.abbr).localeCompare(String(b.abbr),'ja'));
+}
+
+function renderAdminMasterReview(){
+  const container=document.getElementById('admin-master-review');
+  const alerts=document.getElementById('admin-master-alerts');
+  if(!container||!alerts)return;
+  const rows=buildAdminMasterReviewRows();
+  const summary={
+    total:rows.length,
+    needs:rows.filter(r=>r.needsInvestigation).length,
+    unmatched:rows.filter(r=>r.matchStatus==='未照合').length,
+    investigate:rows.filter(r=>r.needsInvestigation||r.adminStatus==='要調査').length,
+    missingExplanation:rows.filter(r=>!r.explanation||r.explanation==='会員向け説明文未設定').length
+  };
+  alerts.innerHTML=[
+    `<button class="admin-master-alert ${summary.needs?'warn':''}" onclick="document.getElementById('admin-master-filter').value='investigate';renderAdminMasterReview()">管理者確認が必要な施設基準<strong>${summary.needs}</strong></button>`,
+    `<button class="admin-master-alert ${summary.unmatched?'danger':''}" onclick="document.getElementById('admin-master-filter').value='unmatched';renderAdminMasterReview()">最新マスタ未照合<strong>${summary.unmatched}</strong></button>`,
+    `<button class="admin-master-alert ${summary.investigate?'warn':''}" onclick="document.getElementById('admin-master-filter').value='investigate';renderAdminMasterReview()">要調査<strong>${summary.investigate}</strong></button>`,
+    `<button class="admin-master-alert ${summary.missingExplanation?'warn':''}" onclick="document.getElementById('admin-master-search').value='会員向け説明文未設定';renderAdminMasterReview()">会員向け説明文未設定<strong>${summary.missingExplanation}</strong></button>`,
+    `<div class="admin-master-alert">登録総数<strong>${summary.total}</strong></div>`
+  ].join('');
+  const q=(document.getElementById('admin-master-search')?.value||'').trim().toLowerCase();
+  const filter=document.getElementById('admin-master-filter')?.value||'all';
+  const catFilter=document.getElementById('admin-master-category-filter')?.value||'all';
+  const filtered=rows.filter(r=>{
+    const hay=[r.name,r.abbr,r.explanation,r.adminMemo,r.matchStatus,r.impact.label,[...r.sources].join(' ')].join(' ').toLowerCase();
+    if(q&&!hay.includes(q))return false;
+    if(catFilter!=='all'&&r.category!==catFilter)return false;
+    if(filter==='unmatched'&&r.matchStatus!=='未照合')return false;
+    if(filter==='investigate'&&!r.needsInvestigation)return false;
+    if(filter==='abolished'&&r.impact.key!=='abolished')return false;
+    if(filter==='baseup'&&!isBaseUpStandard({name:r.name,abbr:r.abbr,category:r.category}))return false;
+    if(filter==='report'&&!(r.impact.key==='report'||r.impact.key==='report-ended'||(typeof TEIREI_ROW!=='undefined'&&TEIREI_ROW[r.abbr])))return false;
+    if(filter==='new'&&r.isNew!==true)return false;
+    if(filter==='member-alert'&&!['要確認','要対応'].includes(r.memberStatus))return false;
+    return true;
+  });
+  const matchBadge=r=>r.matchStatus==='照合済み'
+    ? '<span class="badge bg">照合済み</span>'
+    : r.matchStatus==='表記ゆれ候補'
+      ? '<span class="badge by">表記ゆれ候補</span>'
+      : '<span class="badge br">未照合</span>';
+  container.innerHTML=`<div class="admin-master-muted" style="margin-bottom:8px">表示 ${filtered.length}件 / 全 ${rows.length}件。未照合・要調査は管理者向けの確認タスクです。会員画面には確認済みの結論を表示してください。</div>
+  <div class="tw"><table class="admin-master-table">
+    <thead><tr><th>施設基準名</th><th>略称</th><th>カテゴリ</th><th>データ由来</th><th>最新マスタ照合</th><th>改定影響分類</th><th>新設</th><th>会員画面表示</th><th>会員向け説明文</th><th>管理者メモ</th><th>出典</th><th>最終確認</th></tr></thead>
+    <tbody>${filtered.map(r=>`<tr>
+      <td><strong>${adminEscapeHtml(r.name)}</strong></td>
+      <td><span class="badge bb">${adminEscapeHtml(r.abbr||'-')}</span></td>
+      <td>${adminEscapeHtml(adminCategoryLabel(r.category))}</td>
+      <td><div class="admin-master-source-list">${[...r.sources].map(s=>`<span class="badge bgr">${adminEscapeHtml(s)}</span>`).join('')}</div></td>
+      <td>${matchBadge(r)}</td>
+      <td>${r.impact.badge}</td>
+      <td>${r.isNew===true?'<span class="badge br">令和8年新設</span>':r.isNew===false?'<span class="badge bgr">新設ではない</span>':'<span class="badge bgr">未判定</span>'}</td>
+      <td><div class="admin-master-member-status">${r.memberLabels.map(label=>`<span class="badge ${label==='要対応'?'br':label==='要確認'?'by':'bgr'}">${adminEscapeHtml(label)}</span>`).join('')}</div></td>
+      <td><div class="admin-master-note">${adminEscapeHtml(r.explanation)}</div></td>
+      <td><div class="admin-master-note">${adminEscapeHtml(r.adminMemo)}</div><div class="admin-master-muted">確認ステータス: ${adminEscapeHtml(r.adminStatus||'未確認')}</div></td>
+      <td>${r.sourceUrl?`<a href="${adminEscapeHtml(r.sourceUrl)}" target="_blank" rel="noopener noreferrer">公式・出典</a>`:'未設定'}</td>
+      <td>${adminEscapeHtml(r.lastChecked||'未確認')}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
 function renderAdminSecurityStatus(){
   ensureAdminStorageInitialized();
   const status=document.getElementById('admin-security-status');
@@ -278,6 +536,7 @@ function renderAdminSecurityStatus(){
     defaultTip.style.display=localStorage.getItem(ADMIN_PASS_DEFAULT_KEY)!=='0'?'block':'none';
   }
   renderFacilityFormLinkAudit();
+  renderAdminMasterReview();
 }
 
 async function changeAdminPassphrase(){

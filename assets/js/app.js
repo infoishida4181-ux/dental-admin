@@ -67,12 +67,6 @@ function shouldRequireReview(entry){
   }
   const training=assessKoushuRequirement(entry);
   if(training)reasons.push(training);
-  const known=getKnownFacilityStandardKeys();
-  const knownByMaster=Boolean(master);
-  const knownByForm=known.has(normalizeReviewKey(entry.abbr))||known.has(normalizeReviewKey(entry.name));
-  if(!knownByMaster&&!knownByForm){
-    reasons.push({type:'unmatched',badge:'未照合',message:'最新データと照合できません。名称変更、廃止、再編、表記ゆれの可能性があります。'});
-  }
   return {requiresReview:reasons.length>0,reasons};
 }
 function isBaseUpStandard(entry){

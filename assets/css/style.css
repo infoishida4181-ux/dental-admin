@@ -367,6 +367,21 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .admin-audit-metric strong{font-size:18px;color:var(--text)}
 .admin-audit-alert{background:var(--yellow-bg);border:1px solid #fde68a;border-radius:8px;padding:12px;margin-bottom:12px}
 .admin-audit-alert-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px}
+.admin-master-alerts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:12px}
+.admin-master-alert{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text2)}
+.admin-master-alert strong{display:block;font-size:20px;color:var(--text);line-height:1.2;margin-top:2px}
+.admin-master-alert.warn{background:var(--yellow-bg);border-color:#fde68a}
+.admin-master-alert.warn strong{color:var(--yellow)}
+.admin-master-alert.danger{background:var(--red-bg);border-color:#fecaca}
+.admin-master-alert.danger strong{color:var(--red)}
+.admin-master-filters{display:grid;grid-template-columns:minmax(220px,1fr) 180px 160px;gap:8px;margin-bottom:12px}
+.admin-master-table{min-width:1180px}
+.admin-master-table th,.admin-master-table td{font-size:11px;vertical-align:top}
+.admin-master-note{max-width:260px;color:var(--text2);line-height:1.7}
+.admin-master-source-list{display:flex;flex-wrap:wrap;gap:4px}
+.admin-master-source-list .badge{font-size:9px;padding:2px 6px}
+.admin-master-member-status{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.admin-master-muted{font-size:10px;color:var(--text3);line-height:1.5}
 
 /* ─── SUCCESS ─── */
 .success-fl{display:none;position:fixed;inset:0;background:rgba(15,20,40,.6);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
@@ -398,6 +413,7 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
   .main{padding:18px 16px}
   .stats{grid-template-columns:repeat(2,1fr)}
   .dp{width:340px}
+  .admin-master-filters{grid-template-columns:1fr}
   .h-title{display:none}
   th:nth-child(n+6),td:nth-child(n+6){display:none}
 }
