@@ -98,7 +98,7 @@ function getRevisionImpact(entry){
   if(isBaseUpStandard(entry)){
     return {
       key:'baseup',
-      badge:'<span class="badge by">ベースアップ要対応</span>',
+      badge:'<span class="badge br">ベースアップ要対応</span>',
       label:'ベースアップ要対応',
       className:'v-warn',
       message:'ベースアップ評価料は、昨年度分の報告書提出、今年度の届出・計画書、区分確認が必要となる場合があります。昨年度から算定していた医院と、今年度から新規算定・変更する医院で確認すべき書類が異なります。'
@@ -173,7 +173,7 @@ function renderReviewBadges(entry){
   return `<div class="ledger-review-badges">${reasons.map(r=>`<span class="badge by">${r.badge}</span>`).join('')}</div>`;
 }
 function renderLedgerStatus(entry){
-  if(isBaseUpStandard(entry))return '<span class="badge by"><span class="dot dy"></span>要対応</span>';
+  if(isBaseUpStandard(entry))return '<span class="badge br"><span class="dot dr"></span>要対応</span>';
   const displayStatus=getLedgerDisplayStatus(entry);
   return SB[displayStatus]||SB.green;
 }
