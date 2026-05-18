@@ -90,6 +90,10 @@ function setAdminAccessError(message){
 
 function requestAdminModeAccess(){
   ensureAdminStorageInitialized();
+  if(window.currentMember && window.currentMember.role !== 'admin'){
+    alert('管理者機能は管理者権限の会員のみ利用できます。');
+    return;
+  }
   if(isAdminSessionActive()){
     openAdminMode();
     return;

@@ -8,7 +8,7 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="./assets/css/style.css">
 </head>
-<body>
+<body class="auth-loading">
 
 <div class="header">
   <div class="h-left">
@@ -18,7 +18,9 @@
   </div>
   <div class="h-right">
     <span class="dot-live"></span>
+    <div class="member-pill" id="member-pill" style="display:none"></div>
     <div class="clinic-pill" id="clinic-pill">🏥 ○○歯科医院</div>
+    <button class="logout-btn" id="logout-btn" type="button" onclick="logoutSupabaseMember()" style="display:none">ログアウト</button>
     <div class="settings-menu" id="settings-menu">
       <button class="settings-btn" id="settings-btn" type="button" onclick="toggleSettingsMenu(event)" aria-haspopup="true" aria-expanded="false">⚙ 設定</button>
       <div class="settings-panel" id="settings-panel" onclick="event.stopPropagation()">
@@ -993,10 +995,13 @@
   </div>
 </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./assets/js/supabase-config.js"></script>
   <script src="./assets/js/data.js"></script>
   <script src="./assets/js/admin.js"></script>
   <script src="./assets/js/import-excel.js"></script>
   <script src="./assets/js/app.js"></script>
+  <script src="./assets/js/auth.js"></script>
 </body>
 </html>
 
