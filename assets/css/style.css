@@ -399,6 +399,7 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .subsidy-doc-list{display:flex;flex-wrap:wrap;gap:5px}
 .subsidy-doc-list span{background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:3px 8px;font-size:10px;color:var(--text2)}
 .subsidy-actions{margin-top:auto}
+.subsidy-actions .btn{width:100%;justify-content:center}
 .subsidy-consult{background:var(--green-bg);border:1px solid #a7f3d0;border-radius:10px;padding:12px 14px;font-size:12px;color:var(--green);font-weight:700;margin-bottom:14px}
 .subsidy-admin-frame{background:var(--bg2);border:1px dashed var(--border2);border-radius:10px;padding:14px 16px;font-size:12px;color:var(--text2);line-height:1.8}
 

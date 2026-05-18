@@ -566,9 +566,9 @@ async function renderSubsidySupport(){
       ご不明点は事務局、または保険委員会にご連絡ください。
     </div>
     <div class="subsidy-admin-frame">
-      <div style="font-size:13px;font-weight:700;margin-bottom:6px">管理者向け</div>
-      <div>制度の追加・編集画面は今後実装予定です。現段階では、JS内のサンプルデータ配列を表示しています。</div>
-      <div class="admin-master-muted" style="margin-top:6px">想定テーブル: subsidy_programs / subsidy_documents / subsidy_categories</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px">制度情報の更新について</div>
+      <div>掲載制度は、事務局側で公式情報を確認しながら更新していく想定です。申請前には各制度の公式ページで最新情報をご確認ください。</div>
+      <div class="admin-master-muted" style="margin-top:6px">将来のクラウド化では、制度名・必要書類・カテゴリをデータベース側で管理できる構造にします。</div>
     </div>
   `;
 }
