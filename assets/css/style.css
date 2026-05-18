@@ -26,7 +26,18 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:13px;line-height:1.6;overflow:hidden}
+body.auth-loading .header,body.auth-loading .app,body.auth-locked .header,body.auth-locked .app{display:none}
 @media(max-width:768px){body{overflow:auto}}
+.auth-screen{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#eff6ff,#f8fafc);display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-card{width:min(420px,100%);background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;box-shadow:var(--shadow2)}
+.auth-logo{font-family:var(--mono);font-size:11px;color:var(--accent);background:var(--blue-bg);border:1px solid #bfdbfe;display:inline-flex;padding:3px 10px;border-radius:999px;margin-bottom:14px;font-weight:700;letter-spacing:.08em}
+.auth-card h1{font-size:20px;margin-bottom:8px;color:var(--text)}
+.auth-copy{font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:18px}
+.auth-form{display:flex;flex-direction:column;gap:14px}
+.auth-form label span{display:block;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:5px}
+.auth-submit{width:100%;justify-content:center;margin-top:2px}
+.auth-help{font-size:11px;color:var(--text3);line-height:1.7;margin-top:14px}
+.auth-card code{font-family:var(--mono);font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 4px}
 
 /* ─── HEADER ─── */
 .header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:fixed;top:0;left:0;right:0;z-index:200;box-shadow:var(--shadow)}
@@ -35,6 +46,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .h-title{font-size:14px;font-weight:600;color:var(--text)}
 .h-right{display:flex;align-items:center;gap:10px}
 .clinic-pill{font-size:12px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);padding:4px 12px;border-radius:6px;font-weight:500;display:inline-flex;align-items:center;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.member-pill{font-size:11px;color:var(--accent);background:var(--blue-bg);border:1px solid #bfdbfe;padding:4px 10px;border-radius:6px;font-weight:700;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text2);padding:6px 10px;font-size:11px;font-family:var(--font);font-weight:700;cursor:pointer}
+.logout-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
 .settings-menu{position:relative}
 .settings-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:6px 12px;font-size:12px;font-family:var(--font);font-weight:600;cursor:pointer;transition:all .15s;box-shadow:var(--shadow)}
 .settings-btn:hover,.settings-menu.open .settings-btn{border-color:var(--accent);color:var(--accent);background:var(--blue-bg)}
