@@ -478,6 +478,101 @@ function openAiModal(){
 }
 
 /* ═══ VIEWS ═══ */
+const SUBSIDY_PROGRAM_SAMPLE_DATA = [
+  {
+    name:'IT導入補助金',
+    organizer:'独立行政法人中小企業基盤整備機構 / 中小企業庁',
+    target:'予約管理、会計、セキュリティ、業務効率化などのITツール導入を検討する歯科医院',
+    amount:'対象類型・枠により異なります',
+    deadline:'公募回ごとに公式サイトで確認',
+    status:'公式確認',
+    officialUrl:'https://it-shien.smrj.go.jp/',
+    summary:'ITツール導入費用の一部を補助する制度です。対象ツール、補助率、申請枠は年度・公募回により変わります。',
+    documents:['事業者情報','導入予定ツールの見積','gBizIDプライム','SECURITY ACTION自己宣言'],
+    adminNote:'Supabase移行後は subsidy_programs テーブルから取得する想定のサンプルです。'
+  },
+  {
+    name:'業務改善助成金',
+    organizer:'厚生労働省',
+    target:'事業場内最低賃金の引き上げと、生産性向上のための設備投資等を検討する医院',
+    amount:'助成上限額・助成率はコースや賃金引上げ額により異なります',
+    deadline:'年度・申請枠ごとに公式サイトで確認',
+    status:'公式確認',
+    officialUrl:'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/roudoukijun/zigyonushi/shienjigyou/03.html',
+    summary:'賃金引上げと設備投資等を組み合わせて行う中小企業・小規模事業者向けの助成制度です。',
+    documents:['交付申請書','事業実施計画','賃金台帳','見積書','労働者名簿'],
+    adminNote:'労務・賃金情報を扱うため、実運用では社労士等との確認導線を検討してください。'
+  },
+  {
+    name:'東京都 中小企業向け支援制度',
+    organizer:'東京都 / 東京都中小企業振興公社',
+    target:'東京都内で設備投資、DX、防災、働き方改善などを検討する歯科医院',
+    amount:'制度ごとに異なります',
+    deadline:'制度ごとに公式サイトで確認',
+    status:'要確認',
+    officialUrl:'https://www.tokyo-kosha.or.jp/support/josei/',
+    summary:'東京都内の中小企業向け助成制度の一覧です。医療機関が対象になるかは各制度の募集要項で確認してください。',
+    documents:['募集要項','申請書','見積書','会社・事業所情報','事業計画'],
+    adminNote:'自治体制度は対象要件が変わりやすいため、将来は地域別マスタ化を推奨します。'
+  }
+];
+
+async function getSubsidyPrograms(){
+  // 将来はここを Supabase の subsidy_programs 取得処理に差し替える。
+  return SUBSIDY_PROGRAM_SAMPLE_DATA;
+}
+
+function renderSubsidyStatus(status){
+  const cls=status==='受付中'?'bg':status==='終了'?'bgr':status==='要確認'?'by':'bb';
+  return `<span class="badge ${cls}">${status}</span>`;
+}
+
+async function renderSubsidySupport(){
+  const body=document.getElementById('subsidy-body');
+  if(!body)return;
+  const programs=await getSubsidyPrograms();
+  body.innerHTML=`
+    <div class="subsidy-note">
+      <strong>制度情報はサンプル表示です。</strong>
+      将来的には Vercel + Supabase へ移行し、補助金・助成金データを管理テーブルから取得する想定です。申請条件・期限・必要書類は必ず公式ページで確認してください。
+    </div>
+    <div class="subsidy-grid">
+      ${programs.map(program=>`
+        <article class="subsidy-card">
+          <div class="subsidy-card-head">
+            <div>
+              <div class="subsidy-title">${program.name}</div>
+              <div class="subsidy-organizer">${program.organizer}</div>
+            </div>
+            ${renderSubsidyStatus(program.status)}
+          </div>
+          <div class="subsidy-summary">${program.summary}</div>
+          <div class="subsidy-meta">
+            <div><span>対象</span><strong>${program.target}</strong></div>
+            <div><span>補助額</span><strong>${program.amount}</strong></div>
+            <div><span>申請期限</span><strong>${program.deadline}</strong></div>
+          </div>
+          <div class="subsidy-docs">
+            <div class="subsidy-docs-title">必要書類</div>
+            <div class="subsidy-doc-list">${program.documents.map(doc=>`<span>${doc}</span>`).join('')}</div>
+          </div>
+          <div class="subsidy-actions">
+            <a class="btn btn-secondary" href="${program.officialUrl}" target="_blank" rel="noopener noreferrer">公式ページを開く</a>
+          </div>
+        </article>
+      `).join('')}
+    </div>
+    <div class="subsidy-consult">
+      ご不明点は事務局、または保険委員会にご連絡ください。
+    </div>
+    <div class="subsidy-admin-frame">
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px">管理者向け</div>
+      <div>制度の追加・編集画面は今後実装予定です。現段階では、JS内のサンプルデータ配列を表示しています。</div>
+      <div class="admin-master-muted" style="margin-top:6px">想定テーブル: subsidy_programs / subsidy_documents / subsidy_categories</div>
+    </div>
+  `;
+}
+
 function nav(v,el){
   if(v==='admin' && !isAdminSessionActive()){
     requestAdminModeAccess();
@@ -503,6 +598,7 @@ function nav(v,el){
   if(v==='koushu')renderKoushu();
   if(v==='shinki')renderShinki();
   if(v==='baseup')renderBaseup();
+  if(v==='subsidy')renderSubsidySupport();
   if(v==='admin')renderAdminSecurityStatus();
 }
 function renderKaitei(){

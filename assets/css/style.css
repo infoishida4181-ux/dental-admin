@@ -382,6 +382,25 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .admin-master-source-list .badge{font-size:9px;padding:2px 6px}
 .admin-master-member-status{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
 .admin-master-muted{font-size:10px;color:var(--text3);line-height:1.5}
+.subsidy-note{background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:14px}
+.subsidy-note strong{color:var(--accent)}
+.subsidy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:14px}
+.subsidy-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
+.subsidy-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.subsidy-title{font-size:15px;font-weight:800;color:var(--text);line-height:1.5}
+.subsidy-organizer{font-size:11px;color:var(--text3);margin-top:2px}
+.subsidy-summary{font-size:12px;color:var(--text2);line-height:1.8}
+.subsidy-meta{display:grid;gap:8px}
+.subsidy-meta div{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 10px}
+.subsidy-meta span{display:block;font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:3px}
+.subsidy-meta strong{display:block;font-size:12px;color:var(--text);line-height:1.7}
+.subsidy-docs{border-top:1px solid var(--border);padding-top:10px}
+.subsidy-docs-title{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:7px}
+.subsidy-doc-list{display:flex;flex-wrap:wrap;gap:5px}
+.subsidy-doc-list span{background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:3px 8px;font-size:10px;color:var(--text2)}
+.subsidy-actions{margin-top:auto}
+.subsidy-consult{background:var(--green-bg);border:1px solid #a7f3d0;border-radius:10px;padding:12px 14px;font-size:12px;color:var(--green);font-weight:700;margin-bottom:14px}
+.subsidy-admin-frame{background:var(--bg2);border:1px dashed var(--border2);border-radius:10px;padding:14px 16px;font-size:12px;color:var(--text2);line-height:1.8}
 
 /* ─── SUCCESS ─── */
 .success-fl{display:none;position:fixed;inset:0;background:rgba(15,20,40,.6);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
