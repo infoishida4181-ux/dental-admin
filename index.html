@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>歯科行政管理システム v3</title>
+<title>豁ｯ遘題｡梧帆邂｡逅・す繧ｹ繝・Β v3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="./assets/css/style.css">
@@ -13,173 +13,173 @@
 <div class="header">
   <div class="h-left">
     <div class="logo">DENTAL-ADM v3</div>
-    <div class="h-title">歯科行政管理システム</div>
+    <div class="h-title">豁ｯ遘題｡梧帆邂｡逅・す繧ｹ繝・Β</div>
     <div id="ver-badge" style="font-size:10px;font-family:var(--mono);color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:2px 8px;border-radius:4px;letter-spacing:.04em">ver.3.1.0</div>
   </div>
   <div class="h-right">
     <span class="dot-live"></span>
     <div class="member-pill" id="member-pill" style="display:none"></div>
-    <div class="clinic-pill" id="clinic-pill">🏥 ○○歯科医院</div>
-    <button class="logout-btn" id="logout-btn" type="button" onclick="logoutSupabaseMember()" style="display:none">ログアウト</button>
+    <div class="clinic-pill" id="clinic-pill">唱 笳銀雷豁ｯ遘大現髯｢</div>
+    <button class="logout-btn" id="logout-btn" type="button" onclick="logoutSupabaseMember()" style="display:none">繝ｭ繧ｰ繧｢繧ｦ繝・/button>
     <div class="settings-menu" id="settings-menu">
-      <button class="settings-btn" id="settings-btn" type="button" onclick="toggleSettingsMenu(event)" aria-haspopup="true" aria-expanded="false">⚙ 設定</button>
+      <button class="settings-btn" id="settings-btn" type="button" onclick="toggleSettingsMenu(event)" aria-haspopup="true" aria-expanded="false">笞・險ｭ螳・/button>
       <div class="settings-panel" id="settings-panel" onclick="event.stopPropagation()">
-        <button class="settings-item" type="button" onclick="handleSettingsAction('clinic')">🏥 医院情報を設定</button>
-        <button class="settings-item" type="button" onclick="handleSettingsAction('data')">💾 データ管理</button>
+        <button class="settings-item" type="button" onclick="handleSettingsAction('clinic')">唱 蛹ｻ髯｢諠・ｱ繧定ｨｭ螳・/button>
+        <button class="settings-item" type="button" onclick="handleSettingsAction('data')">沈 繝・・繧ｿ邂｡逅・/button>
         <div class="settings-divider"></div>
-        <button class="settings-item admin" type="button" onclick="handleSettingsAction('admin')">🛠 管理者用</button>
+        <button class="settings-item admin" type="button" onclick="handleSettingsAction('admin')">屏 邂｡逅・・畑</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- 更新通知バナー -->
+<!-- 譖ｴ譁ｰ騾夂衍繝舌リ繝ｼ -->
 <div id="update-banner" style="display:none;background:#fef3c7;border-bottom:1px solid #fde68a;padding:8px 20px;font-size:12px;color:#92400e;align-items:center;justify-content:space-between;gap:12px">
-  <span>🔔 <strong>新しいバージョンがあります</strong>：<span id="update-msg"></span></span>
+  <span>粕 <strong>譁ｰ縺励＞繝舌・繧ｸ繝ｧ繝ｳ縺後≠繧翫∪縺・/strong>・・span id="update-msg"></span></span>
   <div style="display:flex;gap:8px;align-items:center">
-    <a id="update-link" href="#" target="_blank" style="color:#2563eb;font-weight:600;font-size:12px">ダウンロードページへ ↗</a>
-    <button onclick="document.getElementById('update-banner').style.display='none'" style="background:none;border:none;cursor:pointer;color:#92400e;font-size:16px;line-height:1">✕</button>
+    <a id="update-link" href="#" target="_blank" style="color:#2563eb;font-weight:600;font-size:12px">繝繧ｦ繝ｳ繝ｭ繝ｼ繝峨・繝ｼ繧ｸ縺ｸ 竊・/a>
+    <button onclick="document.getElementById('update-banner').style.display='none'" style="background:none;border:none;cursor:pointer;color:#92400e;font-size:16px;line-height:1">笨・/button>
   </div>
 </div>
 <div class="app">
 <div class="sidebar">
   <div class="nav-sec">
-    <div class="nav-label">厚生局</div>
-    <div class="nav-item active" data-view="daichou" onclick="nav('daichou',this)"><span class="ni">📋</span>届出台帳</div>
-    <div class="nav-item" data-view="kaitei" onclick="nav('kaitei',this)"><span class="ni">⚡</span>改定影響分析<span class="nav-badge w">R8</span></div>
-    <div class="nav-item" data-view="teirei" onclick="nav('teirei',this)"><span class="ni">📅</span>定例報告<span class="nav-badge" id="teirei-badge">8月</span></div>
-    <div class="nav-item" data-view="deadline" onclick="nav('deadline',this)"><span class="ni">🔔</span>期限管理</div>
-    <div class="nav-item" data-view="koushu" onclick="nav('koushu',this)"><span class="ni">🎓</span>講習会管理<span class="nav-badge w" id="koushu-badge" style="display:none">期限</span></div>
-    <div class="nav-item" data-view="shinki" onclick="nav('shinki',this)"><span class="ni">🆕</span>新規届出サポート</div>
-    <div class="nav-item" data-view="baseup" onclick="nav('baseup',this)"><span class="ni">📋</span>ベースアップ書類作成</div>
-    <div class="nav-item" data-view="subsidy" onclick="nav('subsidy',this)"><span class="ni">💴</span>補助金・助成金サポート</div>
+    <div class="nav-label">蜴夂函螻</div>
+    <div class="nav-item active" data-view="daichou" onclick="nav('daichou',this)"><span class="ni">搭</span>螻雁・蜿ｰ蟶ｳ</div>
+    <div class="nav-item" data-view="kaitei" onclick="nav('kaitei',this)"><span class="ni">笞｡</span>謾ｹ螳壼ｽｱ髻ｿ蛻・梵<span class="nav-badge w">R8</span></div>
+    <div class="nav-item" data-view="teirei" onclick="nav('teirei',this)"><span class="ni">套</span>螳壻ｾ句ｱ蜻・span class="nav-badge" id="teirei-badge">8譛・/span></div>
+    <div class="nav-item" data-view="deadline" onclick="nav('deadline',this)"><span class="ni">粕</span>譛滄剞邂｡逅・/div>
+    <div class="nav-item" data-view="koushu" onclick="nav('koushu',this)"><span class="ni">雌</span>隰帷ｿ剃ｼ夂ｮ｡逅・span class="nav-badge w" id="koushu-badge" style="display:none">譛滄剞</span></div>
+    <div class="nav-item" data-view="shinki" onclick="nav('shinki',this)"><span class="ni">・</span>譁ｰ隕丞ｱ雁・繧ｵ繝昴・繝・/div>
+    <div class="nav-item" data-view="baseup" onclick="nav('baseup',this)"><span class="ni">搭</span>繝吶・繧ｹ繧｢繝・・譖ｸ鬘樔ｽ懈・</div>
+    <div class="nav-item" data-view="subsidy" onclick="nav('subsidy',this)"><span class="ni">超</span>陬懷勧驥代・蜉ｩ謌宣≡繧ｵ繝昴・繝・/div>
   </div>
   <div class="nav-sec" id="nav-future">
-    <div class="nav-label">今後追加予定</div>
-    <div class="nav-item" style="opacity:.4;cursor:default"><span class="ni">👥</span>労働・社保</div>
-    <div class="nav-item" style="opacity:.4;cursor:default"><span class="ni">💼</span>税務</div>
-    <div class="nav-item" style="opacity:.4;cursor:default"><span class="ni">🏥</span>保健所届出</div>
+    <div class="nav-label">莉雁ｾ瑚ｿｽ蜉莠亥ｮ・/div>
+    <div class="nav-item" style="opacity:.4;cursor:default"><span class="ni">則</span>蜉ｴ蜒阪・遉ｾ菫・/div>
+    <div class="nav-item" style="opacity:.4;cursor:default"><span class="ni">直</span>遞主漁</div>
+    <div class="nav-item" style="opacity:.4;cursor:default"><span class="ni">唱</span>菫晏▼謇螻雁・</div>
   </div>
   <div class="nav-sec" id="nav-pdf-btn">
-    <button class="pdf-import-btn" onclick="openImport()"><span style="font-size:18px;line-height:1">📥</span><span>コードで取込</span></button>
+    <button class="pdf-import-btn" onclick="openImport()"><span style="font-size:18px;line-height:1">踏</span><span>繧ｳ繝ｼ繝峨〒蜿冶ｾｼ</span></button>
   </div>
   <div class="sidebar-footer">
-    <button class="pdf-import-btn" onclick="openImport()">📥 医療機関コードで施設基準を取込む</button>
+    <button class="pdf-import-btn" onclick="openImport()">踏 蛹ｻ逋よｩ滄未繧ｳ繝ｼ繝峨〒譁ｽ險ｭ蝓ｺ貅悶ｒ蜿冶ｾｼ繧</button>
   </div>
 </div>
 
 <div class="main">
-  <!-- 台帳 -->
+  <!-- 蜿ｰ蟶ｳ -->
   <div class="view active" id="view-daichou">
     <div class="ph">
-      <div class="ph-left"><h2>施設基準 届出台帳</h2><p>令和8年度診療報酬改定 対応状況を含む</p></div>
+      <div class="ph-left"><h2>譁ｽ險ｭ蝓ｺ貅・螻雁・蜿ｰ蟶ｳ</h2><p>莉､蜥・蟷ｴ蠎ｦ險ｺ逋ょｱ驟ｬ謾ｹ螳・蟇ｾ蠢懃憾豕√ｒ蜷ｫ繧</p></div>
       <div class="ph-right">
-        <button class="btn btn-secondary" onclick="openFacilityUpdateModal()">施設基準の更新</button>
-        <button class="btn btn-secondary" onclick="openAiModal()">🤖 改定影響分析</button>
-        <button class="btn btn-primary" onclick="openAddModal()">＋ 届出を追加</button>
+        <button class="btn btn-secondary" onclick="openFacilityUpdateModal()">譁ｽ險ｭ蝓ｺ貅悶・譖ｴ譁ｰ</button>
+        <button class="btn btn-secondary" onclick="openAiModal()">､・謾ｹ螳壼ｽｱ髻ｿ蛻・梵</button>
+        <button class="btn btn-primary" onclick="openAddModal()">・・螻雁・繧定ｿｽ蜉</button>
       </div>
     </div>
     <div class="stats">
-      <div class="sc"><div class="sc-label">TOTAL</div><div class="sc-val b" id="s-total">0</div><div class="sc-sub">届出済み</div></div>
-      <div class="sc"><div class="sc-label">OK</div><div class="sc-val g" id="s-ok">0</div><div class="sc-sub">要件充足</div></div>
-      <div class="sc"><div class="sc-label">CHECK</div><div class="sc-val y" id="s-check">0</div><div class="sc-sub">要確認</div></div>
-      <div class="sc"><div class="sc-label">ALERT</div><div class="sc-val r" id="s-alert">0</div><div class="sc-sub">要対応</div></div>
+      <div class="sc"><div class="sc-label">TOTAL</div><div class="sc-val b" id="s-total">0</div><div class="sc-sub">螻雁・貂医∩</div></div>
+      <div class="sc"><div class="sc-label">OK</div><div class="sc-val g" id="s-ok">0</div><div class="sc-sub">隕∽ｻｶ蜈・ｶｳ</div></div>
+      <div class="sc"><div class="sc-label">CHECK</div><div class="sc-val y" id="s-check">0</div><div class="sc-sub">隕∫｢ｺ隱・/div></div>
+      <div class="sc"><div class="sc-label">ALERT</div><div class="sc-val r" id="s-alert">0</div><div class="sc-sub">隕∝ｯｾ蠢・/div></div>
     </div>
     <div class="abanner" id="abanner" style="display:none">
-      ⚠️ <span><strong>令和8年度改定対応中</strong>：再届出・経過措置の期限を確認してください。<a href="#" onclick="openAiModal();return false">詳細を確認 →</a></span>
+      笞・・<span><strong>莉､蜥・蟷ｴ蠎ｦ謾ｹ螳壼ｯｾ蠢應ｸｭ</strong>・壼・螻雁・繝ｻ邨碁℃謗ｪ鄂ｮ縺ｮ譛滄剞繧堤｢ｺ隱阪＠縺ｦ縺上□縺輔＞縲・a href="#" onclick="openAiModal();return false">隧ｳ邏ｰ繧堤｢ｺ隱・竊・/a></span>
     </div>
     <div class="abanner" id="official-data-banner" style="display:none;background:var(--blue-bg);border-color:#bfdbfe">
-      📦 <span id="official-data-banner-text">更新データの状態をここに表示します。</span>
+      逃 <span id="official-data-banner-text">譖ｴ譁ｰ繝・・繧ｿ縺ｮ迥ｶ諷九ｒ縺薙％縺ｫ陦ｨ遉ｺ縺励∪縺吶・/span>
     </div>
     <div class="toolbar">
       <div class="filter-pills" id="status-pills">
-        <button class="fp active" onclick="fStatus('all',this)">すべて</button>
-        <button class="fp" onclick="fStatus('green',this)">✓ 充足</button>
-        <button class="fp" onclick="fStatus('yellow',this)">⚠ 要確認</button>
-        <button class="fp" onclick="fStatus('red',this)">✕ 要対応</button>
+        <button class="fp active" onclick="fStatus('all',this)">縺吶∋縺ｦ</button>
+        <button class="fp" onclick="fStatus('green',this)">笨・蜈・ｶｳ</button>
+        <button class="fp" onclick="fStatus('yellow',this)">笞 隕∫｢ｺ隱・/button>
+        <button class="fp" onclick="fStatus('red',this)">笨・隕∝ｯｾ蠢・/button>
       </div>
       <div class="filter-pills" id="cat-pills">
-        <button class="fp active" onclick="fCat('all',this)">全カテゴリ</button>
-        <button class="fp" onclick="fCat('basic',this)">基本診療料</button>
-        <button class="fp" onclick="fCat('special',this)">特掲診療料</button>
-        <button class="fp" onclick="fCat('other',this)">その他</button>
+        <button class="fp active" onclick="fCat('all',this)">蜈ｨ繧ｫ繝・ざ繝ｪ</button>
+        <button class="fp" onclick="fCat('basic',this)">蝓ｺ譛ｬ險ｺ逋よ侭</button>
+        <button class="fp" onclick="fCat('special',this)">迚ｹ謗ｲ險ｺ逋よ侭</button>
+        <button class="fp" onclick="fCat('other',this)">縺昴・莉・/button>
       </div>
       <div class="spacer"></div>
-      <button class="btn btn-ghost" onclick="exportCSV()">↓ CSV</button>
+      <button class="btn btn-ghost" onclick="exportCSV()">竊・CSV</button>
     </div>
     <div class="tw">
       <table>
-        <thead><tr><th>施設基準名</th><th>略称</th><th>受理番号</th><th>算定開始</th><th>カテゴリ</th><th>状態</th><th>改定影響</th><th>定例報告</th></tr></thead>
+        <thead><tr><th>譁ｽ險ｭ蝓ｺ貅門錐</th><th>逡･遘ｰ</th><th>蜿礼炊逡ｪ蜿ｷ</th><th>邂怜ｮ夐幕蟋・/th><th>繧ｫ繝・ざ繝ｪ</th><th>迥ｶ諷・/th><th>謾ｹ螳壼ｽｱ髻ｿ</th><th>螳壻ｾ句ｱ蜻・/th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
       <div class="empty" id="empty-state" style="display:none">
-        <div class="ei">📭</div>
-        <p>届出データがありません。</p>
+        <div class="ei">働</div>
+        <p>螻雁・繝・・繧ｿ縺後≠繧翫∪縺帙ｓ縲・/p>
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px">
-          <button class="btn btn-primary" onclick="resetToDefault()" style="font-size:12px">🔄 初期データを読み込む</button>
-          <button class="btn btn-ghost" onclick="openFacilityUpdateModal()" style="font-size:12px">施設基準の更新</button>
-          <button class="btn btn-ghost" onclick="openImport()" style="font-size:12px">📥 医療機関コードで取込む</button>
-          <button class="btn btn-ghost" onclick="openAddModal()" style="font-size:12px">＋ 手動で追加</button>
+          <button class="btn btn-primary" onclick="resetToDefault()" style="font-size:12px">売 蛻晄悄繝・・繧ｿ繧定ｪｭ縺ｿ霎ｼ繧</button>
+          <button class="btn btn-ghost" onclick="openFacilityUpdateModal()" style="font-size:12px">譁ｽ險ｭ蝓ｺ貅悶・譖ｴ譁ｰ</button>
+          <button class="btn btn-ghost" onclick="openImport()" style="font-size:12px">踏 蛹ｻ逋よｩ滄未繧ｳ繝ｼ繝峨〒蜿冶ｾｼ繧</button>
+          <button class="btn btn-ghost" onclick="openAddModal()" style="font-size:12px">・・謇句虚縺ｧ霑ｽ蜉</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 改定影響 -->
+  <!-- 謾ｹ螳壼ｽｱ髻ｿ -->
   <div class="view" id="view-kaitei">
     <div class="ph">
-      <div class="ph-left"><h2>改定影響分析</h2><p>令和8年度診療報酬改定（2026年6月施行）</p></div>
+      <div class="ph-left"><h2>謾ｹ螳壼ｽｱ髻ｿ蛻・梵</h2><p>莉､蜥・蟷ｴ蠎ｦ險ｺ逋ょｱ驟ｬ謾ｹ螳夲ｼ・026蟷ｴ6譛域命陦鯉ｼ・/p></div>
       <div class="ph-right">
-        <button class="btn btn-primary" onclick="applyKaiteiAuto()" title="台帳の全施設基準に令和8年改定影響を自動判定して反映します">⚡ 改定影響を一括再判定</button>
+        <button class="btn btn-primary" onclick="applyKaiteiAuto()" title="蜿ｰ蟶ｳ縺ｮ蜈ｨ譁ｽ險ｭ蝓ｺ貅悶↓莉､蜥・蟷ｴ謾ｹ螳壼ｽｱ髻ｿ繧定・蜍募愛螳壹＠縺ｦ蜿肴丐縺励∪縺・>笞｡ 謾ｹ螳壼ｽｱ髻ｿ繧剃ｸ諡ｬ蜀榊愛螳・/button>
       </div>
     </div>
     <div id="kaitei-body"></div>
   </div>
 
-  <!-- 定例報告 -->
+  <!-- 螳壻ｾ句ｱ蜻・-->
   <div class="view" id="view-teirei">
     <div class="ph">
-      <div class="ph-left"><h2>定例報告管理</h2><p>毎年8月1日現在 → 8月末提出（関東信越厚生局東京事務所）｜⚠ 令和8年改定：歯初診（様式27）・外感染の定例報告は廃止</p></div>
-      <div class="ph-right"><button class="btn btn-primary" onclick="printTeirei()">🖨 印刷用チェックシート</button></div>
+      <div class="ph-left"><h2>螳壻ｾ句ｱ蜻顔ｮ｡逅・/h2><p>豈主ｹｴ8譛・譌･迴ｾ蝨ｨ 竊・8譛域忰謠仙・・磯未譚ｱ菫｡雜雁字逕溷ｱ譚ｱ莠ｬ莠句漁謇・会ｽ懌國 莉､蜥・蟷ｴ謾ｹ螳夲ｼ壽ｭｯ蛻晁ｨｺ・域ｧ伜ｼ・7・峨・螟匁─譟薙・螳壻ｾ句ｱ蜻翫・蟒・ｭ｢</p></div>
+      <div class="ph-right"><button class="btn btn-primary" onclick="printTeirei()">蜜 蜊ｰ蛻ｷ逕ｨ繝√ぉ繝・け繧ｷ繝ｼ繝・/button></div>
     </div>
     <div id="teirei-body"></div>
   </div>
 
-  <!-- 講習会管理 -->
+  <!-- 隰帷ｿ剃ｼ夂ｮ｡逅・-->
   <div class="view" id="view-koushu">
     <div class="ph">
-      <div class="ph-left"><h2>講習会・研修 期限管理</h2><p>院内感染防止対策研修（歯初診）など、施設基準に紐づく受講義務を管理</p></div>
-      <div class="ph-right"><button class="btn btn-primary" onclick="openKoushuModal()">＋ 受講記録を追加</button></div>
+      <div class="ph-left"><h2>隰帷ｿ剃ｼ壹・遐比ｿｮ 譛滄剞邂｡逅・/h2><p>髯｢蜀・─譟馴亟豁｢蟇ｾ遲也比ｿｮ・域ｭｯ蛻晁ｨｺ・峨↑縺ｩ縲∵命險ｭ蝓ｺ貅悶↓邏舌▼縺丞女隰帷ｾｩ蜍吶ｒ邂｡逅・/p></div>
+      <div class="ph-right"><button class="btn btn-primary" onclick="openKoushuModal()">・・蜿苓ｬ幄ｨ倬鹸繧定ｿｽ蜉</button></div>
     </div>
     <div id="koushu-body"></div>
   </div>
 
-  <!-- 期限管理 -->
-  <!-- 新規届出サポート -->
+  <!-- 譛滄剞邂｡逅・-->
+  <!-- 譁ｰ隕丞ｱ雁・繧ｵ繝昴・繝・-->
   <div class="view" id="view-shinki">
     <div class="ph">
-      <div class="ph-left"><h2>新規 施設基準 届出サポート</h2><p>取得したい施設基準を選ぶと、要件・様式・手順が確認できます</p></div>
+      <div class="ph-left"><h2>譁ｰ隕・譁ｽ險ｭ蝓ｺ貅・螻雁・繧ｵ繝昴・繝・/h2><p>蜿門ｾ励＠縺溘＞譁ｽ險ｭ蝓ｺ貅悶ｒ驕ｸ縺ｶ縺ｨ縲∬ｦ∽ｻｶ繝ｻ讒伜ｼ上・謇矩・′遒ｺ隱阪〒縺阪∪縺・/p></div>
     </div>
     <div id="shinki-body"></div>
   </div>
 
-  <!-- ベースアップ書類作成 -->
+  <!-- 繝吶・繧ｹ繧｢繝・・譖ｸ鬘樔ｽ懈・ -->
   <div class="view" id="view-baseup">
     <div class="ph">
       <div class="ph-left">
-        <h2>📋 ベースアップ評価料 書類作成</h2>
-        <p>様式95（計画書）・別添1（実績報告書）を入力して公式Excelをダウンロード</p>
+        <h2>搭 繝吶・繧ｹ繧｢繝・・隧穂ｾ｡譁・譖ｸ鬘樔ｽ懈・</h2>
+        <p>讒伜ｼ・5・郁ｨ育判譖ｸ・峨・蛻･豺ｻ1・亥ｮ溽ｸｾ蝣ｱ蜻頑嶌・峨ｒ蜈･蜉帙＠縺ｦ蜈ｬ蠑拾xcel繧偵ム繧ｦ繝ｳ繝ｭ繝ｼ繝・/p>
       </div>
     </div>
     <div id="baseup-body"></div>
   </div>
 
-  <!-- 補助金・助成金サポート -->
+  <!-- 陬懷勧驥代・蜉ｩ謌宣≡繧ｵ繝昴・繝・-->
   <div class="view" id="view-subsidy">
     <div class="ph">
       <div class="ph-left">
-        <h2>💴 補助金・助成金サポート</h2>
-        <p>歯科医院に関係しそうな制度を一覧で確認します。申請前には必ず公式情報を確認してください。</p>
+        <h2>超 陬懷勧驥代・蜉ｩ謌宣≡繧ｵ繝昴・繝・/h2>
+        <p>豁ｯ遘大現髯｢縺ｫ髢｢菫ゅ＠縺昴≧縺ｪ蛻ｶ蠎ｦ繧剃ｸ隕ｧ縺ｧ遒ｺ隱阪＠縺ｾ縺吶ら筏隲句燕縺ｫ縺ｯ蠢・★蜈ｬ蠑乗ュ蝣ｱ繧堤｢ｺ隱阪＠縺ｦ縺上□縺輔＞縲・/p>
       </div>
     </div>
     <div id="subsidy-body"></div>
@@ -188,152 +188,152 @@
   <div class="view" id="view-admin">
     <div class="admin-banner">
       <div>
-        <div class="admin-banner-label">管理者モード</div>
-        <div class="admin-banner-copy">管理者向け機能を通常画面から分離した専用エリアです</div>
+        <div class="admin-banner-label">邂｡逅・・Δ繝ｼ繝・/div>
+        <div class="admin-banner-copy">邂｡逅・・髄縺第ｩ溯・繧帝壼ｸｸ逕ｻ髱｢縺九ｉ蛻・屬縺励◆蟆ら畑繧ｨ繝ｪ繧｢縺ｧ縺・/div>
       </div>
-      <button class="btn btn-danger" onclick="exitAdminMode()">管理者モードを終了</button>
+      <button class="btn btn-danger" onclick="exitAdminMode()">邂｡逅・・Δ繝ｼ繝峨ｒ邨ゆｺ・/button>
     </div>
 
     <div class="ph">
       <div class="ph-left">
-        <h2>管理者モード</h2>
-        <p>歯科医師会側・保険委員会側が施設基準データを管理するための準備画面</p>
+        <h2>邂｡逅・・Δ繝ｼ繝・/h2>
+        <p>豁ｯ遘大現蟶ｫ莨壼・繝ｻ菫晞匱蟋泌藤莨壼・縺梧命險ｭ蝓ｺ貅悶ョ繝ｼ繧ｿ繧堤ｮ｡逅・☆繧九◆繧√・貅門ｙ逕ｻ髱｢</p>
       </div>
     </div>
 
     <div class="admin-inline-note">
-      <strong>この画面は管理者向けです。</strong> 公式データの取込・最新版データ確認・会員配布用データ作成などを行います。通常利用の先生は操作しないでください。
+      <strong>縺薙・逕ｻ髱｢縺ｯ邂｡逅・・髄縺代〒縺吶・/strong> 蜈ｬ蠑上ョ繝ｼ繧ｿ縺ｮ蜿冶ｾｼ繝ｻ譛譁ｰ迚医ョ繝ｼ繧ｿ遒ｺ隱阪・莨壼藤驟榊ｸ・畑繝・・繧ｿ菴懈・縺ｪ縺ｩ繧定｡後＞縺ｾ縺吶る壼ｸｸ蛻ｩ逕ｨ縺ｮ蜈育函縺ｯ謫堺ｽ懊＠縺ｪ縺・〒縺上□縺輔＞縲・
     </div>
 
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
         <div>
-          <div style="font-size:14px;font-weight:700;color:var(--text)">全施設基準 改定分析レビュー</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:3px">会員向けに表示する前に、アプリ内マスタ・台帳・様式リンク・管理者更新データの照合状況を確認します。</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">蜈ｨ譁ｽ險ｭ蝓ｺ貅・謾ｹ螳壼・譫舌Ξ繝薙Η繝ｼ</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">莨壼藤蜷代￠縺ｫ陦ｨ遉ｺ縺吶ｋ蜑阪↓縲√い繝励Μ蜀・・繧ｹ繧ｿ繝ｻ蜿ｰ蟶ｳ繝ｻ讒伜ｼ上Μ繝ｳ繧ｯ繝ｻ邂｡逅・・峩譁ｰ繝・・繧ｿ縺ｮ辣ｧ蜷育憾豕√ｒ遒ｺ隱阪＠縺ｾ縺吶・/div>
         </div>
-        <button class="btn btn-secondary" onclick="renderAdminMasterReview()">再集計</button>
+        <button class="btn btn-secondary" onclick="renderAdminMasterReview()">蜀埼寔險・/button>
       </div>
-      <div id="admin-master-alerts" class="admin-master-alerts">管理者モードを開くと確認結果を表示します。</div>
+      <div id="admin-master-alerts" class="admin-master-alerts">邂｡逅・・Δ繝ｼ繝峨ｒ髢九￥縺ｨ遒ｺ隱咲ｵ先棡繧定｡ｨ遉ｺ縺励∪縺吶・/div>
       <div class="admin-master-filters">
-        <input class="fi" id="admin-master-search" placeholder="施設基準名・略称・説明文で検索" oninput="renderAdminMasterReview()">
+        <input class="fi" id="admin-master-search" placeholder="譁ｽ險ｭ蝓ｺ貅門錐繝ｻ逡･遘ｰ繝ｻ隱ｬ譏取枚縺ｧ讀懃ｴ｢" oninput="renderAdminMasterReview()">
         <select class="fs" id="admin-master-filter" onchange="renderAdminMasterReview()">
-          <option value="all">全件</option>
-          <option value="unmatched">未照合のみ</option>
-          <option value="investigate">要調査のみ</option>
-          <option value="abolished">廃止・再編のみ</option>
-          <option value="baseup">ベースアップ関連のみ</option>
-          <option value="report">定例報告関連のみ</option>
-          <option value="new">新設のみ</option>
-          <option value="member-alert">会員画面で要確認・要対応</option>
+          <option value="all">蜈ｨ莉ｶ</option>
+          <option value="unmatched">譛ｪ辣ｧ蜷医・縺ｿ</option>
+          <option value="investigate">隕∬ｪｿ譟ｻ縺ｮ縺ｿ</option>
+          <option value="abolished">蟒・ｭ｢繝ｻ蜀咲ｷｨ縺ｮ縺ｿ</option>
+          <option value="baseup">繝吶・繧ｹ繧｢繝・・髢｢騾｣縺ｮ縺ｿ</option>
+          <option value="report">螳壻ｾ句ｱ蜻企未騾｣縺ｮ縺ｿ</option>
+          <option value="new">譁ｰ險ｭ縺ｮ縺ｿ</option>
+          <option value="member-alert">莨壼藤逕ｻ髱｢縺ｧ隕∫｢ｺ隱阪・隕∝ｯｾ蠢・/option>
         </select>
         <select class="fs" id="admin-master-category-filter" onchange="renderAdminMasterReview()">
-          <option value="all">カテゴリすべて</option>
-          <option value="basic">基本診療料</option>
-          <option value="special">特掲診療料</option>
-          <option value="other">その他</option>
+          <option value="all">繧ｫ繝・ざ繝ｪ縺吶∋縺ｦ</option>
+          <option value="basic">蝓ｺ譛ｬ險ｺ逋よ侭</option>
+          <option value="special">迚ｹ謗ｲ險ｺ逋よ侭</option>
+          <option value="other">縺昴・莉・/option>
         </select>
       </div>
-      <div id="admin-master-review" class="excel-import-empty">管理者モードを開くと一覧を表示します。</div>
+      <div id="admin-master-review" class="excel-import-empty">邂｡逅・・Δ繝ｼ繝峨ｒ髢九￥縺ｨ荳隕ｧ繧定｡ｨ遉ｺ縺励∪縺吶・/div>
     </div>
 
     <div style="background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:10px;padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)">
       <div style="font-size:13px;color:var(--text2);line-height:1.9">
-        <div>この画面は、歯科医師会側・保険委員会側が施設基準データを更新するための準備画面です。</div>
-        <div>現時点では、公式Excel/ZIP取込の第1段階として `.xlsx` の構造確認・医療機関番号検索・配布用JSONデータセット作成まで対応しています。</div>
-        <div>今後、関東信越厚生局の公式Excel/ZIPを読み込み、東京都・歯科の施設基準データを最新版として管理できるようにします。</div>
-        <div>会員側は、医療機関コードを入力するだけで配布用JSONから自院の施設基準を取り込める設計を目指します。既存台帳は自動上書きせず、差分確認後に反映します。</div>
+        <div>縺薙・逕ｻ髱｢縺ｯ縲∵ｭｯ遘大現蟶ｫ莨壼・繝ｻ菫晞匱蟋泌藤莨壼・縺梧命險ｭ蝓ｺ貅悶ョ繝ｼ繧ｿ繧呈峩譁ｰ縺吶ｋ縺溘ａ縺ｮ貅門ｙ逕ｻ髱｢縺ｧ縺吶・/div>
+        <div>迴ｾ譎らせ縺ｧ縺ｯ縲∝・蠑拾xcel/ZIP蜿冶ｾｼ縺ｮ隨ｬ1谿ｵ髫弱→縺励※ `.xlsx` 縺ｮ讒矩遒ｺ隱阪・蛹ｻ逋よｩ滄未逡ｪ蜿ｷ讀懃ｴ｢繝ｻ驟榊ｸ・畑JSON繝・・繧ｿ繧ｻ繝・ヨ菴懈・縺ｾ縺ｧ蟇ｾ蠢懊＠縺ｦ縺・∪縺吶・/div>
+        <div>莉雁ｾ後・未譚ｱ菫｡雜雁字逕溷ｱ縺ｮ蜈ｬ蠑拾xcel/ZIP繧定ｪｭ縺ｿ霎ｼ縺ｿ縲∵擲莠ｬ驛ｽ繝ｻ豁ｯ遘代・譁ｽ險ｭ蝓ｺ貅悶ョ繝ｼ繧ｿ繧呈怙譁ｰ迚医→縺励※邂｡逅・〒縺阪ｋ繧医≧縺ｫ縺励∪縺吶・/div>
+        <div>莨壼藤蛛ｴ縺ｯ縲∝現逋よｩ滄未繧ｳ繝ｼ繝峨ｒ蜈･蜉帙☆繧九□縺代〒驟榊ｸ・畑JSON縺九ｉ閾ｪ髯｢縺ｮ譁ｽ險ｭ蝓ｺ貅悶ｒ蜿悶ｊ霎ｼ繧√ｋ險ｭ險医ｒ逶ｮ謖・＠縺ｾ縺吶よ里蟄伜床蟶ｳ縺ｯ閾ｪ蜍穂ｸ頑嶌縺阪○縺壹∝ｷｮ蛻・｢ｺ隱榊ｾ後↓蜿肴丐縺励∪縺吶・/div>
       </div>
     </div>
 
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-        <div style="font-size:14px;font-weight:700;color:var(--text)">管理者パスフレーズ設定</div>
-        <span class="badge bb">誤操作防止用</span>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">邂｡逅・・ヱ繧ｹ繝輔Ξ繝ｼ繧ｺ險ｭ螳・/div>
+        <span class="badge bb">隱､謫堺ｽ憺亟豁｢逕ｨ</span>
       </div>
       <div class="admin-security-status" id="admin-security-status"></div>
       <div class="admin-default-tip" id="admin-default-tip">
-        初期パスフレーズのまま運用している場合は、公開前または引き渡し前に変更してください。単一HTMLアプリのため厳密な認証ではありませんが、誤操作防止には有効です。
+        蛻晄悄繝代せ繝輔Ξ繝ｼ繧ｺ縺ｮ縺ｾ縺ｾ驕狗畑縺励※縺・ｋ蝣ｴ蜷医・縲∝・髢句燕縺ｾ縺溘・蠑輔″貂｡縺怜燕縺ｫ螟画峩縺励※縺上□縺輔＞縲ょ腰荳HTML繧｢繝励Μ縺ｮ縺溘ａ蜴ｳ蟇・↑隱崎ｨｼ縺ｧ縺ｯ縺ゅｊ縺ｾ縺帙ｓ縺後∬ｪ､謫堺ｽ憺亟豁｢縺ｫ縺ｯ譛牙柑縺ｧ縺吶・
       </div>
       <div class="fr2">
         <div class="fr">
-          <div class="fl">現在のパスフレーズ</div>
-          <input type="password" class="fi" id="admin-current-passphrase" placeholder="現在の管理者パスフレーズ">
+          <div class="fl">迴ｾ蝨ｨ縺ｮ繝代せ繝輔Ξ繝ｼ繧ｺ</div>
+          <input type="password" class="fi" id="admin-current-passphrase" placeholder="迴ｾ蝨ｨ縺ｮ邂｡逅・・ヱ繧ｹ繝輔Ξ繝ｼ繧ｺ">
         </div>
         <div class="fr">
-          <div class="fl">新しいパスフレーズ</div>
-          <input type="password" class="fi" id="admin-new-passphrase" placeholder="新しい管理者パスフレーズ">
+          <div class="fl">譁ｰ縺励＞繝代せ繝輔Ξ繝ｼ繧ｺ</div>
+          <input type="password" class="fi" id="admin-new-passphrase" placeholder="譁ｰ縺励＞邂｡逅・・ヱ繧ｹ繝輔Ξ繝ｼ繧ｺ">
         </div>
       </div>
       <div class="fr">
-        <div class="fl">新しいパスフレーズ（確認）</div>
-        <input type="password" class="fi" id="admin-confirm-passphrase" placeholder="確認のためもう一度入力">
+        <div class="fl">譁ｰ縺励＞繝代せ繝輔Ξ繝ｼ繧ｺ・育｢ｺ隱搾ｼ・/div>
+        <input type="password" class="fi" id="admin-confirm-passphrase" placeholder="遒ｺ隱阪・縺溘ａ繧ゅ≧荳蠎ｦ蜈･蜉・>
       </div>
-      <div class="admin-helper">保存先は <code>localStorage</code> ですが、値そのものではなく SHA-256 ハッシュを記録します。ログイン状態は <code>sessionStorage</code> で管理し、ブラウザを閉じるか「管理者モードを終了」で解除されます。</div>
+      <div class="admin-helper">菫晏ｭ伜・縺ｯ <code>localStorage</code> 縺ｧ縺吶′縲∝､縺昴・繧ゅ・縺ｧ縺ｯ縺ｪ縺・SHA-256 繝上ャ繧ｷ繝･繧定ｨ倬鹸縺励∪縺吶ゅΟ繧ｰ繧､繝ｳ迥ｶ諷九・ <code>sessionStorage</code> 縺ｧ邂｡逅・＠縲√ヶ繝ｩ繧ｦ繧ｶ繧帝哩縺倥ｋ縺九檎ｮ｡逅・・Δ繝ｼ繝峨ｒ邨ゆｺ・阪〒隗｣髯､縺輔ｌ縺ｾ縺吶・/div>
       <div class="mf">
-        <button class="btn btn-secondary" onclick="resetAdminPassphraseToDefault()">初期パスフレーズに戻す</button>
-        <button class="btn btn-primary" onclick="changeAdminPassphrase()">パスフレーズを保存</button>
+        <button class="btn btn-secondary" onclick="resetAdminPassphraseToDefault()">蛻晄悄繝代せ繝輔Ξ繝ｼ繧ｺ縺ｫ謌ｻ縺・/button>
+        <button class="btn btn-primary" onclick="changeAdminPassphrase()">繝代せ繝輔Ξ繝ｼ繧ｺ繧剃ｿ晏ｭ・/button>
       </div>
     </div>
 
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
         <div>
-          <div style="font-size:14px;font-weight:700;color:var(--text)">様式リンク確認</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:3px">新規届出サポートで表示する令和8年度様式リンクの登録状況を確認します。</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">讒伜ｼ上Μ繝ｳ繧ｯ遒ｺ隱・/div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">譁ｰ隕丞ｱ雁・繧ｵ繝昴・繝医〒陦ｨ遉ｺ縺吶ｋ莉､蜥・蟷ｴ蠎ｦ讒伜ｼ上Μ繝ｳ繧ｯ縺ｮ逋ｻ骭ｲ迥ｶ豕√ｒ遒ｺ隱阪＠縺ｾ縺吶・/div>
         </div>
-        <span class="badge bb">令和8年度</span>
+        <span class="badge bb">莉､蜥・蟷ｴ蠎ｦ</span>
       </div>
-      <div id="facility-form-link-audit" class="excel-import-empty">管理者モードを開くと確認結果を表示します。</div>
+      <div id="facility-form-link-audit" class="excel-import-empty">邂｡逅・・Δ繝ｼ繝峨ｒ髢九￥縺ｨ遒ｺ隱咲ｵ先棡繧定｡ｨ遉ｺ縺励∪縺吶・/div>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:18px">
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
-          <div style="font-size:14px;font-weight:700;color:var(--text)">公式Excel/ZIP取込</div>
-          <span class="badge bb">第1段階</span>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">蜈ｬ蠑拾xcel/ZIP蜿冶ｾｼ</div>
+          <span class="badge bb">隨ｬ1谿ｵ髫・/span>
         </div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:12px">まずは `.xlsx` を読み込み、シート構成・列名・先頭データを安全に確認できます。ZIP取込と本体反映は次段階で対応予定です。</div>
-        <button class="btn btn-primary" onclick="openExcelImportModal()">📊 Excelを読み込む</button>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:12px">縺ｾ縺壹・ `.xlsx` 繧定ｪｭ縺ｿ霎ｼ縺ｿ縲√す繝ｼ繝域ｧ区・繝ｻ蛻怜錐繝ｻ蜈磯ｭ繝・・繧ｿ繧貞ｮ牙・縺ｫ遒ｺ隱阪〒縺阪∪縺吶・IP蜿冶ｾｼ縺ｨ譛ｬ菴灘渚譏縺ｯ谺｡谿ｵ髫弱〒蟇ｾ蠢應ｺ亥ｮ壹〒縺吶・/div>
+        <button class="btn btn-primary" onclick="openExcelImportModal()">投 Excel繧定ｪｭ縺ｿ霎ｼ繧</button>
       </div>
 
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
-          <div style="font-size:14px;font-weight:700;color:var(--text)">最新版データ確認</div>
-          <span class="badge by">未実装</span>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">譛譁ｰ迚医ョ繝ｼ繧ｿ遒ｺ隱・/div>
+          <span class="badge by">譛ｪ螳溯｣・/span>
         </div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.8">現在アプリに登録されている最新版データの基準日、作成日、件数を確認する予定です。</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">迴ｾ蝨ｨ繧｢繝励Μ縺ｫ逋ｻ骭ｲ縺輔ｌ縺ｦ縺・ｋ譛譁ｰ迚医ョ繝ｼ繧ｿ縺ｮ蝓ｺ貅匁律縲∽ｽ懈・譌･縲∽ｻｶ謨ｰ繧堤｢ｺ隱阪☆繧倶ｺ亥ｮ壹〒縺吶・/div>
       </div>
 
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
-          <div style="font-size:14px;font-weight:700;color:var(--text)">医療機関コード検索テスト</div>
-          <span class="badge by">未実装</span>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">蛹ｻ逋よｩ滄未繧ｳ繝ｼ繝画､懃ｴ｢繝・せ繝・/div>
+          <span class="badge by">譛ｪ螳溯｣・/span>
         </div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.8">3440435、3440609などのテスト用医療機関コードで、正しく医院名と施設基準が取得できるか確認する予定です。</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">3440435縲・440609縺ｪ縺ｩ縺ｮ繝・せ繝育畑蛹ｻ逋よｩ滄未繧ｳ繝ｼ繝峨〒縲∵ｭ｣縺励￥蛹ｻ髯｢蜷阪→譁ｽ險ｭ蝓ｺ貅悶′蜿門ｾ励〒縺阪ｋ縺狗｢ｺ隱阪☆繧倶ｺ亥ｮ壹〒縺吶・/div>
       </div>
 
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
-          <div style="font-size:14px;font-weight:700;color:var(--text)">会員配布用データ作成</div>
-          <span class="badge bb">第2段階</span>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">莨壼藤驟榊ｸ・畑繝・・繧ｿ菴懈・</div>
+          <span class="badge bb">隨ｬ2谿ｵ髫・/span>
         </div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.8">公式Excel全体を正規化し、会員側が医療機関番号だけで利用できる配布用JSONデータセットを作成できます。</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">蜈ｬ蠑拾xcel蜈ｨ菴薙ｒ豁｣隕丞喧縺励∽ｼ壼藤蛛ｴ縺悟現逋よｩ滄未逡ｪ蜿ｷ縺縺代〒蛻ｩ逕ｨ縺ｧ縺阪ｋ驟榊ｸ・畑JSON繝・・繧ｿ繧ｻ繝・ヨ繧剃ｽ懈・縺ｧ縺阪∪縺吶・/div>
       </div>
     </div>
 
     <div style="background:var(--yellow-bg);border:1px solid #fde68a;border-radius:10px;padding:16px 18px;box-shadow:var(--shadow)">
-      <div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:8px">注意</div>
+      <div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:8px">豕ｨ諢・/div>
       <div style="font-size:12px;color:var(--text2);line-height:1.9">
-        <div>この管理者モードは、現時点では本格的な認証機能ではありません。</div>
-        <div>ローカルHTMLアプリ上の誤操作防止・画面整理用の機能です。</div>
-        <div>給与情報、マイナンバー、患者情報、会員医院の実データは入力しないでください。</div>
-        <div>公式Excel/ZIP取込機能を追加するまでは、現在のPDF取込機能を継続して利用してください。</div>
+        <div>縺薙・邂｡逅・・Δ繝ｼ繝峨・縲∫樟譎らせ縺ｧ縺ｯ譛ｬ譬ｼ逧・↑隱崎ｨｼ讖溯・縺ｧ縺ｯ縺ゅｊ縺ｾ縺帙ｓ縲・/div>
+        <div>繝ｭ繝ｼ繧ｫ繝ｫHTML繧｢繝励Μ荳翫・隱､謫堺ｽ憺亟豁｢繝ｻ逕ｻ髱｢謨ｴ逅・畑縺ｮ讖溯・縺ｧ縺吶・/div>
+        <div>邨ｦ荳取ュ蝣ｱ縲√・繧､繝翫Φ繝舌・縲∵ぅ閠・ュ蝣ｱ縲∽ｼ壼藤蛹ｻ髯｢縺ｮ螳溘ョ繝ｼ繧ｿ縺ｯ蜈･蜉帙＠縺ｪ縺・〒縺上□縺輔＞縲・/div>
+        <div>蜈ｬ蠑拾xcel/ZIP蜿冶ｾｼ讖溯・繧定ｿｽ蜉縺吶ｋ縺ｾ縺ｧ縺ｯ縲∫樟蝨ｨ縺ｮPDF蜿冶ｾｼ讖溯・繧堤ｶ咏ｶ壹＠縺ｦ蛻ｩ逕ｨ縺励※縺上□縺輔＞縲・/div>
       </div>
     </div>
   </div>
 
   <div class="view" id="view-deadline">
-    <div class="ph"><div class="ph-left"><h2>期限管理</h2><p>行政届出・報告の期限一覧</p></div></div>
+    <div class="ph"><div class="ph-left"><h2>譛滄剞邂｡逅・/h2><p>陦梧帆螻雁・繝ｻ蝣ｱ蜻翫・譛滄剞荳隕ｧ</p></div></div>
     <div id="deadline-body"></div>
   </div>
 </div>
@@ -341,69 +341,69 @@
 
 <!-- DETAIL PANEL -->
 <div class="dp" id="dp">
-  <div class="dph"><div id="dp-title" style="font-size:14px;font-weight:700"></div><button type="button" class="dpclose" onclick="closeDP()" aria-label="施設基準詳細を閉じる">閉じる ×</button></div>
+  <div class="dph"><div id="dp-title" style="font-size:14px;font-weight:700"></div><button type="button" class="dpclose" onclick="closeDP()" aria-label="譁ｽ險ｭ蝓ｺ貅冶ｩｳ邏ｰ繧帝哩縺倥ｋ">髢峨§繧・ﾃ・/button></div>
   <div id="dp-body"></div>
 </div>
 
 <!-- ADD MODAL -->
 <div class="overlay" id="add-overlay">
   <div class="modal">
-    <div class="mt" id="add-modal-title">施設基準を追加</div>
-    <div class="ms">届出済みの施設基準を登録します</div>
+    <div class="mt" id="add-modal-title">譁ｽ險ｭ蝓ｺ貅悶ｒ霑ｽ蜉</div>
+    <div class="ms">螻雁・貂医∩縺ｮ譁ｽ險ｭ蝓ｺ貅悶ｒ逋ｻ骭ｲ縺励∪縺・/div>
     <input type="hidden" id="edit-id">
     <div class="fr">
-      <div class="fl">施設基準名</div>
+      <div class="fl">譁ｽ險ｭ蝓ｺ貅門錐</div>
       <select class="fs" id="new-name" onchange="onNameChange(this)">
-        <option value="">選択してください</option>
-        <option>歯科点数表の初診料の注1（院内感染防止対策）</option>
-        <option>歯科外来診療医療安全対策加算1（外安全1）</option>
-        <option>歯科外来診療感染対策加算1（外感染1）</option>
-        <option>口腔管理体制強化加算（口管強）</option>
-        <option>歯科訪問診療料（施設基準）</option>
-        <option>CAD/CAM冠・CAD/CAMインレー</option>
-        <option>歯科治療総合医療管理料</option>
-        <option>歯科技工士連携加算1</option>
-        <option>歯科技工士連携加算2</option>
-        <option>光学印象歯科技工士連携加算</option>
-        <option>医療DX推進体制整備加算</option>
-        <option>歯科外来在宅ベースアップ評価料（Ⅰ）</option>
-        <option>在宅療養支援歯科診療所</option>
-        <option>補綴物維持管理料</option>
-        <option>手術用顕微鏡加算</option>
-        <option>GTR法（再生誘導法）</option>
-        <option>咀嚼能力測定</option>
-        <option>咬合圧検査</option>
-        <option value="__custom__">その他（カスタム入力）</option>
+        <option value="">驕ｸ謚槭＠縺ｦ縺上□縺輔＞</option>
+        <option>豁ｯ遘醍せ謨ｰ陦ｨ縺ｮ蛻晁ｨｺ譁吶・豕ｨ1・磯劼蜀・─譟馴亟豁｢蟇ｾ遲厄ｼ・/option>
+        <option>豁ｯ遘大､匁擂險ｺ逋ょ現逋ょｮ牙・蟇ｾ遲門刈邂・・亥､門ｮ牙・1・・/option>
+        <option>豁ｯ遘大､匁擂險ｺ逋よ─譟灘ｯｾ遲門刈邂・・亥､匁─譟・・・/option>
+        <option>蜿｣閻皮ｮ｡逅・ｽ灘宛蠑ｷ蛹門刈邂暦ｼ亥哨邂｡蠑ｷ・・/option>
+        <option>豁ｯ遘題ｨｪ蝠剰ｨｺ逋よ侭・域命險ｭ蝓ｺ貅厄ｼ・/option>
+        <option>CAD/CAM蜀繝ｻCAD/CAM繧､繝ｳ繝ｬ繝ｼ</option>
+        <option>豁ｯ遘第ｲｻ逋らｷ丞粋蛹ｻ逋らｮ｡逅・侭</option>
+        <option>豁ｯ遘第橿蟾･螢ｫ騾｣謳ｺ蜉邂・</option>
+        <option>豁ｯ遘第橿蟾･螢ｫ騾｣謳ｺ蜉邂・</option>
+        <option>蜈牙ｭｦ蜊ｰ雎｡豁ｯ遘第橿蟾･螢ｫ騾｣謳ｺ蜉邂・/option>
+        <option>蛹ｻ逋・X謗ｨ騾ｲ菴灘宛謨ｴ蛯吝刈邂・/option>
+        <option>豁ｯ遘大､匁擂蝨ｨ螳・・繝ｼ繧ｹ繧｢繝・・隧穂ｾ｡譁呻ｼ遺・・・/option>
+        <option>蝨ｨ螳・凾鬢頑髪謠ｴ豁ｯ遘題ｨｺ逋よ園</option>
+        <option>陬懃ｶｴ迚ｩ邯ｭ謖∫ｮ｡逅・侭</option>
+        <option>謇玖｡鍋畑鬘募ｾｮ髀｡蜉邂・/option>
+        <option>GTR豕包ｼ亥・逕溯ｪ伜ｰ取ｳ包ｼ・/option>
+        <option>蜥蝴ｼ閭ｽ蜉帶ｸｬ螳・/option>
+        <option>蜥ｬ蜷亥悸讀懈渊</option>
+        <option value="__custom__">縺昴・莉厄ｼ医き繧ｹ繧ｿ繝蜈･蜉幢ｼ・/option>
       </select>
     </div>
     <div class="fr" id="custom-row" style="display:none">
-      <div class="fl">施設基準名（カスタム）</div>
-      <input type="text" class="fi" id="custom-name" placeholder="施設基準名を入力">
+      <div class="fl">譁ｽ險ｭ蝓ｺ貅門錐・医き繧ｹ繧ｿ繝・・/div>
+      <input type="text" class="fi" id="custom-name" placeholder="譁ｽ險ｭ蝓ｺ貅門錐繧貞・蜉・>
     </div>
     <div class="fr2">
-      <div class="fr"><div class="fl">略称コード</div><input type="text" class="fi" id="new-abbr" placeholder="例：歯初診"></div>
-      <div class="fr"><div class="fl">受理番号</div><input type="text" class="fi" id="new-num" placeholder="例：第305505号"></div>
+      <div class="fr"><div class="fl">逡･遘ｰ繧ｳ繝ｼ繝・/div><input type="text" class="fi" id="new-abbr" placeholder="萓具ｼ壽ｭｯ蛻晁ｨｺ"></div>
+      <div class="fr"><div class="fl">蜿礼炊逡ｪ蜿ｷ</div><input type="text" class="fi" id="new-num" placeholder="萓具ｼ夂ｬｬ305505蜿ｷ"></div>
     </div>
     <div class="fr2">
-      <div class="fr"><div class="fl">算定開始年月日</div><input type="date" class="fi" id="new-date"></div>
-      <div class="fr"><div class="fl">カテゴリ</div>
+      <div class="fr"><div class="fl">邂怜ｮ夐幕蟋句ｹｴ譛域律</div><input type="date" class="fi" id="new-date"></div>
+      <div class="fr"><div class="fl">繧ｫ繝・ざ繝ｪ</div>
         <select class="fs" id="new-cat">
-          <option value="basic">基本診療料</option><option value="special">特掲診療料</option><option value="other">その他</option>
+          <option value="basic">蝓ｺ譛ｬ險ｺ逋よ侭</option><option value="special">迚ｹ謗ｲ險ｺ逋よ侭</option><option value="other">縺昴・莉・/option>
         </select>
       </div>
     </div>
     <div class="fr2">
-      <div class="fr"><div class="fl">状態</div>
-        <select class="fs" id="new-status"><option value="green">✓ 要件充足</option><option value="yellow">⚠ 要確認</option><option value="red">✕ 要対応</option></select>
+      <div class="fr"><div class="fl">迥ｶ諷・/div>
+        <select class="fs" id="new-status"><option value="green">笨・隕∽ｻｶ蜈・ｶｳ</option><option value="yellow">笞 隕∫｢ｺ隱・/option><option value="red">笨・隕∝ｯｾ蠢・/option></select>
       </div>
-      <div class="fr"><div class="fl">改定影響（R8）</div>
-        <select class="fs" id="new-kaitei"><option value="none">変更なし</option><option value="reapply">再届出必要</option><option value="check">要件確認必要</option><option value="grace">経過措置中</option><option value="expire">廃止・統合</option></select>
+      <div class="fr"><div class="fl">謾ｹ螳壼ｽｱ髻ｿ・・8・・/div>
+        <select class="fs" id="new-kaitei"><option value="none">螟画峩縺ｪ縺・/option><option value="reapply">蜀榊ｱ雁・蠢・ｦ・/option><option value="check">隕∽ｻｶ遒ｺ隱榊ｿ・ｦ・/option><option value="grace">邨碁℃謗ｪ鄂ｮ荳ｭ</option><option value="expire">蟒・ｭ｢繝ｻ邨ｱ蜷・/option></select>
       </div>
     </div>
-    <div class="fr"><div class="fl">メモ</div><textarea class="fta" id="new-memo" placeholder="経過措置期限・担当者メモ等"></textarea></div>
+    <div class="fr"><div class="fl">繝｡繝｢</div><textarea class="fta" id="new-memo" placeholder="邨碁℃謗ｪ鄂ｮ譛滄剞繝ｻ諡・ｽ楢・Γ繝｢遲・></textarea></div>
     <div class="mf">
-      <button class="btn btn-ghost" onclick="closeOverlay('add-overlay')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveEntry()">保存する</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('add-overlay')">繧ｭ繝｣繝ｳ繧ｻ繝ｫ</button>
+      <button class="btn btn-primary" onclick="saveEntry()">菫晏ｭ倥☆繧・/button>
     </div>
   </div>
 </div>
@@ -413,62 +413,62 @@
 <!-- DATA MANAGER MODAL -->
 <div class="overlay" id="data-mgr-overlay">
   <div class="modal modal-lg">
-    <div class="mt">💾 データ管理</div>
-    <div class="ms">データのエクスポート・インポートでバージョン更新時もデータを引き継げます</div>
+    <div class="mt">沈 繝・・繧ｿ邂｡逅・/div>
+    <div class="ms">繝・・繧ｿ縺ｮ繧ｨ繧ｯ繧ｹ繝昴・繝医・繧､繝ｳ繝昴・繝医〒繝舌・繧ｸ繝ｧ繝ｳ譖ｴ譁ｰ譎ゅｂ繝・・繧ｿ繧貞ｼ輔″邯吶￡縺ｾ縺・/div>
 
-    <!-- バージョン更新手順 -->
+    <!-- 繝舌・繧ｸ繝ｧ繝ｳ譖ｴ譁ｰ謇矩・-->
     <div style="background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;margin-bottom:20px">
-      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">🔄 バージョン更新時の手順</div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">売 繝舌・繧ｸ繝ｧ繝ｳ譖ｴ譁ｰ譎ゅ・謇矩・/div>
       <div style="font-size:12px;color:var(--text2);line-height:2">
         <span style="display:inline-block;background:var(--accent);color:#fff;border-radius:50%;width:18px;height:18px;text-align:center;line-height:18px;font-size:10px;font-weight:700;margin-right:6px">1</span>
-        この画面で「<strong style="color:var(--text)">全データをエクスポート</strong>」→ JSONファイルを保存<br>
+        縺薙・逕ｻ髱｢縺ｧ縲・strong style="color:var(--text)">蜈ｨ繝・・繧ｿ繧偵お繧ｯ繧ｹ繝昴・繝・/strong>縲坂・ JSON繝輔ぃ繧､繝ｫ繧剃ｿ晏ｭ・br>
         <span style="display:inline-block;background:var(--accent);color:#fff;border-radius:50%;width:18px;height:18px;text-align:center;line-height:18px;font-size:10px;font-weight:700;margin-right:6px">2</span>
-        新しいバージョンのHTMLファイルを開く<br>
+        譁ｰ縺励＞繝舌・繧ｸ繝ｧ繝ｳ縺ｮHTML繝輔ぃ繧､繝ｫ繧帝幕縺・br>
         <span style="display:inline-block;background:var(--accent);color:#fff;border-radius:50%;width:18px;height:18px;text-align:center;line-height:18px;font-size:10px;font-weight:700;margin-right:6px">3</span>
-        この画面で「<strong style="color:var(--text)">JSONからインポート</strong>」→ 手順1で保存したファイルを選択<br>
-        <span style="display:inline-block;background:var(--green);color:#fff;border-radius:50%;width:18px;height:18px;text-align:center;line-height:18px;font-size:10px;font-weight:700;margin-right:6px">✓</span>
-        届出台帳・定例報告記録・講習会履歴がすべて復元されます
+        縺薙・逕ｻ髱｢縺ｧ縲・strong style="color:var(--text)">JSON縺九ｉ繧､繝ｳ繝昴・繝・/strong>縲坂・ 謇矩・縺ｧ菫晏ｭ倥＠縺溘ヵ繧｡繧､繝ｫ繧帝∈謚・br>
+        <span style="display:inline-block;background:var(--green);color:#fff;border-radius:50%;width:18px;height:18px;text-align:center;line-height:18px;font-size:10px;font-weight:700;margin-right:6px">笨・/span>
+        螻雁・蜿ｰ蟶ｳ繝ｻ螳壻ｾ句ｱ蜻願ｨ倬鹸繝ｻ隰帷ｿ剃ｼ壼ｱ･豁ｴ縺後☆縺ｹ縺ｦ蠕ｩ蜈・＆繧後∪縺・
       </div>
     </div>
 
-    <!-- 保存データ一覧 -->
+    <!-- 菫晏ｭ倥ョ繝ｼ繧ｿ荳隕ｧ -->
     <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px">
-      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">📊 現在保存されているデータ</div>
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">投 迴ｾ蝨ｨ菫晏ｭ倥＆繧後※縺・ｋ繝・・繧ｿ</div>
       <div id="data-summary" style="font-size:12px;color:var(--text2);line-height:2"></div>
     </div>
 
-    <!-- エクスポート -->
+    <!-- 繧ｨ繧ｯ繧ｹ繝昴・繝・-->
     <div style="margin-bottom:16px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px">📤 エクスポート</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">豆 繧ｨ繧ｯ繧ｹ繝昴・繝・/div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="exportAllData()">
-          💾 全データをエクスポート（JSON）
+          沈 蜈ｨ繝・・繧ｿ繧偵お繧ｯ繧ｹ繝昴・繝茨ｼ・SON・・
         </button>
         <button class="btn btn-secondary" onclick="exportCSV()">
-          📊 届出台帳のみ CSV出力
+          投 螻雁・蜿ｰ蟶ｳ縺ｮ縺ｿ CSV蜃ｺ蜉・
         </button>
       </div>
       <div style="font-size:11px;color:var(--text3);margin-top:6px">
-        JSONファイルには届出台帳・定例報告記録・講習会履歴・医院名がすべて含まれます
+        JSON繝輔ぃ繧､繝ｫ縺ｫ縺ｯ螻雁・蜿ｰ蟶ｳ繝ｻ螳壻ｾ句ｱ蜻願ｨ倬鹸繝ｻ隰帷ｿ剃ｼ壼ｱ･豁ｴ繝ｻ蛹ｻ髯｢蜷阪′縺吶∋縺ｦ蜷ｫ縺ｾ繧後∪縺・
       </div>
     </div>
 
-    <!-- インポート -->
+    <!-- 繧､繝ｳ繝昴・繝・-->
     <div style="margin-bottom:8px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px">📥 インポート（JSONから復元）</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px">踏 繧､繝ｳ繝昴・繝茨ｼ・SON縺九ｉ蠕ｩ蜈・ｼ・/div>
       <div style="background:var(--red-bg);border:1px solid #fecaca;border-radius:6px;padding:8px 12px;font-size:11px;color:var(--red);margin-bottom:10px">
-        ⚠ インポートすると現在のデータに上書きされます。必ず先にエクスポートしてバックアップを取ってください。
+        笞 繧､繝ｳ繝昴・繝医☆繧九→迴ｾ蝨ｨ縺ｮ繝・・繧ｿ縺ｫ荳頑嶌縺阪＆繧後∪縺吶ょｿ・★蜈医↓繧ｨ繧ｯ繧ｹ繝昴・繝医＠縺ｦ繝舌ャ繧ｯ繧｢繝・・繧貞叙縺｣縺ｦ縺上□縺輔＞縲・
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="file" id="import-json-file" accept=".json" style="display:none" onchange="importAllData(event)">
         <button class="btn btn-secondary" onclick="document.getElementById('import-json-file').click()">
-          📂 JSONファイルを選択してインポート
+          唐 JSON繝輔ぃ繧､繝ｫ繧帝∈謚槭＠縺ｦ繧､繝ｳ繝昴・繝・
         </button>
       </div>
     </div>
 
     <div class="mf">
-      <button class="btn btn-ghost" onclick="closeOverlay('data-mgr-overlay')">閉じる</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('data-mgr-overlay')">髢峨§繧・/button>
     </div>
   </div>
 </div>
@@ -477,18 +477,18 @@
 <!-- ADMIN ACCESS MODAL -->
 <div class="overlay" id="admin-access-overlay">
   <div class="modal" style="max-width:520px">
-    <div class="mt">🛠 管理者用</div>
-    <div class="ms">管理者モードは通常利用画面から分離されています。誤操作防止のため、管理者パスフレーズを入力してください。</div>
+    <div class="mt">屏 邂｡逅・・畑</div>
+    <div class="ms">邂｡逅・・Δ繝ｼ繝峨・騾壼ｸｸ蛻ｩ逕ｨ逕ｻ髱｢縺九ｉ蛻・屬縺輔ｌ縺ｦ縺・∪縺吶りｪ､謫堺ｽ憺亟豁｢縺ｮ縺溘ａ縲∫ｮ｡逅・・ヱ繧ｹ繝輔Ξ繝ｼ繧ｺ繧貞・蜉帙＠縺ｦ縺上□縺輔＞縲・/div>
     <div class="form-note" id="admin-access-note"></div>
     <div class="form-error" id="admin-access-error"></div>
     <div class="fr">
-      <div class="fl">管理者パスフレーズ</div>
-      <input type="password" class="fi" id="admin-passphrase-input" placeholder="管理者パスフレーズを入力" onkeydown="if(event.key==='Enter')submitAdminPassphrase()">
+      <div class="fl">邂｡逅・・ヱ繧ｹ繝輔Ξ繝ｼ繧ｺ</div>
+      <input type="password" class="fi" id="admin-passphrase-input" placeholder="邂｡逅・・ヱ繧ｹ繝輔Ξ繝ｼ繧ｺ繧貞・蜉・ onkeydown="if(event.key==='Enter')submitAdminPassphrase()">
     </div>
-    <div class="admin-helper">この機能は完全な認証ではありません。会員向け通常操作から管理者機能を分離し、誤って開かないようにするための導線です。</div>
+    <div class="admin-helper">縺薙・讖溯・縺ｯ螳悟・縺ｪ隱崎ｨｼ縺ｧ縺ｯ縺ゅｊ縺ｾ縺帙ｓ縲ゆｼ壼藤蜷代￠騾壼ｸｸ謫堺ｽ懊°繧臥ｮ｡逅・・ｩ溯・繧貞・髮｢縺励∬ｪ､縺｣縺ｦ髢九°縺ｪ縺・ｈ縺・↓縺吶ｋ縺溘ａ縺ｮ蟆守ｷ壹〒縺吶・/div>
     <div class="mf">
-      <button class="btn btn-ghost" onclick="closeOverlay('admin-access-overlay')">キャンセル</button>
-      <button class="btn btn-primary" onclick="submitAdminPassphrase()">管理者モードを開く</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('admin-access-overlay')">繧ｭ繝｣繝ｳ繧ｻ繝ｫ</button>
+      <button class="btn btn-primary" onclick="submitAdminPassphrase()">邂｡逅・・Δ繝ｼ繝峨ｒ髢九￥</button>
     </div>
   </div>
 </div>
@@ -496,78 +496,78 @@
 <!-- EXCEL IMPORT MODAL -->
 <div class="overlay" id="excel-import-overlay">
   <div class="modal modal-lg excel-import-modal">
-    <div class="mt">📊 公式Excel取込プレビュー</div>
-    <div class="ms">`.xlsx` ファイルをブラウザ内で読み込み、シート名・列名・先頭データだけを確認します。この段階では本体データへ反映しません。</div>
-    <div class="form-note">SheetJS を利用してブラウザ内で解析します。GitHub Pages の静的構成のまま動作し、取り込み確定処理は後続フェーズで追加します。</div>
+    <div class="mt">投 蜈ｬ蠑拾xcel蜿冶ｾｼ繝励Ξ繝薙Η繝ｼ</div>
+    <div class="ms">`.xlsx` 繝輔ぃ繧､繝ｫ繧偵ヶ繝ｩ繧ｦ繧ｶ蜀・〒隱ｭ縺ｿ霎ｼ縺ｿ縲√す繝ｼ繝亥錐繝ｻ蛻怜錐繝ｻ蜈磯ｭ繝・・繧ｿ縺縺代ｒ遒ｺ隱阪＠縺ｾ縺吶ゅ％縺ｮ谿ｵ髫弱〒縺ｯ譛ｬ菴薙ョ繝ｼ繧ｿ縺ｸ蜿肴丐縺励∪縺帙ｓ縲・/div>
+    <div class="form-note">SheetJS 繧貞茜逕ｨ縺励※繝悶Λ繧ｦ繧ｶ蜀・〒隗｣譫舌＠縺ｾ縺吶・itHub Pages 縺ｮ髱咏噪讒区・縺ｮ縺ｾ縺ｾ蜍穂ｽ懊＠縲∝叙繧願ｾｼ縺ｿ遒ｺ螳壼・逅・・蠕檎ｶ壹ヵ繧ｧ繝ｼ繧ｺ縺ｧ霑ｽ蜉縺励∪縺吶・/div>
     <div class="form-error" id="excel-import-error"></div>
     <div class="excel-import-toolbar">
       <label class="btn btn-primary excel-import-picker">
-        <span>📂 Excelファイルを選択</span>
+        <span>唐 Excel繝輔ぃ繧､繝ｫ繧帝∈謚・/span>
         <input type="file" id="excel-import-file" class="excel-import-native-input" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onchange="handleExcelFileSelect(event)">
       </label>
-      <div class="excel-import-file" id="excel-import-file-name">ファイル未選択</div>
+      <div class="excel-import-file" id="excel-import-file-name">繝輔ぃ繧､繝ｫ譛ｪ驕ｸ謚・/div>
     </div>
     <div class="excel-import-layout">
       <div class="excel-import-panel">
-        <div class="excel-import-section-title">ブック情報</div>
+        <div class="excel-import-section-title">繝悶ャ繧ｯ諠・ｱ</div>
         <div class="excel-import-meta" id="excel-import-meta">
-          <div class="excel-import-empty">Excelファイルを選択すると、ここにシート一覧と基本情報を表示します。</div>
+          <div class="excel-import-empty">Excel繝輔ぃ繧､繝ｫ繧帝∈謚槭☆繧九→縲√％縺薙↓繧ｷ繝ｼ繝井ｸ隕ｧ縺ｨ蝓ｺ譛ｬ諠・ｱ繧定｡ｨ遉ｺ縺励∪縺吶・/div>
         </div>
         <div class="fr" style="margin-bottom:0">
-          <div class="fl">プレビューするシート</div>
+          <div class="fl">繝励Ξ繝薙Η繝ｼ縺吶ｋ繧ｷ繝ｼ繝・/div>
           <select class="fs" id="excel-import-sheet" onchange="handleExcelSheetChange(this.value)" disabled>
-            <option value="">シートを選択してください</option>
+            <option value="">繧ｷ繝ｼ繝医ｒ驕ｸ謚槭＠縺ｦ縺上□縺輔＞</option>
           </select>
         </div>
         <div class="excel-import-header-tools">
-          <div class="excel-import-header-status" id="excel-import-header-status">見出し行は未判定です。</div>
+          <div class="excel-import-header-status" id="excel-import-header-status">隕句・縺苓｡後・譛ｪ蛻､螳壹〒縺吶・/div>
           <div class="fr" style="margin-bottom:0">
-            <div class="fl">見出し行（Excel上の行番号）</div>
+            <div class="fl">隕句・縺苓｡鯉ｼ・xcel荳翫・陦檎分蜿ｷ・・/div>
             <input type="number" class="fi" id="excel-import-header-row" min="1" step="1" value="1" disabled onchange="handleExcelHeaderRowChange(this.value)">
           </div>
         </div>
       </div>
       <div class="excel-import-panel">
-        <div class="excel-import-section-title">列名一覧</div>
+        <div class="excel-import-section-title">蛻怜錐荳隕ｧ</div>
         <div class="excel-import-columns" id="excel-import-columns">
-          <div class="excel-import-empty">シートを選択すると列名を表示します。</div>
+          <div class="excel-import-empty">繧ｷ繝ｼ繝医ｒ驕ｸ謚槭☆繧九→蛻怜錐繧定｡ｨ遉ｺ縺励∪縺吶・/div>
         </div>
       </div>
     </div>
     <div class="excel-import-panel">
-      <div class="excel-import-section-title">先頭データプレビュー</div>
-      <div class="excel-import-preview-meta" id="excel-import-preview-meta">まだプレビューはありません。</div>
+      <div class="excel-import-section-title">蜈磯ｭ繝・・繧ｿ繝励Ξ繝薙Η繝ｼ</div>
+      <div class="excel-import-preview-meta" id="excel-import-preview-meta">縺ｾ縺繝励Ξ繝薙Η繝ｼ縺ｯ縺ゅｊ縺ｾ縺帙ｓ縲・/div>
       <div class="excel-import-preview" id="excel-import-preview">
-        <div class="excel-import-empty">Excelファイルを読み込むと、ここに先頭10〜20行の表を表示します。</div>
+        <div class="excel-import-empty">Excel繝輔ぃ繧､繝ｫ繧定ｪｭ縺ｿ霎ｼ繧縺ｨ縲√％縺薙↓蜈磯ｭ10縲・0陦後・陦ｨ繧定｡ｨ遉ｺ縺励∪縺吶・/div>
       </div>
     </div>
     <div class="excel-import-panel">
-      <div class="excel-import-section-title">医療機関番号検索</div>
-      <div class="form-note">読み込んだ公式Excelから、指定した医療機関番号に一致する施設基準行だけを抽出します。この段階では届出台帳へ反映しません。</div>
+      <div class="excel-import-section-title">蛹ｻ逋よｩ滄未逡ｪ蜿ｷ讀懃ｴ｢</div>
+      <div class="form-note">隱ｭ縺ｿ霎ｼ繧薙□蜈ｬ蠑拾xcel縺九ｉ縲∵欠螳壹＠縺溷現逋よｩ滄未逡ｪ蜿ｷ縺ｫ荳閾ｴ縺吶ｋ譁ｽ險ｭ蝓ｺ貅冶｡後□縺代ｒ謚ｽ蜃ｺ縺励∪縺吶ゅ％縺ｮ谿ｵ髫弱〒縺ｯ螻雁・蜿ｰ蟶ｳ縺ｸ蜿肴丐縺励∪縺帙ｓ縲・/div>
       <div class="excel-search-toolbar">
         <div class="fr" style="margin:0;flex:1;min-width:220px">
-          <div class="fl">医療機関番号</div>
-          <input type="text" class="fi" id="excel-search-medical-id" placeholder="例：0117093" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onkeydown="if(event.key==='Enter')searchExcelMedicalInstitution()">
+          <div class="fl">蛹ｻ逋よｩ滄未逡ｪ蜿ｷ</div>
+          <input type="text" class="fi" id="excel-search-medical-id" placeholder="萓具ｼ・117093" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onkeydown="if(event.key==='Enter')searchExcelMedicalInstitution()">
         </div>
-        <button class="btn btn-primary" onclick="searchExcelMedicalInstitution()">🔍 検索</button>
+        <button class="btn btn-primary" onclick="searchExcelMedicalInstitution()">剥 讀懃ｴ｢</button>
       </div>
       <div class="form-error" id="excel-search-error"></div>
       <div id="excel-search-result">
-        <div class="excel-import-empty">Excelを読み込んでから医療機関番号を検索してください。</div>
+        <div class="excel-import-empty">Excel繧定ｪｭ縺ｿ霎ｼ繧薙〒縺九ｉ蛹ｻ逋よｩ滄未逡ｪ蜿ｷ繧呈､懃ｴ｢縺励※縺上□縺輔＞縲・/div>
       </div>
     </div>
     <div class="excel-import-panel">
-      <div class="excel-import-section-title">配布用JSONデータセット作成</div>
-      <div class="form-note">読み込んだシート全体を正規化し、会員側がExcelなしで利用できる配布用JSONデータセットを作成します。届出台帳 entries とは別保存・別配布です。</div>
-      <div id="excel-dataset-summary" class="excel-import-empty">Excelを読み込んでから配布用JSONの作成内容を確認できます。</div>
+      <div class="excel-import-section-title">驟榊ｸ・畑JSON繝・・繧ｿ繧ｻ繝・ヨ菴懈・</div>
+      <div class="form-note">隱ｭ縺ｿ霎ｼ繧薙□繧ｷ繝ｼ繝亥・菴薙ｒ豁｣隕丞喧縺励∽ｼ壼藤蛛ｴ縺窪xcel縺ｪ縺励〒蛻ｩ逕ｨ縺ｧ縺阪ｋ驟榊ｸ・畑JSON繝・・繧ｿ繧ｻ繝・ヨ繧剃ｽ懈・縺励∪縺吶ょｱ雁・蜿ｰ蟶ｳ entries 縺ｨ縺ｯ蛻･菫晏ｭ倥・蛻･驟榊ｸ・〒縺吶・/div>
+      <div id="excel-dataset-summary" class="excel-import-empty">Excel繧定ｪｭ縺ｿ霎ｼ繧薙〒縺九ｉ驟榊ｸ・畑JSON縺ｮ菴懈・蜀・ｮｹ繧堤｢ｺ隱阪〒縺阪∪縺吶・/div>
       <div class="fr2" style="margin-top:12px">
         <div class="fr">
           <div class="fl">datasetId</div>
-          <input type="text" class="fi" id="excel-dataset-id" placeholder="例：tokyo-dental-r0804">
+          <input type="text" class="fi" id="excel-dataset-id" placeholder="萓具ｼ嗾okyo-dental-r0804">
         </div>
         <div class="fr">
           <div class="fl">datasetName</div>
-          <input type="text" class="fi" id="excel-dataset-name" placeholder="例：東京都 歯科施設基準 令和8年4月版">
+          <input type="text" class="fi" id="excel-dataset-name" placeholder="萓具ｼ壽擲莠ｬ驛ｽ 豁ｯ遘第命險ｭ蝓ｺ貅・莉､蜥・蟷ｴ4譛育沿">
         </div>
       </div>
       <div class="fr2">
@@ -577,41 +577,41 @@
         </div>
         <div class="fr">
           <div class="fl">sourceFileName</div>
-          <input type="text" class="fi" id="excel-dataset-source-file" placeholder="元Excelファイル名">
+          <input type="text" class="fi" id="excel-dataset-source-file" placeholder="蜈ウxcel繝輔ぃ繧､繝ｫ蜷・>
         </div>
       </div>
       <div class="fr2">
         <div class="fr">
           <div class="fl">format</div>
           <select class="fs" id="excel-dataset-format">
-            <option value="grouped-by-clinic">grouped-by-clinic（推奨）</option>
-            <option value="records">records（従来互換）</option>
+            <option value="grouped-by-clinic">grouped-by-clinic・域耳螂ｨ・・/option>
+            <option value="records">records・亥ｾ捺擂莠呈鋤・・/option>
           </select>
         </div>
         <div class="fr">
           <div class="fl">area</div>
-          <input type="text" class="fi" id="excel-dataset-area" value="tokyo" placeholder="例：tokyo">
+          <input type="text" class="fi" id="excel-dataset-area" value="tokyo" placeholder="萓具ｼ嗾okyo">
         </div>
       </div>
       <div class="fr2">
         <div class="fr">
           <div class="fl">category</div>
-          <input type="text" class="fi" id="excel-dataset-category" value="dental" placeholder="例：dental">
+          <input type="text" class="fi" id="excel-dataset-category" value="dental" placeholder="萓具ｼ單ental">
         </div>
         <div class="fr">
-          <div class="fl">推定サイズ</div>
-          <div class="excel-import-file" id="excel-dataset-size-estimate">まだ計算していません</div>
+          <div class="fl">謗ｨ螳壹し繧､繧ｺ</div>
+          <div class="excel-import-file" id="excel-dataset-size-estimate">縺ｾ縺險育ｮ励＠縺ｦ縺・∪縺帙ｓ</div>
         </div>
       </div>
-      <div id="excel-dataset-preview" class="excel-import-empty">まだ配布用JSONは作成されていません。</div>
+      <div id="excel-dataset-preview" class="excel-import-empty">縺ｾ縺驟榊ｸ・畑JSON縺ｯ菴懈・縺輔ｌ縺ｦ縺・∪縺帙ｓ縲・/div>
       <div class="mf" style="margin-top:12px">
-        <button class="btn btn-secondary" onclick="generateOfficialDatasetPreview()">📦 配布用JSONを作成</button>
-        <button class="btn btn-primary" id="excel-dataset-download-btn" onclick="downloadOfficialDatasetJson()" disabled>⬇ JSONをダウンロード</button>
-        <button class="btn btn-ghost" id="excel-dataset-download-pretty-btn" onclick="downloadOfficialDatasetPrettyJson()" disabled>📝 Pretty JSON</button>
+        <button class="btn btn-secondary" onclick="generateOfficialDatasetPreview()">逃 驟榊ｸ・畑JSON繧剃ｽ懈・</button>
+        <button class="btn btn-primary" id="excel-dataset-download-btn" onclick="downloadOfficialDatasetJson()" disabled>筮・JSON繧偵ム繧ｦ繝ｳ繝ｭ繝ｼ繝・/button>
+        <button class="btn btn-ghost" id="excel-dataset-download-pretty-btn" onclick="downloadOfficialDatasetPrettyJson()" disabled>統 Pretty JSON</button>
       </div>
     </div>
     <div class="mf">
-      <button class="btn btn-ghost" onclick="closeExcelImportModal()">閉じる</button>
+      <button class="btn btn-ghost" onclick="closeExcelImportModal()">髢峨§繧・/button>
     </div>
   </div>
 </div>
@@ -619,49 +619,49 @@
 <!-- OFFICIAL DATASET MODAL -->
 <div class="overlay" id="official-dataset-overlay">
   <div class="modal modal-lg excel-import-modal">
-    <div class="mt" id="official-dataset-title">施設基準の更新</div>
-    <div class="ms" id="official-dataset-subtitle">管理者が更新した最新データをもとに、自院の届出済み施設基準を確認します。現在の台帳は自動では上書きされません。</div>
-    <div class="form-note" id="official-dataset-status">最新データを確認する準備ができています。</div>
+    <div class="mt" id="official-dataset-title">譁ｽ險ｭ蝓ｺ貅悶・譖ｴ譁ｰ</div>
+    <div class="ms" id="official-dataset-subtitle">邂｡逅・・′譖ｴ譁ｰ縺励◆譛譁ｰ繝・・繧ｿ繧偵ｂ縺ｨ縺ｫ縲∬・髯｢縺ｮ螻雁・貂医∩譁ｽ險ｭ蝓ｺ貅悶ｒ遒ｺ隱阪＠縺ｾ縺吶ら樟蝨ｨ縺ｮ蜿ｰ蟶ｳ縺ｯ閾ｪ蜍輔〒縺ｯ荳頑嶌縺阪＆繧後∪縺帙ｓ縲・/div>
+    <div class="form-note" id="official-dataset-status">譛譁ｰ繝・・繧ｿ繧堤｢ｺ隱阪☆繧区ｺ門ｙ縺後〒縺阪※縺・∪縺吶・/div>
     <div class="form-error" id="official-dataset-error"></div>
     <div class="excel-import-toolbar" id="official-dataset-toolbar">
-      <button class="btn btn-primary" type="button" onclick="refreshFacilityUpdateData()">最新データを確認</button>
-      <div class="excel-import-file" id="official-dataset-file-name">更新データ未読込</div>
+      <button class="btn btn-primary" type="button" onclick="refreshFacilityUpdateData()">譛譁ｰ繝・・繧ｿ繧堤｢ｺ隱・/button>
+      <div class="excel-import-file" id="official-dataset-file-name">譖ｴ譁ｰ繝・・繧ｿ譛ｪ隱ｭ霎ｼ</div>
     </div>
     <div class="excel-import-panel" id="official-dataset-summary-panel" style="margin-bottom:14px">
-      <div class="excel-import-section-title">最新データ</div>
-      <div id="official-dataset-summary" class="excel-import-empty">最新データを確認すると、ここに作成日や収録件数を表示します。</div>
+      <div class="excel-import-section-title">譛譁ｰ繝・・繧ｿ</div>
+      <div id="official-dataset-summary" class="excel-import-empty">譛譁ｰ繝・・繧ｿ繧堤｢ｺ隱阪☆繧九→縲√％縺薙↓菴懈・譌･繧・庶骭ｲ莉ｶ謨ｰ繧定｡ｨ遉ｺ縺励∪縺吶・/div>
     </div>
     <details class="official-update-details" id="official-dataset-manual-details">
-      <summary>管理者・トラブル対応用</summary>
+      <summary>邂｡逅・・・繝医Λ繝悶Ν蟇ｾ蠢懃畑</summary>
       <div class="official-update-details-body">
-        <div class="form-note">通常は使いません。公開版で自動確認できない場合のみ、管理者が用意した更新データを手動で読み込みます。PDF取り込みはトラブル時の予備方法です。</div>
+        <div class="form-note">騾壼ｸｸ縺ｯ菴ｿ縺・∪縺帙ｓ縲ょ・髢狗沿縺ｧ閾ｪ蜍慕｢ｺ隱阪〒縺阪↑縺・ｴ蜷医・縺ｿ縲∫ｮ｡逅・・′逕ｨ諢上＠縺滓峩譁ｰ繝・・繧ｿ繧呈焔蜍輔〒隱ｭ縺ｿ霎ｼ縺ｿ縺ｾ縺吶１DF蜿悶ｊ霎ｼ縺ｿ縺ｯ繝医Λ繝悶Ν譎ゅ・莠亥ｙ譁ｹ豕輔〒縺吶・/div>
         <div class="excel-import-toolbar official-update-manual-tools">
           <label class="btn btn-secondary excel-import-picker">
-            <span>更新データファイルを選択</span>
+            <span>譖ｴ譁ｰ繝・・繧ｿ繝輔ぃ繧､繝ｫ繧帝∈謚・/span>
             <input type="file" id="official-dataset-file" class="excel-import-native-input" accept=".json,application/json" onchange="handleOfficialDatasetFileSelect(event)">
           </label>
-          <button class="btn btn-ghost" type="button" onclick="openManualPdfImport()">PDF手動取り込みを開く</button>
+          <button class="btn btn-ghost" type="button" onclick="openManualPdfImport()">PDF謇句虚蜿悶ｊ霎ｼ縺ｿ繧帝幕縺・/button>
         </div>
       </div>
     </details>
     <div class="excel-import-panel" id="official-dataset-help-panel" style="margin-bottom:14px">
-      <div class="excel-import-section-title" id="official-dataset-candidate-title">自院の施設基準候補</div>
-      <div class="form-note">標準の取り込み元はGitHub上の管理者更新データです。保存済みの医療機関コードがある場合は自動で使います。見つからない場合のみ、下で入力してください。</div>
-      <div class="form-note">本データは、管理者が公式資料をもとに作成・更新した補助データです。届出要否や算定可否の最終判断は、必ず厚生労働省・地方厚生局等の公式情報をご確認ください。</div>
-      <div class="form-note" id="official-dataset-medical-id-help">医療機関コードを確認中です。</div>
+      <div class="excel-import-section-title" id="official-dataset-candidate-title">閾ｪ髯｢縺ｮ譁ｽ險ｭ蝓ｺ貅門呵｣・/div>
+      <div class="form-note">讓呎ｺ悶・蜿悶ｊ霎ｼ縺ｿ蜈・・GitHub荳翫・邂｡逅・・峩譁ｰ繝・・繧ｿ縺ｧ縺吶ゆｿ晏ｭ俶ｸ医∩縺ｮ蛹ｻ逋よｩ滄未繧ｳ繝ｼ繝峨′縺ゅｋ蝣ｴ蜷医・閾ｪ蜍輔〒菴ｿ縺・∪縺吶りｦ九▽縺九ｉ縺ｪ縺・ｴ蜷医・縺ｿ縲∽ｸ九〒蜈･蜉帙＠縺ｦ縺上□縺輔＞縲・/div>
+      <div class="form-note">譛ｬ繝・・繧ｿ縺ｯ縲∫ｮ｡逅・・′蜈ｬ蠑剰ｳ・侭繧偵ｂ縺ｨ縺ｫ菴懈・繝ｻ譖ｴ譁ｰ縺励◆陬懷勧繝・・繧ｿ縺ｧ縺吶ょｱ雁・隕∝凄繧・ｮ怜ｮ壼庄蜷ｦ縺ｮ譛邨ょ愛譁ｭ縺ｯ縲∝ｿ・★蜴夂函蜉ｴ蜒咲怐繝ｻ蝨ｰ譁ｹ蜴夂函螻遲峨・蜈ｬ蠑乗ュ蝣ｱ繧偵＃遒ｺ隱阪￥縺縺輔＞縲・/div>
+      <div class="form-note" id="official-dataset-medical-id-help">蛹ｻ逋よｩ滄未繧ｳ繝ｼ繝峨ｒ遒ｺ隱堺ｸｭ縺ｧ縺吶・/div>
     </div>
     <div class="excel-import-panel" style="margin-bottom:14px">
       <div class="excel-search-toolbar">
         <div class="fr" style="margin:0;flex:1;min-width:220px">
-          <div class="fl">医療機関コード</div>
-          <input type="text" class="fi" id="official-dataset-medical-id" placeholder="例：3441680" inputmode="numeric" onkeydown="if(event.key==='Enter')searchOfficialDatasetMedicalInstitution()">
+          <div class="fl">蛹ｻ逋よｩ滄未繧ｳ繝ｼ繝・/div>
+          <input type="text" class="fi" id="official-dataset-medical-id" placeholder="萓具ｼ・441680" inputmode="numeric" onkeydown="if(event.key==='Enter')searchOfficialDatasetMedicalInstitution()">
         </div>
-        <button class="btn btn-primary" id="official-dataset-search-btn" onclick="searchOfficialDatasetMedicalInstitution()">自院の施設基準を確認</button>
+        <button class="btn btn-primary" id="official-dataset-search-btn" onclick="searchOfficialDatasetMedicalInstitution()">閾ｪ髯｢縺ｮ譁ｽ險ｭ蝓ｺ貅悶ｒ遒ｺ隱・/button>
       </div>
-      <div id="official-dataset-result" class="excel-import-empty">「施設基準の更新」を押すと、ここに差分確認結果を表示します。</div>
+      <div id="official-dataset-result" class="excel-import-empty">縲梧命險ｭ蝓ｺ貅悶・譖ｴ譁ｰ縲阪ｒ謚ｼ縺吶→縲√％縺薙↓蟾ｮ蛻・｢ｺ隱咲ｵ先棡繧定｡ｨ遉ｺ縺励∪縺吶・/div>
     </div>
     <div class="mf">
-      <button class="btn btn-ghost" id="official-dataset-close-btn" onclick="closeOfficialDatasetModal()">閉じる</button>
+      <button class="btn btn-ghost" id="official-dataset-close-btn" onclick="closeOfficialDatasetModal()">髢峨§繧・/button>
     </div>
   </div>
 </div>
@@ -670,91 +670,91 @@
 <!-- KIJUN HISTORY MODAL -->
 <div class="overlay" id="kijun-hist-overlay">
   <div class="modal">
-    <div class="mt" id="kijun-hist-title">届出・変更を記録</div>
-    <div class="ms">受理番号・算定開始日などの変更を年度ごとに記録します</div>
+    <div class="mt" id="kijun-hist-title">螻雁・繝ｻ螟画峩繧定ｨ倬鹸</div>
+    <div class="ms">蜿礼炊逡ｪ蜿ｷ繝ｻ邂怜ｮ夐幕蟋区律縺ｪ縺ｩ縺ｮ螟画峩繧貞ｹｴ蠎ｦ縺斐→縺ｫ險倬鹸縺励∪縺・/div>
     <input type="hidden" id="kijun-hist-entry-id">
     <input type="hidden" id="kijun-hist-rec-id">
     <div class="fr">
-      <div class="fl">変更内容・タイトル</div>
+      <div class="fl">螟画峩蜀・ｮｹ繝ｻ繧ｿ繧､繝医Ν</div>
       <input type="text" class="fi" id="kh-title"
-        placeholder="例：外来環1→外安全1に変更届出、再届出、初回届出">
+        placeholder="萓具ｼ壼､匁擂迺ｰ1竊貞､門ｮ牙・1縺ｫ螟画峩螻雁・縲∝・螻雁・縲∝・蝗槫ｱ雁・">
     </div>
     <div class="fr2">
       <div class="fr">
-        <div class="fl">変更日</div>
+        <div class="fl">螟画峩譌･</div>
         <input type="date" class="fi" id="kh-date">
       </div>
       <div class="fr">
-        <div class="fl">受理番号</div>
-        <input type="text" class="fi" id="kh-number" placeholder="例：第615983号">
+        <div class="fl">蜿礼炊逡ｪ蜿ｷ</div>
+        <input type="text" class="fi" id="kh-number" placeholder="萓具ｼ夂ｬｬ615983蜿ｷ">
       </div>
     </div>
     <div class="fr">
-      <div class="fl">要件充足確認</div>
+      <div class="fl">隕∽ｻｶ蜈・ｶｳ遒ｺ隱・/div>
       <div style="display:flex;gap:12px;margin-top:4px">
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-          <input type="radio" name="kh-juyoken" value="充足" checked style="accent-color:var(--accent)"> ✓ 充足している
+          <input type="radio" name="kh-juyoken" value="蜈・ｶｳ" checked style="accent-color:var(--accent)"> 笨・蜈・ｶｳ縺励※縺・ｋ
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-          <input type="radio" name="kh-juyoken" value="未充足" style="accent-color:var(--accent)"> ✕ 未充足
+          <input type="radio" name="kh-juyoken" value="譛ｪ蜈・ｶｳ" style="accent-color:var(--accent)"> 笨・譛ｪ蜈・ｶｳ
         </label>
       </div>
     </div>
     <div class="fr">
-      <div class="fl">メモ</div>
-      <textarea class="fta" id="kh-memo" placeholder="変更理由・担当者・特記事項など"></textarea>
+      <div class="fl">繝｡繝｢</div>
+      <textarea class="fta" id="kh-memo" placeholder="螟画峩逅・罰繝ｻ諡・ｽ楢・・迚ｹ險倅ｺ矩・↑縺ｩ"></textarea>
     </div>
     <div class="mf">
-      <button class="btn btn-ghost" onclick="closeOverlay('kijun-hist-overlay')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveKijunHist()">保存する</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('kijun-hist-overlay')">繧ｭ繝｣繝ｳ繧ｻ繝ｫ</button>
+      <button class="btn btn-primary" onclick="saveKijunHist()">菫晏ｭ倥☆繧・/button>
     </div>
   </div>
 </div>
 <!-- KOUSHU MODAL -->
 <div class="overlay" id="koushu-overlay">
   <div class="modal">
-    <div class="mt" id="koushu-modal-title">受講記録を追加</div>
-    <div class="ms">講習会・研修の受講日と有効期限を登録します</div>
+    <div class="mt" id="koushu-modal-title">蜿苓ｬ幄ｨ倬鹸繧定ｿｽ蜉</div>
+    <div class="ms">隰帷ｿ剃ｼ壹・遐比ｿｮ縺ｮ蜿苓ｬ帶律縺ｨ譛牙柑譛滄剞繧堤匳骭ｲ縺励∪縺・/div>
     <input type="hidden" id="koushu-edit-id">
     <div class="fr">
-      <div class="fl">研修種別</div>
+      <div class="fl">遐比ｿｮ遞ｮ蛻･</div>
       <select class="fs" id="koushu-type" onchange="onKoushuTypeChange(this)">
-        <option value="歯初診_院内感染">歯初診 — 院内感染防止対策研修（4年に1回・期限管理あり）</option>
-        <option value="外安全_医療安全">外安全1 — 医療安全対策研修（受講頻度規定なし・記録保管用）</option>
-        <option value="外感染_院内感染">外感染1 — 院内感染防止対策研修（受講頻度規定なし・記録保管用）</option>
-        <!-- 新規施設基準の研修を追加する場合はここに<option>を追記 -->
-        <option value="custom">その他（カスタム入力）</option>
+        <option value="豁ｯ蛻晁ｨｺ_髯｢蜀・─譟・>豁ｯ蛻晁ｨｺ 窶・髯｢蜀・─譟馴亟豁｢蟇ｾ遲也比ｿｮ・・蟷ｴ縺ｫ1蝗槭・譛滄剞邂｡逅・≠繧奇ｼ・/option>
+        <option value="螟門ｮ牙・_蛹ｻ逋ょｮ牙・">螟門ｮ牙・1 窶・蛹ｻ逋ょｮ牙・蟇ｾ遲也比ｿｮ・亥女隰幃ｻ蠎ｦ隕丞ｮ壹↑縺励・險倬鹸菫晉ｮ｡逕ｨ・・/option>
+        <option value="螟匁─譟点髯｢蜀・─譟・>螟匁─譟・ 窶・髯｢蜀・─譟馴亟豁｢蟇ｾ遲也比ｿｮ・亥女隰幃ｻ蠎ｦ隕丞ｮ壹↑縺励・險倬鹸菫晉ｮ｡逕ｨ・・/option>
+        <!-- 譁ｰ隕乗命險ｭ蝓ｺ貅悶・遐比ｿｮ繧定ｿｽ蜉縺吶ｋ蝣ｴ蜷医・縺薙％縺ｫ<option>繧定ｿｽ險・-->
+        <option value="custom">縺昴・莉厄ｼ医き繧ｹ繧ｿ繝蜈･蜉幢ｼ・/option>
       </select>
 
     </div>
     <div class="fr" id="koushu-custom-row" style="display:none">
-      <div class="fl">研修名（カスタム）</div>
-      <input type="text" class="fi" id="koushu-custom-name" placeholder="研修名を入力">
+      <div class="fl">遐比ｿｮ蜷搾ｼ医き繧ｹ繧ｿ繝・・/div>
+      <input type="text" class="fi" id="koushu-custom-name" placeholder="遐比ｿｮ蜷阪ｒ蜈･蜉・>
     </div>
     <div class="fr">
-      <div class="fl">受講者氏名</div>
-      <input type="text" class="fi" id="koushu-person" placeholder="例：石田 知之">
+      <div class="fl">蜿苓ｬ幄・ｰ丞錐</div>
+      <input type="text" class="fi" id="koushu-person" placeholder="萓具ｼ夂浹逕ｰ 遏･荵・>
     </div>
     <div class="fr2">
       <div class="fr">
-        <div class="fl">受講日</div>
+        <div class="fl">蜿苓ｬ帶律</div>
         <input type="date" class="fi" id="koushu-date">
       </div>
       <div class="fr">
-        <div class="fl">有効期限（自動計算）</div>
-        <input type="date" class="fi" id="koushu-expire" placeholder="自動入力されます">
+        <div class="fl">譛牙柑譛滄剞・郁・蜍戊ｨ育ｮ暦ｼ・/div>
+        <input type="date" class="fi" id="koushu-expire" placeholder="閾ｪ蜍募・蜉帙＆繧後∪縺・>
       </div>
     </div>
     <div class="fr">
-      <div class="fl">研修機関・講習会名</div>
-      <input type="text" class="fi" id="koushu-org" placeholder="例：○○歯科医師会主催 感染予防研修会">
+      <div class="fl">遐比ｿｮ讖滄未繝ｻ隰帷ｿ剃ｼ壼錐</div>
+      <input type="text" class="fi" id="koushu-org" placeholder="萓具ｼ壺雷笳区ｭｯ遘大現蟶ｫ莨壻ｸｻ蛯ｬ 諢滓沒莠磯亟遐比ｿｮ莨・>
     </div>
     <div class="fr">
-      <div class="fl">メモ</div>
-      <textarea class="fta" id="koushu-memo" placeholder="修了証番号など"></textarea>
+      <div class="fl">繝｡繝｢</div>
+      <textarea class="fta" id="koushu-memo" placeholder="菫ｮ莠・ｨｼ逡ｪ蜿ｷ縺ｪ縺ｩ"></textarea>
     </div>
     <div class="fr">
-      <div class="fl">受講証明書（サーティフィケート）</div>
+      <div class="fl">蜿苓ｬ幄ｨｼ譏取嶌・医し繝ｼ繝・ぅ繝輔ぅ繧ｱ繝ｼ繝茨ｼ・/div>
       <div id="koushu-cert-area" style="width:100%">
         <div id="koushu-cert-dropzone"
           style="border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;background:var(--bg3);transition:background .15s"
@@ -762,17 +762,17 @@
           ondragover="event.preventDefault();this.style.background='var(--blue-bg)'"
           ondragleave="this.style.background='var(--bg3)'"
           ondrop="onCertDrop(event)">
-          <div style="font-size:22px;margin-bottom:4px">📎</div>
-          <div style="font-size:12px;color:var(--text2)">PDF・JPG・PNG・Word をドロップ、またはクリックして選択</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:3px">1ファイル 5MB まで</div>
+          <div style="font-size:22px;margin-bottom:4px">梼</div>
+          <div style="font-size:12px;color:var(--text2)">PDF繝ｻJPG繝ｻPNG繝ｻWord 繧偵ラ繝ｭ繝・・縲√∪縺溘・繧ｯ繝ｪ繝・け縺励※驕ｸ謚・/div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">1繝輔ぃ繧､繝ｫ 5MB 縺ｾ縺ｧ</div>
         </div>
         <input type="file" id="koushu-cert-input" accept=".pdf,.jpg,.jpeg,.png,.docx" style="display:none" onchange="onCertSelect(event)">
         <div id="koushu-cert-preview" style="display:none;margin-top:8px"></div>
       </div>
     </div>
     <div class="mf">
-      <button class="btn btn-ghost" onclick="closeOverlay('koushu-overlay')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveKoushu()">保存する</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('koushu-overlay')">繧ｭ繝｣繝ｳ繧ｻ繝ｫ</button>
+      <button class="btn btn-primary" onclick="saveKoushu()">菫晏ｭ倥☆繧・/button>
     </div>
   </div>
 </div>
@@ -781,102 +781,102 @@
 <!-- CERTIFICATE PREVIEW MODAL -->
 <div class="overlay" id="cert-overlay" onclick="if(event.target===this)closeOverlay('cert-overlay')">
   <div class="modal" style="max-width:720px;width:95vw;max-height:92vh;overflow-y:auto">
-    <div class="mt" id="cert-modal-title">📎 受講証明書</div>
+    <div class="mt" id="cert-modal-title">梼 蜿苓ｬ幄ｨｼ譏取嶌</div>
     <div id="cert-modal-body" style="text-align:center;min-height:200px;padding:8px 0"></div>
     <div class="mf">
-      <button class="btn btn-ghost" onclick="closeOverlay('cert-overlay')">閉じる</button>
-      <button class="btn btn-primary" id="cert-open-btn">🔗 別タブで開く</button>
-      <button class="btn btn-secondary" id="cert-download-btn">⬇ ダウンロード</button>
-      <button class="btn btn-danger" id="cert-delete-btn">🗑 証明書を削除</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('cert-overlay')">髢峨§繧・/button>
+      <button class="btn btn-primary" id="cert-open-btn">迫 蛻･繧ｿ繝悶〒髢九￥</button>
+      <button class="btn btn-secondary" id="cert-download-btn">筮・繝繧ｦ繝ｳ繝ｭ繝ｼ繝・/button>
+      <button class="btn btn-danger" id="cert-delete-btn">卵 險ｼ譏取嶌繧貞炎髯､</button>
     </div>
   </div>
-</div><!-- TEIREI RECORD MODAL（定例報告保存） -->
+</div><!-- TEIREI RECORD MODAL・亥ｮ壻ｾ句ｱ蜻贋ｿ晏ｭ假ｼ・-->
 <div class="overlay" id="teirei-rec-overlay" style="align-items:stretch;padding:20px">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:100%;max-width:1100px;height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow2);animation:mi .2s ease">
 
-    <!-- ヘッダー -->
+    <!-- 繝倥ャ繝繝ｼ -->
     <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div class="mt" id="trec-modal-title" style="margin:0">定例報告の記録を保存</div>
-          <div class="ms" id="trec-modal-year" style="margin:4px 0 0">令和○年度（8月1日現在）の定例報告内容を記録します</div>
+          <div class="mt" id="trec-modal-title" style="margin:0">螳壻ｾ句ｱ蜻翫・險倬鹸繧剃ｿ晏ｭ・/div>
+          <div class="ms" id="trec-modal-year" style="margin:4px 0 0">莉､蜥娯雷蟷ｴ蠎ｦ・・譛・譌･迴ｾ蝨ｨ・峨・螳壻ｾ句ｱ蜻雁・螳ｹ繧定ｨ倬鹸縺励∪縺・/div>
         </div>
-        <button class="btn btn-ghost" onclick="closeOverlay('teirei-rec-overlay')" style="flex-shrink:0">✕ 閉じる</button>
+        <button class="btn btn-ghost" onclick="closeOverlay('teirei-rec-overlay')" style="flex-shrink:0">笨・髢峨§繧・/button>
       </div>
-      <!-- 提出情報バー -->
+      <!-- 謠仙・諠・ｱ繝舌・ -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">
-        <div><div class="fl">提出ステータス</div>
+        <div><div class="fl">謠仙・繧ｹ繝・・繧ｿ繧ｹ</div>
           <select class="fs" id="trec-status">
-            <option value="submitted">📮 提出済み</option>
-            <option value="pending">⏳ 準備中</option>
-            <option value="unnecessary">✅ 提出不要</option>
+            <option value="submitted">動 謠仙・貂医∩</option>
+            <option value="pending">竢ｳ 貅門ｙ荳ｭ</option>
+            <option value="unnecessary">笨・謠仙・荳崎ｦ・/option>
           </select>
         </div>
-        <div><div class="fl">郵送日</div>
+        <div><div class="fl">驛ｵ騾∵律</div>
           <input type="date" class="fi" id="trec-sent-date">
         </div>
-        <div><div class="fl">提出先</div>
-          <input type="text" class="fi" id="trec-dest" value="関東信越厚生局東京事務所">
+        <div><div class="fl">謠仙・蜈・/div>
+          <input type="text" class="fi" id="trec-dest" value="髢｢譚ｱ菫｡雜雁字逕溷ｱ譚ｱ莠ｬ莠句漁謇">
         </div>
       </div>
     </div>
 
-    <!-- 2カラムボディ -->
+    <!-- 2繧ｫ繝ｩ繝繝懊ョ繧｣ -->
     <div style="display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden;min-height:0;height:100%">
 
-      <!-- 左：今年の入力フォーム -->
+      <!-- 蟾ｦ・壻ｻ雁ｹｴ縺ｮ蜈･蜉帙ヵ繧ｩ繝ｼ繝 -->
       <div style="padding:20px 20px 20px 24px;overflow-y:auto;border-right:1px solid var(--border)">
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">
-          📝 今年度の記録
+          統 莉雁ｹｴ蠎ｦ縺ｮ險倬鹸
         </div>
 
-        <!-- ファイル添付 -->
+        <!-- 繝輔ぃ繧､繝ｫ豺ｻ莉・-->
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px">
-          <div style="font-size:12px;font-weight:700;margin-bottom:6px">📎 提出書類の添付（任意）</div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px">梼 謠仙・譖ｸ鬘槭・豺ｻ莉假ｼ井ｻｻ諢擾ｼ・/div>
           <div id="trec-file-list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:7px"></div>
           <label style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:5px;cursor:pointer;font-size:11px;color:var(--text2)">
-            ＋ ファイルを追加（PDF/Word/Excel）
+            ・・繝輔ぃ繧､繝ｫ繧定ｿｽ蜉・・DF/Word/Excel・・
             <input type="file" id="trec-file-input" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple style="display:none" onchange="addTrecFiles(event)">
           </label>
-          <div style="font-size:10px;color:var(--text3);margin-top:5px">バックアップJSONに含まれて保存されます</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:5px">繝舌ャ繧ｯ繧｢繝・・JSON縺ｫ蜷ｫ縺ｾ繧後※菫晏ｭ倥＆繧後∪縺・/div>
         </div>
 
-        <!-- 施設基準タブ -->
+        <!-- 譁ｽ險ｭ蝓ｺ貅悶ち繝・-->
         <div id="trec-tab-bar" style="display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap"></div>
         <div id="trec-tab-content"></div>
 
-        <!-- メモ -->
+        <!-- 繝｡繝｢ -->
         <div class="fr">
-          <div class="fl">メモ・備考（自由記入）</div>
+          <div class="fl">繝｡繝｢繝ｻ蛯呵・ｼ郁・逕ｱ險伜・・・/div>
           <textarea class="fta" id="trec-memo"
-            placeholder="様式18の2（在支歯）&#10;・要件充足：充足している&#10;・訪問実績：〇件&#10;&#10;様式98（ベースアップ）&#10;・対象職員：常勤〇名 非常勤〇名&#10;・賃上げ実績：月額〇千円/人&#10;&#10;※様式27（歯初診・外感染）は令和8年改定で廃止"
+            placeholder="讒伜ｼ・8縺ｮ2・亥惠謾ｯ豁ｯ・・#10;繝ｻ隕∽ｻｶ蜈・ｶｳ・壼・雜ｳ縺励※縺・ｋ&#10;繝ｻ險ｪ蝠丞ｮ溽ｸｾ・壹・ｻｶ&#10;&#10;讒伜ｼ・8・医・繝ｼ繧ｹ繧｢繝・・・・#10;繝ｻ蟇ｾ雎｡閨ｷ蜩｡・壼ｸｸ蜍､縲・錐 髱槫ｸｸ蜍､縲・錐&#10;繝ｻ雉・ｸ翫￡螳溽ｸｾ・壽怦鬘阪・鴻蜀・莠ｺ&#10;&#10;窶ｻ讒伜ｼ・7・域ｭｯ蛻晁ｨｺ繝ｻ螟匁─譟難ｼ峨・莉､蜥・蟷ｴ謾ｹ螳壹〒蟒・ｭ｢"
             style="min-height:180px;font-size:12px;line-height:1.8"></textarea>
         </div>
       </div>
 
-      <!-- 右：過去の記録（コピペ用） -->
+      <!-- 蜿ｳ・夐℃蜴ｻ縺ｮ險倬鹸・医さ繝斐・逕ｨ・・-->
       <div style="padding:20px 20px 20px 20px;overflow-y:auto;background:var(--bg3)">
         <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">
-          📂 過去の記録（参照・コピペ用）
+          唐 驕主悉縺ｮ險倬鹸・亥盾辣ｧ繝ｻ繧ｳ繝斐・逕ｨ・・
         </div>
-        <!-- 年度セレクタ：目立つ形式 -->
+        <!-- 蟷ｴ蠎ｦ繧ｻ繝ｬ繧ｯ繧ｿ・夂岼遶九▽蠖｢蠑・-->
         <div style="margin-bottom:14px">
-          <div class="fl" style="margin-bottom:5px">参照する年度を選択</div>
+          <div class="fl" style="margin-bottom:5px">蜿ら・縺吶ｋ蟷ｴ蠎ｦ繧帝∈謚・/div>
           <select class="fs" id="trec-ref-year" onchange="loadTrecRefYear(this.value)"
             style="width:100%;font-size:13px;font-weight:500;background:var(--bg2);border-color:var(--accent)">
-            <option value="">── 年度を選んでください ──</option>
+            <option value="">笏笏 蟷ｴ蠎ｦ繧帝∈繧薙〒縺上□縺輔＞ 笏笏</option>
           </select>
         </div>
         <div id="trec-ref-panel" style="font-size:12px;color:var(--text3);text-align:center;padding:30px 0">
-          上のセレクタで年度を選ぶと<br>過去の記録が表示されます
+          荳翫・繧ｻ繝ｬ繧ｯ繧ｿ縺ｧ蟷ｴ蠎ｦ繧帝∈縺ｶ縺ｨ<br>驕主悉縺ｮ險倬鹸縺瑚｡ｨ遉ｺ縺輔ｌ縺ｾ縺・
         </div>
       </div>
     </div>
 
-    <!-- フッター -->
+    <!-- 繝輔ャ繧ｿ繝ｼ -->
     <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;background:var(--bg2)">
-      <button class="btn btn-ghost" onclick="closeOverlay('teirei-rec-overlay')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveTeireiRecord()">💾 この年度の記録を保存</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('teirei-rec-overlay')">繧ｭ繝｣繝ｳ繧ｻ繝ｫ</button>
+      <button class="btn btn-primary" onclick="saveTeireiRecord()">沈 縺薙・蟷ｴ蠎ｦ縺ｮ險倬鹸繧剃ｿ晏ｭ・/button>
     </div>
   </div>
 </div>
@@ -884,101 +884,101 @@
 <!-- PDF IMPORT MODAL -->
 <div class="overlay" id="import-overlay">
   <div class="modal modal-lg">
-    <div class="mt">📥 届出済み施設基準を取込む</div>
-    <div class="ms">「届出受理医療機関名簿（歯科・東京都）」から自院の施設基準を一括インポート</div>
+    <div class="mt">踏 螻雁・貂医∩譁ｽ險ｭ蝓ｺ貅悶ｒ蜿冶ｾｼ繧</div>
+    <div class="ms">縲悟ｱ雁・蜿礼炊蛹ｻ逋よｩ滄未蜷咲ｰｿ・域ｭｯ遘代・譚ｱ莠ｬ驛ｽ・峨阪°繧芽・髯｢縺ｮ譁ｽ險ｭ蝓ｺ貅悶ｒ荳諡ｬ繧､繝ｳ繝昴・繝・/div>
     <div class="import-steps">
-      <div class="is active" id="imp-s1"><div class="isn">1</div><div class="isl">PDF取得</div></div>
+      <div class="is active" id="imp-s1"><div class="isn">1</div><div class="isl">PDF蜿門ｾ・/div></div>
       <div class="ia"></div>
-      <div class="is" id="imp-s2"><div class="isn">2</div><div class="isl">番号入力</div></div>
+      <div class="is" id="imp-s2"><div class="isn">2</div><div class="isl">逡ｪ蜿ｷ蜈･蜉・/div></div>
       <div class="ia"></div>
-      <div class="is" id="imp-s3"><div class="isn">3</div><div class="isl">抽出・確認</div></div>
+      <div class="is" id="imp-s3"><div class="isn">3</div><div class="isl">謚ｽ蜃ｺ繝ｻ遒ｺ隱・/div></div>
       <div class="ia"></div>
-      <div class="is" id="imp-s4"><div class="isn">4</div><div class="isl">インポート</div></div>
+      <div class="is" id="imp-s4"><div class="isn">4</div><div class="isl">繧､繝ｳ繝昴・繝・/div></div>
     </div>
 
     <div id="imp-step1">
-      <!-- Step1: 公式サイトからの手動DL案内 -->
+      <!-- Step1: 蜈ｬ蠑上し繧､繝医°繧峨・謇句虚DL譯亥・ -->
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:14px">
         <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px">
-          ① 公式サイトを開いてPDFをダウンロード
+          竭 蜈ｬ蠑上し繧､繝医ｒ髢九＞縺ｦPDF繧偵ム繧ｦ繝ｳ繝ｭ繝ｼ繝・
         </div>
-        <!-- 手順 -->
+        <!-- 謇矩・-->
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.8">
           <div style="display:flex;gap:10px;align-items:flex-start">
             <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px">1</span>
-            <span>下のボタンから<strong style="color:var(--text)">関東信越厚生局サイト</strong>を開く</span>
+            <span>荳九・繝懊ち繝ｳ縺九ｉ<strong style="color:var(--text)">髢｢譚ｱ菫｡雜雁字逕溷ｱ繧ｵ繧､繝・/strong>繧帝幕縺・/span>
           </div>
           <div style="display:flex;gap:10px;align-items:flex-start">
             <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px">2</span>
-            <span>「施設基準の届出受理医療機関名簿」から<strong style="color:var(--text)">東京都 ＞ 歯科</strong>のPDFをダウンロード</span>
+            <span>縲梧命險ｭ蝓ｺ貅悶・螻雁・蜿礼炊蛹ｻ逋よｩ滄未蜷咲ｰｿ縲阪°繧・strong style="color:var(--text)">譚ｱ莠ｬ驛ｽ ・・豁ｯ遘・/strong>縺ｮPDF繧偵ム繧ｦ繝ｳ繝ｭ繝ｼ繝・/span>
           </div>
           <div style="display:flex;gap:10px;align-items:flex-start">
             <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px">3</span>
-            <span>ダウンロードしたPDFを、この画面の下の枠に<strong style="color:var(--text)">ドラッグ＆ドロップ</strong>して取り込む</span>
+            <span>繝繧ｦ繝ｳ繝ｭ繝ｼ繝峨＠縺蘖DF繧偵√％縺ｮ逕ｻ髱｢縺ｮ荳九・譫縺ｫ<strong style="color:var(--text)">繝峨Λ繝・げ・・ラ繝ｭ繝・・</strong>縺励※蜿悶ｊ霎ｼ繧</span>
           </div>
         </div>
-        <!-- 公式サイトを開くボタン -->
+        <!-- 蜈ｬ蠑上し繧､繝医ｒ髢九￥繝懊ち繝ｳ -->
         <a href="https://kouseikyoku.mhlw.go.jp/kantoshinetsu/chousa/kijyun.html"
            target="_blank" rel="noopener noreferrer"
            style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700;transition:opacity .15s"
            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-          🌐 関東信越厚生局サイトを開く ↗
+          倹 髢｢譚ｱ菫｡雜雁字逕溷ｱ繧ｵ繧､繝医ｒ髢九￥ 竊・
         </a>
       </div>
 
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:14px">
-        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">② ダウンロードしたPDFを読み込む</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">竭｡ 繝繧ｦ繝ｳ繝ｭ繝ｼ繝峨＠縺蘖DF繧定ｪｭ縺ｿ霎ｼ繧</div>
         <div class="drop-z" id="drop-zone" onclick="openPdfFileDialog()" style="margin:0">
-          <div class="drop-icon">📄</div>
-          <div style="font-size:13px;color:var(--text2);font-weight:500">ここにドロップ、またはクリックして選択</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:5px">公式サイトからダウンロードした届出受理医療機関名簿（歯科・東京都）のPDFを選択してください</div>
+          <div class="drop-icon">塘</div>
+          <div style="font-size:13px;color:var(--text2);font-weight:500">縺薙％縺ｫ繝峨Ο繝・・縲√∪縺溘・繧ｯ繝ｪ繝・け縺励※驕ｸ謚・/div>
+          <div style="font-size:11px;color:var(--text3);margin-top:5px">蜈ｬ蠑上し繧､繝医°繧峨ム繧ｦ繝ｳ繝ｭ繝ｼ繝峨＠縺溷ｱ雁・蜿礼炊蛹ｻ逋よｩ滄未蜷咲ｰｿ・域ｭｯ遘代・譚ｱ莠ｬ驛ｽ・峨・PDF繧帝∈謚槭＠縺ｦ縺上□縺輔＞</div>
           <input type="file" id="fi-pdf" accept=".pdf,application/pdf" style="display:none" onclick="event.stopPropagation()" onchange="handlePdf(event)">
         </div>
       </div>
     </div>
 
     <div class="prog-wrap" id="imp-prog" style="display:none">
-      <div class="prog-label"><span id="prog-label">読み込み中...</span><span id="prog-pct">0%</span></div>
+      <div class="prog-label"><span id="prog-label">隱ｭ縺ｿ霎ｼ縺ｿ荳ｭ...</span><span id="prog-pct">0%</span></div>
       <div class="prog-bg"><div class="prog-fill" id="prog-fill"></div></div>
       <div class="plog" id="plog"></div>
     </div>
 
     <div id="imp-step2" style="display:none">
-      <div style="margin-top:4px;font-size:12px;color:var(--text2);margin-bottom:4px">医療機関番号（7桁）を入力してください</div>
+      <div style="margin-top:4px;font-size:12px;color:var(--text2);margin-bottom:4px">蛹ｻ逋よｩ滄未逡ｪ蜿ｷ・・譯・ｼ峨ｒ蜈･蜉帙＠縺ｦ縺上□縺輔＞</div>
       <div class="id-row">
-        <input type="text" class="fi" id="med-id" maxlength="7" placeholder="例：0140806" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')doSearch()">
-        <button class="btn btn-primary" onclick="doSearch()">🔍 検索</button>
+        <input type="text" class="fi" id="med-id" maxlength="7" placeholder="萓具ｼ・140806" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')doSearch()">
+        <button class="btn btn-primary" onclick="doSearch()">剥 讀懃ｴ｢</button>
       </div>
       <div class="clinic-found" id="clinic-found">
-        <span style="font-size:24px">🏥</span>
-        <div><div style="font-weight:600;font-size:14px" id="cf-name">—</div><div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-top:2px" id="cf-detail">—</div></div>
+        <span style="font-size:24px">唱</span>
+        <div><div style="font-weight:600;font-size:14px" id="cf-name">窶・/div><div style="font-size:11px;color:var(--text2);font-family:var(--mono);margin-top:2px" id="cf-detail">窶・/div></div>
       </div>
-      <div class="ib"><strong>番号の確認方法</strong>：レセコン（DOC-5等）トップ画面 / 保険医療機関指定通知書 / 厚生局届出書類の控え</div>
+      <div class="ib"><strong>逡ｪ蜿ｷ縺ｮ遒ｺ隱肴婿豕・/strong>・壹Ξ繧ｻ繧ｳ繝ｳ・・OC-5遲会ｼ峨ヨ繝・・逕ｻ髱｢ / 菫晞匱蛹ｻ逋よｩ滄未謖・ｮ夐夂衍譖ｸ / 蜴夂函螻螻雁・譖ｸ鬘槭・謗ｧ縺・/div>
     </div>
 
     <div id="imp-step3" style="display:none">
       <div class="result-chips" id="imp-chips"></div>
       <div class="tw" style="max-height:260px;overflow-y:auto">
         <table>
-          <thead><tr><th>施設基準名</th><th>略称</th><th>受理番号</th><th>算定開始</th><th>カテゴリ</th></tr></thead>
+          <thead><tr><th>譁ｽ險ｭ蝓ｺ貅門錐</th><th>逡･遘ｰ</th><th>蜿礼炊逡ｪ蜿ｷ</th><th>邂怜ｮ夐幕蟋・/th><th>繧ｫ繝・ざ繝ｪ</th></tr></thead>
           <tbody id="imp-tbody"></tbody>
         </table>
       </div>
     </div>
 
     <div class="mf">
-      <button class="btn btn-ghost" onclick="closeOverlay('import-overlay');resetImport()">閉じる</button>
-      <button class="btn btn-ghost" id="imp-demo-btn" onclick="loadDemoData()" style="display:none">デモデータで試す</button>
-      <button class="btn btn-ghost" onclick="resetToDefault()" style="font-size:11px;color:var(--text3)">🔄 初期データに戻す</button>
+      <button class="btn btn-ghost" onclick="closeOverlay('import-overlay');resetImport()">髢峨§繧・/button>
+      <button class="btn btn-ghost" id="imp-demo-btn" onclick="loadDemoData()" style="display:none">繝・Δ繝・・繧ｿ縺ｧ隧ｦ縺・/button>
+      <button class="btn btn-ghost" onclick="resetToDefault()" style="font-size:11px;color:var(--text3)">売 蛻晄悄繝・・繧ｿ縺ｫ謌ｻ縺・/button>
       <div id="imp-exec-wrap" style="display:none;gap:8px;flex-direction:column;align-items:flex-end">
         <div style="font-size:11px;color:var(--text2);text-align:right">
-          📋 <strong style="color:var(--text)"><span id="imp-count">0</span>件</strong>を取得しました。インポート方法を選択してください。
+          搭 <strong style="color:var(--text)"><span id="imp-count">0</span>莉ｶ</strong>繧貞叙蠕励＠縺ｾ縺励◆縲ゅう繝ｳ繝昴・繝域婿豕輔ｒ驕ｸ謚槭＠縺ｦ縺上□縺輔＞縲・
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary" onclick="doImport('add')">＋ 既存に追記</button>
-          <button class="btn btn-success" onclick="doImport('replace')">🔄 台帳を置き換え（推奨）</button>
+          <button class="btn btn-secondary" onclick="doImport('add')">・・譌｢蟄倥↓霑ｽ險・/button>
+          <button class="btn btn-success" onclick="doImport('replace')">売 蜿ｰ蟶ｳ繧堤ｽｮ縺肴鋤縺茨ｼ域耳螂ｨ・・/button>
         </div>
-        <div style="font-size:10px;color:var(--text3);text-align:right">「台帳を置き換え」は現在の台帳を削除してPDFのデータに入れ替えます</div>
+        <div style="font-size:10px;color:var(--text3);text-align:right">縲悟床蟶ｳ繧堤ｽｮ縺肴鋤縺医阪・迴ｾ蝨ｨ縺ｮ蜿ｰ蟶ｳ繧貞炎髯､縺励※PDF縺ｮ繝・・繧ｿ縺ｫ蜈･繧梧崛縺医∪縺・/div>
       </div>
     </div>
   </div>
@@ -987,11 +987,11 @@
 <!-- SUCCESS -->
 <div class="success-fl" id="success-fl" onclick="this.classList.remove('show')">
   <div class="success-box">
-    <div class="si-icon">🎉</div>
-    <div class="si-title">インポート完了</div>
+    <div class="si-icon">脂</div>
+    <div class="si-title">繧､繝ｳ繝昴・繝亥ｮ御ｺ・/div>
     <div class="si-count" id="suc-n">0</div>
-    <div style="font-size:12px;color:var(--text3)">件の施設基準を台帳に登録</div>
-    <div class="si-sub">台帳に反映されました。<br><span style="font-size:11px;color:var(--text3)">クリックして閉じる</span></div>
+    <div style="font-size:12px;color:var(--text3)">莉ｶ縺ｮ譁ｽ險ｭ蝓ｺ貅悶ｒ蜿ｰ蟶ｳ縺ｫ逋ｻ骭ｲ</div>
+    <div class="si-sub">蜿ｰ蟶ｳ縺ｫ蜿肴丐縺輔ｌ縺ｾ縺励◆縲・br><span style="font-size:11px;color:var(--text3)">繧ｯ繝ｪ繝・け縺励※髢峨§繧・/span></div>
   </div>
 </div>
 
