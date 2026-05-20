@@ -597,6 +597,7 @@ function nav(v,el){
   if(v==='deadline')renderDeadline();
   if(v==='koushu')renderKoushu();
   if(v==='shinki')renderShinki();
+  if(v==='employees' && typeof renderEmployees === 'function')renderEmployees();
   if(v==='baseup')renderBaseup();
   if(v==='subsidy')renderSubsidySupport();
   if(v==='admin')renderAdminSecurityStatus();
@@ -1366,6 +1367,18 @@ function renderBaseup() {
       '<strong>公式ページを用途別に分けて確認できます。</strong><br>',
       '昨年度から算定している医院の報告、今年度の新規・変更・再届出、歯科技工所ベースアップを混同しないよう、目的に合う公式ページを開いてください。',
     '</div>',
+    typeof renderBaseupSecurityCard === 'function' ? renderBaseupSecurityCard() : '',
+    '<div class="baseup-calc-shell">',
+      '<div class="baseup-calc-title-row baseup-no-print">',
+        '<div class="baseup-calc-title" style="margin-bottom:0">ベースアップ評価料 賃上げシミュレーター <small>概算MVP</small></div>',
+        '<div class="baseup-title-actions">',
+          '<button class="btn btn-secondary" type="button" onclick="downloadEncryptedBaseupJson(collectBaseupSimulationData())">暗号化して保存</button>',
+          '<label class="btn btn-ghost" for="baseup-secure-import-file">暗号化ファイルを読み込む</label>',
+          '<button class="btn btn-ghost" type="button" onclick="clearBaseupCalculator()">入力内容をクリア</button>',
+        '</div>',
+      '</div>',
+      '<div id="baseup-calculator-root"></div>',
+    '</div>',
 
     '<div class="baseup-support-grid">',
       '<section class="baseup-support-card">',
@@ -1400,6 +1413,8 @@ function renderBaseup() {
     '</button>',
   ].join('');
 
+  if(typeof initBaseupSecurityUi === 'function') initBaseupSecurityUi();
+  if(typeof renderBaseupCalculator === 'function') renderBaseupCalculator();
   document.getElementById('baseup-teirei-btn').addEventListener('click', function(){ nav('teirei'); });
 }
 

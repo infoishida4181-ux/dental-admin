@@ -67,8 +67,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .pdf-import-btn:hover{background:var(--accent2);box-shadow:0 3px 10px rgba(37,99,235,.4)}
 
 /* ─── MAIN ─── */
-.main{flex:1;overflow-y:auto;padding:24px 28px;background:var(--bg)}
-.view{display:none}.view.active{display:block}
+.main{flex:1;overflow-y:auto;padding:24px 28px;background:var(--bg);min-width:0}
+.view{display:none;min-width:0}.view.active{display:block}
 
 /* ─── PAGE HEADER ─── */
 .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
@@ -347,10 +347,12 @@ td{padding:11px 13px;font-size:12px;vertical-align:middle}
 .facility-form-group-title{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px}
 .facility-form-search{font-size:11px;line-height:1.8;color:var(--text2);background:var(--bg);border:1px dashed var(--border);border-radius:7px;padding:10px 12px;margin-top:12px}
 .facility-form-search strong{display:block;color:var(--text);font-size:11px;margin-bottom:2px}
-.baseup-support-intro,.baseup-support-note{font-size:13px;line-height:1.9;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+#view-baseup{max-width:100%;min-width:0}
+#view-baseup .ph,#view-employees .ph{max-width:100%;margin-left:0;margin-right:0}
+.baseup-support-intro,.baseup-support-note{font-size:13px;line-height:1.9;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:0 0 14px;max-width:100%;width:100%;box-sizing:border-box}
 .baseup-support-intro strong,.baseup-support-note strong{color:var(--text)}
-.baseup-support-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:16px}
-.baseup-support-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-height:220px}
+.baseup-support-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:12px;margin:0 0 14px;max-width:100%;width:100%;box-sizing:border-box}
+.baseup-support-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-height:200px;min-width:0}
 .baseup-support-kicker{font-size:11px;font-weight:700;color:var(--red);letter-spacing:.04em}
 .baseup-support-card h3{font-size:16px;color:var(--text);margin:0;line-height:1.5}
 .baseup-support-card p{font-size:12px;color:var(--text2);line-height:1.8;margin:0;flex:1}

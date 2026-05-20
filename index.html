@@ -7,6 +7,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="./assets/css/style.css">
+  <link rel="stylesheet" href="./assets/css/baseup-security.css">
+  <link rel="stylesheet" href="./assets/css/employee-manager.css">
+  <link rel="stylesheet" href="./assets/css/baseup-calculator.css">
 </head>
 <body>
 
@@ -49,6 +52,7 @@
     <div class="nav-item" data-view="deadline" onclick="nav('deadline',this)"><span class="ni">🔔</span>期限管理</div>
     <div class="nav-item" data-view="koushu" onclick="nav('koushu',this)"><span class="ni">🎓</span>講習会管理<span class="nav-badge w" id="koushu-badge" style="display:none">期限</span></div>
     <div class="nav-item" data-view="shinki" onclick="nav('shinki',this)"><span class="ni">🆕</span>新規届出サポート</div>
+    <div class="nav-item" data-view="employees" onclick="nav('employees',this)"><span class="ni">👥</span>従業員情報</div>
     <div class="nav-item" data-view="baseup" onclick="nav('baseup',this)"><span class="ni">📋</span>ベースアップ書類作成</div>
     <div class="nav-item" data-view="subsidy" onclick="nav('subsidy',this)"><span class="ni">💴</span>補助金・助成金サポート</div>
   </div>
@@ -162,6 +166,17 @@
   </div>
 
   <!-- ベースアップ書類作成 -->
+  <div class="view" id="view-employees">
+    <div class="ph">
+      <div class="ph-left">
+        <h2>👥 従業員情報管理</h2>
+        <p>ベースアップ評価料の試算や将来の労働保険・社会保険手続きに使う人事・労務マスタです</p>
+      </div>
+    </div>
+    <div id="employees-body"></div>
+  </div>
+
+  <!-- ベースアップ書類作成 -->
   <div class="view" id="view-baseup">
     <div class="ph">
       <div class="ph-left">
@@ -232,6 +247,12 @@
         </select>
       </div>
       <div id="admin-master-review" class="excel-import-empty">管理者モードを開くと一覧を表示します。</div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">ベースアップ評価料 点数・保険料率マスタ</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:12px">賃上げシミュレーターに自動反映する点数と概算保険料率を管理します。給与情報はここには保存されません。</div>
+      <div id="admin-baseup-master-manager" class="excel-import-empty">管理者モードを開くとマスタを表示します。</div>
     </div>
 
     <div style="background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:10px;padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)">
@@ -996,6 +1017,11 @@
   <script src="./assets/js/data.js"></script>
   <script src="./assets/js/admin.js"></script>
   <script src="./assets/js/import-excel.js"></script>
+  <script src="./assets/js/secure-storage.js"></script>
+  <script src="./assets/js/baseup-security.js"></script>
+  <script src="./assets/js/employee-manager.js"></script>
+  <script src="./assets/js/baseup-calculator.js"></script>
+  <script src="./assets/js/baseup-ui.js"></script>
   <script src="./assets/js/app.js"></script>
 </body>
 </html>
