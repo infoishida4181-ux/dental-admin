@@ -478,105 +478,1195 @@ function openAiModal(){
 }
 
 /* ═══ VIEWS ═══ */
-const SUBSIDY_PROGRAM_SAMPLE_DATA = [
+const SUBSIDY_RECORD_STORAGE_KEY = 'subsidy_clinic_records_v1';
+const SUBSIDY_MASTER_BACKUP_KEY = 'subsidy_program_master_backups_v1';
+const SUBSIDY_MASTER_OVERRIDE_KEY = 'subsidy_program_master_override_v1';
+const SUBSIDY_MASTER_UPDATE_HISTORY_KEY = 'subsidy_master_update_history_v1';
+const SUBSIDY_MASTER_BACKUP_SIGNATURE_KEY = 'subsidy_master_last_backup_signature_v1';
+const SUBSIDY_ARCHIVE_GRACE_DAYS = 30;
+const SUBSIDY_UPDATED_BADGE_DAYS = 7;
+let pendingSubsidyMasterUpdate = null;
+let selectedSubsidyGrantId;
+let subsidyDrawerOpen = false;
+
+const SUBSIDY_PROGRAM_MASTER = [
   {
-    name:'IT導入補助金',
+    grantId:'grant-medical-aid-online-qualification-2026',
+    title:'医療費助成オンライン資格確認・レセコン改修補助金',
+    name:'医療費助成オンライン資格確認・レセコン改修補助金',
+    organizer:'厚生労働省 / 医療保険情報提供等実施機関',
+    target:'医療費助成のオンライン資格確認対応やレセコン改修を確認したい歯科医院',
+    amount:'補助対象・上限額は公式ポータルで確認',
+    deadline:'',
+    applicationDeadline:'',
+    status:'unknown',
+    intakeStatus:'unknown',
+    publishStatus:'published',
+    priority:'high',
+    archived:false,
+    officialUrl:'https://iryohokenjyoho.service-now.com/csm?id=csm_index',
+    lastCheckedAt:'2026-05-21',
+    sourceCheckedAt:'2026-05-21',
+    officialPageLastChecked:'2026-05-21',
+    reason:'オンライン資格確認・医療費助成対応は歯科医院のレセコン改修に関係する可能性があります。',
+    summary:'医療費助成オンライン資格確認や関連改修の最新案内を確認するための入口です。補助対象、申請期限、必要書類は公式ポータルで確認してください。',
+    documents:['公式ポータルで確認'],
+    adminNote:'会員向けには詳細DB化せず、公式ポータルへの入口として掲載します。'
+  },
+  {
+    grantId:'grant-iryou-fujo-online-qualification-2026',
+    title:'医療扶助オンライン資格確認等導入に係る助成金',
+    name:'医療扶助オンライン資格確認等導入に係る助成金',
+    organizer:'厚生労働省',
+    target:'医療扶助オンライン資格確認等の導入・改修情報を確認したい歯科医院',
+    amount:'補助対象・上限額は公式ページで確認',
+    deadline:'',
+    applicationDeadline:'',
+    status:'unknown',
+    intakeStatus:'unknown',
+    publishStatus:'published',
+    priority:'high',
+    archived:false,
+    officialUrl:'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/iryou/iryouhijosei-iryoukikan.html',
+    lastCheckedAt:'2026-05-21',
+    sourceCheckedAt:'2026-05-21',
+    officialPageLastChecked:'2026-05-21',
+    reason:'医療扶助オンライン資格確認等は医療機関側のシステム対応に関係する可能性があります。',
+    summary:'医療扶助オンライン資格確認等の導入・改修に関する厚生労働省公式情報への入口です。対象や申請手順は公式ページで確認してください。',
+    documents:['公式ページで確認'],
+    adminNote:'医療機関向けの公式情報リンクとして高優先度掲載します。'
+  },
+  {
+    grantId:'grant-digital-ai-2026',
+    title:'デジタル化・AI導入補助金2026（旧IT導入補助金）',
+    name:'デジタル化・AI導入補助金2026（旧IT導入補助金）',
     organizer:'独立行政法人中小企業基盤整備機構 / 中小企業庁',
     target:'予約管理、会計、セキュリティ、業務効率化などのITツール導入を検討する歯科医院',
     amount:'対象類型・枠により異なります',
-    deadline:'公募回ごとに公式サイトで確認',
-    status:'公式確認',
+    deadline:'2026-08-29',
+    applicationDeadline:'2026-08-29',
+    status:'open',
+    intakeStatus:'open',
+    publishStatus:'published',
+    priority:'high',
+    archived:false,
     officialUrl:'https://it-shien.smrj.go.jp/',
+    lastCheckedAt:'2026-05-21',
+    sourceCheckedAt:'2026-05-21',
+    officialPageLastChecked:'2026-05-21',
+    reason:'予約・会計・セキュリティ・業務効率化ツール導入を検討する歯科医院で確認価値があります。',
     summary:'ITツール導入費用の一部を補助する制度です。対象ツール、補助率、申請枠は年度・公募回により変わります。',
     documents:['事業者情報','導入予定ツールの見積','gBizIDプライム','SECURITY ACTION自己宣言'],
-    adminNote:'Supabase移行後は subsidy_programs テーブルから取得する想定のサンプルです。'
+    adminNote:'旧IT導入補助金系。公式名称・公募回に応じてタイトルは更新してください。'
   },
   {
+    grantId:'grant-gyomu-kaizen-2026',
+    title:'業務改善助成金',
     name:'業務改善助成金',
     organizer:'厚生労働省',
     target:'事業場内最低賃金の引き上げと、生産性向上のための設備投資等を検討する医院',
     amount:'助成上限額・助成率はコースや賃金引上げ額により異なります',
-    deadline:'年度・申請枠ごとに公式サイトで確認',
-    status:'公式確認',
+    deadline:'2026-09-01',
+    applicationDeadline:'2026-09-01',
+    applicationOpenDate:'2026-09-01',
+    status:'pre_open',
+    intakeStatus:'pre_open',
+    publishStatus:'published',
+    priority:'high',
+    archived:false,
     officialUrl:'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/roudoukijun/zigyonushi/shienjigyou/03.html',
-    summary:'賃金引上げと設備投資等を組み合わせて行う中小企業・小規模事業者向けの助成制度です。',
+    lastCheckedAt:'2026-05-21',
+    sourceCheckedAt:'2026-05-21',
+    officialPageLastChecked:'2026-05-21',
+    reason:'令和8年度は募集前です。交付申請の受付開始日は令和8年9月1日です。',
+    summary:'令和8年度の交付要綱・要領は公開済みです。交付申請の受付開始日は令和8年9月1日です。申請を検討する場合は、受付開始前に公式ページで最新情報をご確認ください。',
     documents:['交付申請書','事業実施計画','賃金台帳','見積書','労働者名簿'],
     adminNote:'労務・賃金情報を扱うため、実運用では社労士等との確認導線を検討してください。'
   },
   {
-    name:'東京都 中小企業向け支援制度',
-    organizer:'東京都 / 東京都中小企業振興公社',
-    target:'東京都内で設備投資、DX、防災、働き方改善などを検討する歯科医院',
+    grantId:'grant-tokyo-cyber-security-2026',
+    title:'東京都サイバーセキュリティ対策促進助成金',
+    name:'東京都サイバーセキュリティ対策促進助成金',
+    organizer:'東京都中小企業振興公社',
+    target:'東京都内でセキュリティ対策投資を検討する事業者',
     amount:'制度ごとに異なります',
-    deadline:'制度ごとに公式サイトで確認',
-    status:'要確認',
-    officialUrl:'https://www.tokyo-kosha.or.jp/support/josei/',
-    summary:'東京都内の中小企業向け助成制度の一覧です。医療機関が対象になるかは各制度の募集要項で確認してください。',
-    documents:['募集要項','申請書','見積書','会社・事業所情報','事業計画'],
-    adminNote:'自治体制度は対象要件が変わりやすいため、将来は地域別マスタ化を推奨します。'
+    deadline:'',
+    applicationDeadline:'',
+    status:'unknown',
+    intakeStatus:'unknown',
+    publishStatus:'review',
+    priority:'medium',
+    archived:false,
+    officialUrl:'https://www.tokyo-kosha.or.jp/support/josei/index.html',
+    lastCheckedAt:'2026-05-21',
+    sourceCheckedAt:'2026-05-21',
+    officialPageLastChecked:'2026-05-21',
+    reason:'セキュリティ投資と関係する可能性がありますが、医療機関の対象可否は要確認です。',
+    summary:'東京都中小企業振興公社の助成制度一覧から対象可否を確認する候補制度です。',
+    documents:['公式ページで確認'],
+    adminNote:'候補制度。医療機関の対象可否や募集状況を確認後に公開判断してください。'
+  },
+  {
+    grantId:'grant-tokyo-bcp-2026',
+    title:'BCP実践促進助成金',
+    name:'BCP実践促進助成金',
+    organizer:'東京都中小企業振興公社',
+    target:'BCP・防災対策の設備投資を検討する事業者',
+    amount:'制度ごとに異なります',
+    deadline:'',
+    applicationDeadline:'',
+    status:'unknown',
+    intakeStatus:'unknown',
+    publishStatus:'review',
+    priority:'medium',
+    archived:false,
+    officialUrl:'https://www.tokyo-kosha.or.jp/support/josei/index.html',
+    lastCheckedAt:'2026-05-21',
+    sourceCheckedAt:'2026-05-21',
+    officialPageLastChecked:'2026-05-21',
+    reason:'災害対策や事業継続対策と関係する可能性がありますが、歯科医院の対象可否は要確認です。',
+    summary:'BCP関連投資の候補制度です。対象要件と募集状況を公式ページで確認してください。',
+    documents:['公式ページで確認'],
+    adminNote:'候補制度。詳細確認前のため会員通常表示には出しません。'
+  },
+  {
+    grantId:'grant-tokyo-led-saving-2026',
+    title:'LED照明等節電促進助成金',
+    name:'LED照明等節電促進助成金',
+    organizer:'東京都中小企業振興公社',
+    target:'製造業向け節電設備投資',
+    amount:'制度ごとに異なります',
+    deadline:'',
+    applicationDeadline:'',
+    status:'unknown',
+    intakeStatus:'unknown',
+    publishStatus:'draft',
+    priority:'low',
+    archived:false,
+    officialUrl:'https://www.tokyo-kosha.or.jp/support/josei/index.html',
+    lastCheckedAt:'2026-05-21',
+    sourceCheckedAt:'2026-05-21',
+    officialPageLastChecked:'2026-05-21',
+    reason:'製造業限定のため、歯科医院向け通常カードには表示しません。',
+    summary:'製造業限定の可能性が高いため、会員向け通常表示から除外します。',
+    documents:['公式ページで確認'],
+    adminNote:'製造業限定。会員通常表示には出さない。'
   }
+];
+
+const SUBSIDY_OFFICIAL_LINKS = [
+  {label:'厚生労働省 雇用関係助成金一覧',url:'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/koyou/kyufukin/index_00057.html'},
+  {label:'厚生労働省 雇用関係助成金パンフレット',url:'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/koyou/kyufukin/000763045.html'},
+  {label:'東京労働局 各種助成金制度',url:'https://jsite.mhlw.go.jp/tokyo-roudoukyoku/hourei_seido_tetsuzuki/kakushu_joseikin.html'},
+  {label:'東京都中小企業振興公社 助成金一覧',url:'https://www.tokyo-kosha.or.jp/support/josei/index.html'},
+  {label:'デジタル化・AI導入補助金2026 公式',url:'https://it-shien.smrj.go.jp/'},
+  {label:'国立市 中小企業支援',url:'https://www.city.kunitachi.tokyo.jp/soshiki/Dept05/Div01/Sec02/gyomu/0473/0480/index.html'},
+  {label:'医療機関等向け総合ポータルサイト',url:'https://iryohokenjyoho.service-now.com/csm?id=csm_index'},
+  {label:'厚生労働省 医療費助成オンライン資格確認 医療機関・薬局向け情報',url:'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/iryou/iryouhijosei-iryoukikan.html'}
 ];
 
 async function getSubsidyPrograms(){
   // 将来はここを Supabase の subsidy_programs 取得処理に差し替える。
-  return SUBSIDY_PROGRAM_SAMPLE_DATA;
+  return getSubsidyProgramMasterForRuntime();
 }
 
-function renderSubsidyStatus(status){
-  const cls=status==='受付中'?'bg':status==='終了'?'bgr':status==='要確認'?'by':'bb';
-  return `<span class="badge ${cls}">${status}</span>`;
+function getSubsidyProgramMasterForRuntime(){
+  try{
+    const override=JSON.parse(localStorage.getItem(SUBSIDY_MASTER_OVERRIDE_KEY)||'null');
+    if(override&&Array.isArray(override.programs))return override.programs;
+  }catch{}
+  return SUBSIDY_PROGRAM_MASTER;
+}
+
+function getSubsidyProgramTitle(program){
+  return program?.title || program?.name || '';
+}
+
+function getSubsidyProgramLastChecked(program){
+  return program?.sourceCheckedAt || program?.lastCheckedAt || program?.officialPageLastChecked || '';
+}
+
+function getSubsidyApplicationDeadline(program){
+  return program?.applicationDeadline || program?.deadline || '';
+}
+
+function getSubsidyPublishStatus(program){
+  if(program?.publishStatus)return program.publishStatus;
+  if(program?.archived)return 'archived';
+  return 'draft';
+}
+
+function getSubsidyPriority(program){
+  return program?.priority || 'medium';
+}
+
+function getPublishedMemberSubsidyPrograms(programs){
+  const priorityOrder={high:0,medium:1,low:2};
+  return (programs||[])
+    .filter(program=>getSubsidyPublishStatus(program)==='published' && getSubsidyPriority(program)==='high')
+    .sort((a,b)=>(priorityOrder[getSubsidyPriority(a)]??9)-(priorityOrder[getSubsidyPriority(b)]??9));
+}
+
+function getSubsidyCandidatePrograms(programs){
+  return (programs||[]).filter(program=>{
+    const publish=getSubsidyPublishStatus(program);
+    return publish==='draft' || publish==='review' || getSubsidyPriority(program)!=='high';
+  });
+}
+
+function subsidyEscape(value){
+  return String(value??'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+function loadSubsidyClinicRecords(){
+  try{
+    const raw=localStorage.getItem(SUBSIDY_RECORD_STORAGE_KEY);
+    const parsed=raw?JSON.parse(raw):{};
+    return parsed && typeof parsed==='object' ? parsed : {};
+  }catch{
+    return {};
+  }
+}
+
+function saveSubsidyClinicRecords(records){
+  localStorage.setItem(SUBSIDY_RECORD_STORAGE_KEY,JSON.stringify(records||{}));
+}
+
+function createSubsidyRecord(program){
+  return {
+    grantId:program.grantId,
+    applicationStatus:'notStarted',
+    memo:'',
+    checklist:{},
+    cloudFolderUrl:'',
+    localPath:'',
+    linkMemo:'',
+    updatedAt:''
+  };
+}
+
+function getSubsidyRecord(program,records){
+  return records[program.grantId] || createSubsidyRecord(program);
+}
+
+function daysBetweenDateOnly(from,to){
+  const a=new Date(from.getFullYear(),from.getMonth(),from.getDate());
+  const b=new Date(to.getFullYear(),to.getMonth(),to.getDate());
+  return Math.floor((b-a)/86400000);
+}
+
+function getSubsidyDeadlineInfo(program,now=new Date()){
+  const publishStatus=getSubsidyPublishStatus(program);
+  const intakeStatus=program?.intakeStatus || (publishStatus==='archived' ? 'archived' : '');
+  const deadlineValue=getSubsidyApplicationDeadline(program);
+  const make=(type,label,extra={})=>({type,label,days:null,archived:type==='archived',...extra});
+  if(intakeStatus){
+    const labelMap={
+      pre_open:'募集前',
+      open:'募集中',
+      near_deadline:'期限間近',
+      closed:'受付終了',
+      suspended:'受付停止',
+      unknown:'要確認',
+      archived:'アーカイブ'
+    };
+    if(intakeStatus==='archived')return make('archived',labelMap[intakeStatus],{masterArchived:true});
+    if(intakeStatus==='closed'){
+      const deadlineInfo=deadlineValue&&/^\d{4}-\d{2}-\d{2}$/.test(deadlineValue)
+        ? (()=> {
+            const deadline=new Date(`${deadlineValue}T00:00:00`);
+            const diff=daysBetweenDateOnly(now,deadline);
+            const closedDays=diff<0?Math.abs(diff):0;
+            return closedDays>SUBSIDY_ARCHIVE_GRACE_DAYS
+              ? make('archived','アーカイブ',{days:diff,shouldArchive:true,masterArchived:Boolean(program.archived)})
+              : make('closed','受付終了後確認表示',{days:diff});
+          })()
+        : make('closed','受付終了');
+      return deadlineInfo;
+    }
+    return make(intakeStatus,labelMap[intakeStatus]||'要確認');
+  }
+  if(!deadlineValue || !/^\d{4}-\d{2}-\d{2}$/.test(deadlineValue)){
+    return {type:'unknown',label:'受付状況要確認',days:null,archived:false};
+  }
+  const deadline=new Date(`${deadlineValue}T00:00:00`);
+  const diff=daysBetweenDateOnly(now,deadline);
+  if(diff<0){
+    const expiredDays=Math.abs(diff);
+    if(expiredDays>SUBSIDY_ARCHIVE_GRACE_DAYS) return {type:'archived',label:'アーカイブ',days:diff,archived:true,shouldArchive:true,masterArchived:Boolean(program.archived)};
+    return {type:'closed',label:'受付終了後確認表示',days:diff,archived:false};
+  }
+  if(diff<=14) return {type:'near_deadline',label:'期限間近',days:diff,archived:false};
+  return {type:'open',label:'募集中',days:diff,archived:false};
+}
+
+function hasSubsidyClinicRecord(record){
+  if(!record) return false;
+  return record.applicationStatus && record.applicationStatus!=='notStarted'
+    || Boolean(record.memo)
+    || Boolean(record.cloudFolderUrl)
+    || Boolean(record.localPath)
+    || Boolean(record.linkMemo)
+    || Object.values(record.checklist||{}).some(Boolean);
+}
+
+function getSubsidyViewStatus(program,record){
+  if(record?.applicationStatus==='submitted' || record?.applicationStatus==='approved') return {type:'submitted',label:'申請済み'};
+  return getSubsidyDeadlineInfo(program);
+}
+
+function renderSubsidyStatusBadge(status){
+  const cls={
+    open:'bg',
+    pre_open:'bb',
+    near_deadline:'by',
+    closed:'bgr',
+    suspended:'br',
+    submitted:'bb',
+    archived:'bgr',
+    unknown:'by'
+  }[status.type] || 'bb';
+  return `<span class="badge ${cls}">${status.label}</span>`;
+}
+
+function subsidyDeadlineLabel(program){
+  const value=getSubsidyApplicationDeadline(program);
+  if(!value) return '公式ページで確認';
+  return value.replace(/-/g,'/');
+}
+
+function formatSubsidyDate(value){
+  if(!value)return '未確認';
+  return String(value).replace(/-/g,'/');
+}
+
+function renderMemberSubsidyOfficialLinks(){
+  return `<section class="subsidy-official-links">
+    <div class="subsidy-section-head">
+      <div>
+        <div class="subsidy-section-title">公式情報リンク集</div>
+        <div class="admin-master-muted">詳しい制度条件は、まず公式ページで確認してください。</div>
+      </div>
+    </div>
+    <div class="subsidy-official-link-grid">
+      ${SUBSIDY_OFFICIAL_LINKS.map(link=>`
+        <a class="subsidy-official-link" href="${subsidyEscape(link.url)}" target="_blank" rel="noopener noreferrer">
+          <span>${subsidyEscape(link.label)}</span>
+          <strong>公式ページを開く</strong>
+        </a>`).join('')}
+    </div>
+  </section>`;
+}
+
+function subsidyApplicationStatusLabel(value){
+  return {
+    notStarted:'未着手',
+    checking:'確認中',
+    preparing:'準備中',
+    submitted:'申請済み',
+    approved:'採択・交付決定',
+    declined:'見送り'
+  }[value] || '未着手';
+}
+
+function subsidyApplicationStatusOptions(current){
+  return [
+    ['notStarted','未着手'],
+    ['checking','確認中'],
+    ['preparing','準備中'],
+    ['submitted','申請済み'],
+    ['approved','採択・交付決定'],
+    ['declined','見送り']
+  ].map(([value,label])=>`<option value="${value}" ${value===current?'selected':''}>${label}</option>`).join('');
+}
+
+function renderSubsidyArchiveNotice(program,record){
+  const info=getSubsidyDeadlineInfo(program);
+  if(info.type==='closed') return `<div class="subsidy-expired-note">受付終了後の確認表示です。最新の再募集・追加受付は公式ページで確認してください。</div>`;
+  if(info.type==='archived' && hasSubsidyClinicRecord(record)) return `<div class="subsidy-expired-note">申請記録があるため、アーカイブから参照できます。</div>`;
+  if(info.type==='archived') return `<div class="subsidy-expired-note">受付終了後の確認期間を過ぎたためアーカイブ表示です。</div>`;
+  return '';
+}
+
+function backupSubsidyMasterBeforeUpdate(nextMaster){
+  const backups=loadStoredJson(SUBSIDY_MASTER_BACKUP_KEY,[]);
+  backups.unshift({ backedUpAt:new Date().toISOString(), master:getSubsidyProgramMasterForRuntime() });
+  localStorage.setItem(SUBSIDY_MASTER_BACKUP_KEY,JSON.stringify(backups.slice(0,10)));
+  return diffSubsidyMasters(getSubsidyProgramMasterForRuntime(),nextMaster||[]);
+}
+
+function normalizeSubsidyCompareText(value){
+  return String(value||'').trim().replace(/\s+/g,'').toLowerCase();
+}
+
+function normalizeSubsidyProgramForCompare(program){
+  const copy={...(program||{})};
+  copy.title=getSubsidyProgramTitle(program);
+  copy.name=program?.name || copy.title;
+  copy.lastCheckedAt=getSubsidyProgramLastChecked(program);
+  copy.sourceCheckedAt=getSubsidyProgramLastChecked(program);
+  copy.applicationDeadline=getSubsidyApplicationDeadline(program);
+  copy.officialPageLastChecked=copy.lastCheckedAt;
+  delete copy.updatedAt;
+  delete copy.appliedAt;
+  return copy;
+}
+
+function getSubsidyMasterSignature(master=getSubsidyProgramMasterForRuntime()){
+  try{
+    return JSON.stringify((master||[]).map(normalizeSubsidyProgramForCompare));
+  }catch{
+    return String(Date.now());
+  }
+}
+
+function diffSubsidyMasters(currentMaster,nextMaster){
+  const current=(currentMaster||[]).filter(Boolean);
+  const next=(nextMaster||[]).filter(Boolean);
+  const currentById=new Map(current.filter(p=>p.grantId).map(p=>[p.grantId,p]));
+  const nextById=new Map(next.filter(p=>p.grantId).map(p=>[p.grantId,p]));
+  const added=next.filter(p=>p.grantId&&!currentById.has(p.grantId));
+  const deleted=current.filter(p=>p.grantId&&!nextById.has(p.grantId));
+  const changed=[];
+  const deadlineChanged=[];
+  const officialUrlChanged=[];
+  next.forEach(nextProgram=>{
+    const id=nextProgram.grantId;
+    if(!id||!currentById.has(id))return;
+    const currentProgram=currentById.get(id);
+    if(JSON.stringify(normalizeSubsidyProgramForCompare(currentProgram))!==JSON.stringify(normalizeSubsidyProgramForCompare(nextProgram)))changed.push(nextProgram);
+    if(getSubsidyApplicationDeadline(currentProgram)!==getSubsidyApplicationDeadline(nextProgram))deadlineChanged.push(nextProgram);
+    if((currentProgram.officialUrl||'')!==(nextProgram.officialUrl||''))officialUrlChanged.push(nextProgram);
+  });
+  const expired=next.filter(p=>getSubsidyDeadlineInfo(p).type==='closed');
+  const archiveCandidates=next.filter(p=>{
+    const info=getSubsidyDeadlineInfo(p);
+    return info.shouldArchive&&!p.archived;
+  });
+  const possibleGrantIdMismatch=[];
+  deleted.forEach(oldProgram=>{
+    const oldTitle=normalizeSubsidyCompareText(getSubsidyProgramTitle(oldProgram));
+    const oldUrl=normalizeSubsidyCompareText(oldProgram.officialUrl);
+    const candidate=added.find(newProgram=>{
+      const newTitle=normalizeSubsidyCompareText(getSubsidyProgramTitle(newProgram));
+      const newUrl=normalizeSubsidyCompareText(newProgram.officialUrl);
+      return oldTitle&&oldTitle===newTitle || oldUrl&&oldUrl===newUrl;
+    });
+    if(candidate)possibleGrantIdMismatch.push({current:oldProgram,next:candidate});
+  });
+  return {added,changed,deadlineChanged,officialUrlChanged,expired,archiveCandidates,deleted,possibleGrantIdMismatch};
+}
+
+function getSubsidyDiffCounts(diff){
+  return {
+    added:diff?.added?.length||0,
+    changed:diff?.changed?.length||0,
+    deadlineChanged:diff?.deadlineChanged?.length||0,
+    officialUrlChanged:diff?.officialUrlChanged?.length||0,
+    expired:diff?.expired?.length||0,
+    archiveCandidates:diff?.archiveCandidates?.length||0,
+    deleted:diff?.deleted?.length||0,
+    possibleGrantIdMismatch:diff?.possibleGrantIdMismatch?.length||0
+  };
+}
+
+function getSubsidyUpdatedGrantIds(diff){
+  const ids=new Set();
+  ['added','changed','deadlineChanged','officialUrlChanged','expired','archiveCandidates'].forEach(key=>{
+    (diff?.[key]||[]).forEach(item=>{ if(item?.grantId)ids.add(item.grantId); });
+  });
+  (diff?.possibleGrantIdMismatch||[]).forEach(item=>{
+    if(item?.current?.grantId)ids.add(item.current.grantId);
+    if(item?.next?.grantId)ids.add(item.next.grantId);
+  });
+  return [...ids];
+}
+
+function generateSubsidyMemberNotice(diff){
+  const c=getSubsidyDiffCounts(diff);
+  const lines=['補助金・助成金サポートの制度情報を更新しました。'];
+  if(c.added)lines.push(`新しく確認できる制度が ${c.added} 件追加されています。`);
+  if(c.changed)lines.push(`制度内容の更新が ${c.changed} 件あります。`);
+  if(c.deadlineChanged)lines.push(`申請期限が変更された制度が ${c.deadlineChanged} 件あります。`);
+  if(c.officialUrlChanged)lines.push(`公式ページの案内先が変更された制度が ${c.officialUrlChanged} 件あります。`);
+  if(c.expired)lines.push(`受付終了後の確認表示となった制度が ${c.expired} 件あります。必要に応じて公式ページで再募集・追加受付をご確認ください。`);
+  if(c.archiveCandidates)lines.push(`アーカイブ移動候補の制度が ${c.archiveCandidates} 件あります。過去の申請記録やメモがある制度はアーカイブから確認できます。`);
+  if(c.deleted)lines.push(`今回の更新データに含まれない制度が ${c.deleted} 件あります。必要に応じてアーカイブや過去記録を確認してください。`);
+  if(c.possibleGrantIdMismatch)lines.push(`grantId が変わった可能性のある制度が ${c.possibleGrantIdMismatch} 件あります。管理者側で紐づきを確認してください。`);
+  if(lines.length===1)lines.push('今回の更新では、会員向けに大きく表示が変わる制度はありません。');
+  lines.push('医院ごとの申請ステータス、メモ、チェックリスト、保存先リンクは保持されています。');
+  lines.push('申請前には、必ず各制度の公式ページで最新情報をご確認ください。');
+  return lines.join('\n');
+}
+
+function renderSubsidyAdminDiffSummary(programs){
+  const diff=diffSubsidyMasters(programs,programs);
+  return `<div class="subsidy-master-admin">
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px">制度マスタ更新時の安全設計</div>
+    <div>管理者が制度情報を更新する前に、現在の制度マスタを自動バックアップし、新規追加・変更・受付終了・アーカイブ移動候補を差分確認する設計です。</div>
+    <div class="subsidy-admin-diff">
+      <span>新規追加 ${diff.added.length}件</span>
+      <span>変更 ${diff.changed.length}件</span>
+      <span>受付終了 ${diff.expired.length}件</span>
+      <span>アーカイブ候補 ${diff.archiveCandidates.length}件</span>
+    </div>
+    <div class="admin-master-muted">医院ごとの申請ステータス・メモ・チェックリスト・保存先リンクは grantId で別管理し、制度名変更や管理者更新では上書きしません。</div>
+  </div>`;
+}
+
+function setSubsidyDrawerOpen(open){
+  subsidyDrawerOpen=Boolean(open);
+  applySubsidyDrawerScrollLock();
+}
+
+function applySubsidyDrawerScrollLock(){
+  const locked=Boolean(subsidyDrawerOpen && currentView==='subsidy');
+  document.body.classList.toggle('subsidy-drawer-lock',locked);
+  document.querySelector('.main')?.classList.toggle('subsidy-drawer-lock',locked);
+}
+
+function ensureSubsidyDrawerKeyboardHandler(){
+  if(window.__subsidyDrawerKeyboardReady)return;
+  window.__subsidyDrawerKeyboardReady=true;
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Escape')return;
+    if(currentView!=='subsidy'||!subsidyDrawerOpen)return;
+    setSubsidyDrawerOpen(false);
+    renderSubsidySupport();
+  });
+}
+
+function renderSubsidyLedgerRow(program,records,isSelected){
+  const record=getSubsidyRecord(program,records);
+  const status=getSubsidyViewStatus(program,record);
+  const updatedBadge=hasRecentSubsidyUpdate(program)?'<span class="badge by">更新あり</span>':'';
+  return `<tr class="subsidy-ledger-row ${isSelected?'is-selected':''}" data-select-subsidy="${subsidyEscape(program.grantId)}" tabindex="0">
+    <td>
+      <strong>${subsidyEscape(getSubsidyProgramTitle(program))}</strong>
+      <small>${subsidyEscape(program.organizer || '')}</small>
+    </td>
+    <td>${updatedBadge}${renderSubsidyStatusBadge(status)}</td>
+    <td>${subsidyEscape(program.reason || program.summary || '歯科医院で確認価値がある可能性があります。')}</td>
+    <td>${formatSubsidyDate(getSubsidyProgramLastChecked(program))}</td>
+    <td>
+      <div class="subsidy-ledger-actions">
+        <button class="btn btn-ghost" type="button" data-select-subsidy="${subsidyEscape(program.grantId)}">詳細</button>
+        <a class="btn btn-secondary" href="${subsidyEscape(program.officialUrl)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">公式ページ</a>
+      </div>
+    </td>
+  </tr>`;
+}
+
+function renderSubsidyDetailSidePanel(program,record,isOpen=false){
+  if(!program){
+    return `<div class="subsidy-drawer-backdrop" data-close-subsidy-panel></div>
+      <aside class="subsidy-drawer" aria-hidden="true"></aside>`;
+  }
+  const status=getSubsidyViewStatus(program,record);
+  const documents=Array.isArray(program.documents)?program.documents:[];
+  return `<div class="subsidy-drawer-backdrop ${isOpen?'is-open':''}" data-close-subsidy-panel></div>
+  <aside class="subsidy-drawer ${isOpen?'is-open':''}" data-detail-grant-id="${subsidyEscape(program.grantId)}" aria-hidden="${isOpen?'false':'true'}">
+    <div class="subsidy-drawer-header">
+      <div>
+        <div class="subsidy-detail-title">${subsidyEscape(getSubsidyProgramTitle(program))}</div>
+        <div class="subsidy-organizer">公式情報確認日: ${formatSubsidyDate(getSubsidyProgramLastChecked(program))}</div>
+      </div>
+      <div class="subsidy-card-badges">${hasRecentSubsidyUpdate(program)?'<span class="badge by">更新あり</span>':''}${renderSubsidyStatusBadge(status)}</div>
+      <button class="dpclose subsidy-drawer-close" type="button" data-close-subsidy-panel aria-label="助成金・補助金詳細を閉じる">閉じる ×</button>
+    </div>
+    <div class="subsidy-drawer-body">
+      <a class="btn btn-secondary" href="${subsidyEscape(program.officialUrl)}" target="_blank" rel="noopener noreferrer">公式ページを開く</a>
+      ${renderSubsidyArchiveNotice(program,record)}
+      <div class="subsidy-source-note">この情報は ${formatSubsidyDate(getSubsidyProgramLastChecked(program))} 時点の公式情報をもとに掲載しています。申請前には必ず公式ページで最新情報をご確認ください。</div>
+      <div class="subsidy-detail-block">
+        <div class="subsidy-docs-title">この制度を確認する理由</div>
+        <div class="subsidy-summary">${subsidyEscape(program.reason || '歯科医院で確認価値がある可能性があります。')}</div>
+      </div>
+      <div class="subsidy-detail-block">
+        <div class="subsidy-docs-title">概要</div>
+        <div class="subsidy-summary">${subsidyEscape(program.summary || '')}</div>
+      </div>
+      <div class="subsidy-meta">
+        <div><span>対象</span><strong>${subsidyEscape(program.target)}<br><small>対象可否は公式ページで確認</small></strong></div>
+        <div><span>補助額・補助率</span><strong>${subsidyEscape(program.amount)}<br><small>補助率・上限額は変更される場合があります</small></strong></div>
+        <div><span>受付状態</span><strong>${subsidyEscape(status.label)}</strong></div>
+        <div><span>受付開始日・申請期限</span><strong>${subsidyDeadlineLabel(program)}<br><small>最新期限は公式ページで確認</small></strong></div>
+      </div>
+      <div class="subsidy-docs">
+        <div class="subsidy-docs-title">必要書類</div>
+        <div class="subsidy-doc-list">${documents.map((doc,index)=>`<label><input type="checkbox" data-subsidy-check="${subsidyEscape(program.grantId)}" data-subsidy-doc="${index}" ${record.checklist?.[index]?'checked':''}> <span>${subsidyEscape(doc)}</span></label>`).join('') || '<span>公式ページで確認</span>'}</div>
+        <div class="admin-master-muted">必要書類は参考表示です。正式な様式・提出書類は公式ページで確認してください。</div>
+      </div>
+      <div class="subsidy-record">
+        <label><span>医院側の申請ステータス</span><select data-subsidy-field="${subsidyEscape(program.grantId)}" data-field="applicationStatus">${subsidyApplicationStatusOptions(record.applicationStatus)}</select></label>
+        <label><span>メモ</span><textarea data-subsidy-field="${subsidyEscape(program.grantId)}" data-field="memo" rows="4" placeholder="確認事項、申請予定、事務局への相談メモなど">${subsidyEscape(record.memo)}</textarea></label>
+      </div>
+      <div class="subsidy-links">
+        <div class="subsidy-docs-title">保存先リンク管理</div>
+        <label><span>クラウドフォルダURL</span><input data-subsidy-field="${subsidyEscape(program.grantId)}" data-field="cloudFolderUrl" value="${subsidyEscape(record.cloudFolderUrl)}" placeholder="https://..."></label>
+        <label><span>ローカルPC上の保存先パス</span><input data-subsidy-field="${subsidyEscape(program.grantId)}" data-field="localPath" value="${subsidyEscape(record.localPath)}" placeholder="例：C:\\\\助成金\\\\IT導入補助金"></label>
+        <label><span>保存先メモ</span><input data-subsidy-field="${subsidyEscape(program.grantId)}" data-field="linkMemo" value="${subsidyEscape(record.linkMemo)}" placeholder="担当者、保管ルールなど"></label>
+        <div class="subsidy-link-actions">
+          ${record.cloudFolderUrl?`<a class="btn btn-ghost" href="${subsidyEscape(record.cloudFolderUrl)}" target="_blank" rel="noopener noreferrer">クラウド保存先を開く</a>`:''}
+          <button class="btn btn-ghost" type="button" onclick="copySubsidyLocalPath('${subsidyEscape(program.grantId)}')">パスをコピー</button>
+        </div>
+        <div class="subsidy-link-note">ファイル本体はアプリ内に保存しません。公式URL、クラウドフォルダURL、ローカルPC上の保存先パスだけを記録します。ローカルPCのパスはWebアプリから直接開けない場合があります。パスをコピーしてエクスプローラーに貼り付けてください。</div>
+      </div>
+    </div>
+  </aside>`;
+}
+
+function saveSubsidyField(grantId,field,value){
+  const records=loadSubsidyClinicRecords();
+  const program=getSubsidyProgramMasterForRuntime().find(p=>p.grantId===grantId) || {grantId};
+  const record={...getSubsidyRecord(program,records)};
+  record[field]=value;
+  record.updatedAt=new Date().toISOString();
+  records[grantId]=record;
+  saveSubsidyClinicRecords(records);
+}
+
+function saveSubsidyChecklist(grantId,key,checked){
+  const records=loadSubsidyClinicRecords();
+  const program=getSubsidyProgramMasterForRuntime().find(p=>p.grantId===grantId) || {grantId};
+  const record={...getSubsidyRecord(program,records),checklist:{...(getSubsidyRecord(program,records).checklist||{})}};
+  record.checklist[key]=checked;
+  record.updatedAt=new Date().toISOString();
+  records[grantId]=record;
+  saveSubsidyClinicRecords(records);
+}
+
+function copySubsidyLocalPath(grantId){
+  const record=loadSubsidyClinicRecords()[grantId];
+  const path=record?.localPath || '';
+  if(!path){
+    if(typeof showAppToast==='function')showAppToast('コピーする保存先パスがありません。','warn');
+    return;
+  }
+  navigator.clipboard?.writeText(path).then(()=>{
+    if(typeof showAppToast==='function')showAppToast('保存先パスをコピーしました。','success');
+  }).catch(()=>{
+    if(typeof showAppToast==='function')showAppToast('パスを選択してコピーしてください。','warn');
+  });
+}
+
+function auditSubsidyProgramMaster(master=getSubsidyProgramMasterForRuntime(),records=loadSubsidyClinicRecords()){
+  const issues=[];
+  const programs=Array.isArray(master)?master:[];
+  const idCounts=new Map();
+  programs.forEach((program,index)=>{
+    const grantId=String(program?.grantId||'').trim();
+    if(grantId)idCounts.set(grantId,(idCounts.get(grantId)||0)+1);
+    else issues.push({severity:'error',grantId:'未設定',title:getSubsidyProgramTitle(program)||`制度 ${index+1}`,message:'grantId が未設定です。医院ごとの申請記録と紐づけできません。'});
+    const title=getSubsidyProgramTitle(program);
+    if(!title)issues.push({severity:'error',grantId:grantId||'未設定',title:`制度 ${index+1}`,message:'制度名 title が未設定です。'});
+    if(!program?.officialUrl)issues.push({severity:'warn',grantId:grantId||'未設定',title:title||`制度 ${index+1}`,message:'公式URL officialUrl が未設定です。'});
+    if(!getSubsidyApplicationDeadline(program))issues.push({severity:'warn',grantId:grantId||'未設定',title:title||`制度 ${index+1}`,message:'申請期限 applicationDeadline が未設定です。'});
+    if(!getSubsidyProgramLastChecked(program))issues.push({severity:'warn',grantId:grantId||'未設定',title:title||`制度 ${index+1}`,message:'最終確認日 lastCheckedAt が未設定です。'});
+    if(!program?.publishStatus)issues.push({severity:'warn',grantId:grantId||'未設定',title:title||`制度 ${index+1}`,message:'公開状態 publishStatus が未設定です。会員画面には published の制度だけ表示します。'});
+    if(!program?.priority)issues.push({severity:'warn',grantId:grantId||'未設定',title:title||`制度 ${index+1}`,message:'優先度 priority が未設定です。high の published 制度を会員画面の通常表示に使います。'});
+    const deadlineInfo=getSubsidyDeadlineInfo(program);
+    if(deadlineInfo.shouldArchive&&!program?.archived){
+      issues.push({severity:'warn',grantId:grantId||'未設定',title:title||`制度 ${index+1}`,message:`受付終了後${SUBSIDY_ARCHIVE_GRACE_DAYS}日を超えていますが archived 扱いになっていません。`});
+    }
+  });
+  idCounts.forEach((count,grantId)=>{
+    if(count>1)issues.push({severity:'error',grantId,title:grantId,message:`grantId が重複しています（${count}件）。`});
+  });
+  const masterIds=new Set(programs.map(p=>p?.grantId).filter(Boolean));
+  Object.keys(records||{}).forEach(grantId=>{
+    if(!masterIds.has(grantId)){
+      issues.push({severity:'warn',grantId,title:grantId,message:'医院側の申請記録に存在しますが、現在の制度マスタには存在しない grantId です。削除済み制度または grantId 変更の可能性があります。'});
+    }
+  });
+  return {
+    issues,
+    errors:issues.filter(i=>i.severity==='error').length,
+    warnings:issues.filter(i=>i.severity!=='error').length,
+    programCount:programs.length,
+    recordCount:Object.keys(records||{}).length
+  };
+}
+
+function formatSubsidyBackupFilename(date=new Date()){
+  const pad=n=>String(n).padStart(2,'0');
+  return `subsidy-master-backup-${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}.json`;
+}
+
+function downloadSubsidyMasterBackup(){
+  const master=getSubsidyProgramMasterForRuntime();
+  const payload={
+    appName:'歯科保険施設基準管理アプリ',
+    featureName:'補助金・助成金サポート',
+    exportedAt:new Date().toISOString(),
+    programs:master
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=formatSubsidyBackupFilename();
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  localStorage.setItem(SUBSIDY_MASTER_BACKUP_SIGNATURE_KEY,JSON.stringify({
+    backedUpAt:payload.exportedAt,
+    signature:getSubsidyMasterSignature(master)
+  }));
+  renderSubsidyAdminHealthCheck();
+  if(pendingSubsidyMasterUpdate)renderSubsidyMasterDiffPreview(pendingSubsidyMasterUpdate);
+  if(typeof showAppToast==='function')showAppToast('制度マスタのバックアップJSONを作成しました。','success');
+}
+
+function hasCurrentSubsidyMasterBackup(){
+  const record=loadStoredJson(SUBSIDY_MASTER_BACKUP_SIGNATURE_KEY,null);
+  return Boolean(record&&record.signature===getSubsidyMasterSignature(getSubsidyProgramMasterForRuntime()));
+}
+
+function readSubsidyJsonFile(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(new Error('JSONファイルを読み込めませんでした。'));
+    reader.readAsText(file,'utf-8');
+  });
+}
+
+function validateSubsidyMasterUpdate(master){
+  const errors=[];
+  if(!Array.isArray(master)||master.length===0){
+    return ['更新JSONに制度データがありません。programs 配列に1件以上の制度を含めてください。'];
+  }
+  const ids=new Map();
+  master.forEach((program,index)=>{
+    const label=`${index+1}件目`;
+    const grantId=String(program?.grantId||'').trim();
+    const title=getSubsidyProgramTitle(program);
+    if(!grantId)errors.push(`${label}: grantId が未設定です。`);
+    else ids.set(grantId,(ids.get(grantId)||0)+1);
+    if(!title)errors.push(`${grantId||label}: 制度名 title が未設定です。`);
+    if(!program?.officialUrl)errors.push(`${grantId||label}: 公式URL officialUrl が未設定です。`);
+    if(getSubsidyPublishStatus(program)==='published' && !getSubsidyApplicationDeadline(program))errors.push(`${grantId||label}: 会員画面に公開する制度は申請期限 applicationDeadline を設定してください。`);
+    if(!getSubsidyProgramLastChecked(program))errors.push(`${grantId||label}: 最終確認日 lastCheckedAt が未設定です。`);
+    if(!program?.publishStatus)errors.push(`${grantId||label}: 公開状態 publishStatus が未設定です。`);
+    if(!program?.priority)errors.push(`${grantId||label}: 優先度 priority が未設定です。`);
+  });
+  ids.forEach((count,grantId)=>{
+    if(count>1)errors.push(`${grantId}: grantId が重複しています（${count}件）。`);
+  });
+  return errors;
+}
+
+async function previewSubsidyMasterUpdateFile(input){
+  const file=input?.files?.[0];
+  if(!file)return;
+  try{
+    const text=await readSubsidyJsonFile(file);
+    const parsed=JSON.parse(text);
+    const nextMaster=Array.isArray(parsed)?parsed:parsed?.programs;
+    if(!Array.isArray(nextMaster))throw new Error('制度マスタ配列、または programs 配列が見つかりません。');
+    const validationErrors=validateSubsidyMasterUpdate(nextMaster);
+    if(validationErrors.length){
+      pendingSubsidyMasterUpdate=null;
+      const preview=document.getElementById('subsidy-master-diff-preview');
+      if(preview)preview.innerHTML=`<div class="subsidy-diff-preview">
+        <div class="subsidy-health-title">更新JSONを反映できません</div>
+        <div class="subsidy-health-list">
+          ${validationErrors.slice(0,30).map(msg=>`<div class="subsidy-health-item danger"><span class="badge br">エラー</span><div><strong>必須項目を確認してください</strong><p>${subsidyEscape(msg)}</p></div></div>`).join('')}
+        </div>
+      </div>`;
+      if(typeof showAppToast==='function')showAppToast('更新JSONに必須項目不足または重複があります。反映を停止しました。','error');
+      return;
+    }
+    const currentMaster=getSubsidyProgramMasterForRuntime();
+    const diff=diffSubsidyMasters(currentMaster,nextMaster);
+    pendingSubsidyMasterUpdate={fileName:file.name,nextMaster,diff,loadedAt:new Date().toISOString(),notice:generateSubsidyMemberNotice(diff)};
+    renderSubsidyMasterDiffPreview(pendingSubsidyMasterUpdate);
+  }catch(err){
+    pendingSubsidyMasterUpdate=null;
+    const preview=document.getElementById('subsidy-master-diff-preview');
+    if(preview)preview.innerHTML=`<div class="subsidy-health-item danger">更新データを読み込めませんでした。JSON形式と programs 配列を確認してください。</div>`;
+    if(typeof showAppToast==='function')showAppToast('制度マスタ更新データを読み込めませんでした。','error');
+  }finally{
+    if(input)input.value='';
+  }
+}
+
+function subsidyDiffItemLabel(item){
+  if(!item)return '—';
+  if(item.current&&item.next){
+    return `${getSubsidyProgramTitle(item.current)||item.current.grantId} → ${getSubsidyProgramTitle(item.next)||item.next.grantId}`;
+  }
+  const deadline=getSubsidyApplicationDeadline(item);
+  return `${getSubsidyProgramTitle(item)||item.grantId||'grantId未設定'}${deadline?`（${deadline}）`:''}`;
+}
+
+function renderSubsidyDiffSection(title,items,emptyText='該当なし'){
+  const list=items||[];
+  return `<div class="subsidy-diff-section">
+    <div class="subsidy-diff-title">${title}<span>${list.length}件</span></div>
+    ${list.length?`<ul>${list.slice(0,20).map(item=>`<li>${subsidyEscape(subsidyDiffItemLabel(item))}</li>`).join('')}${list.length>20?`<li>ほか ${list.length-20}件</li>`:''}</ul>`:`<div class="admin-master-muted">${emptyText}</div>`}
+  </div>`;
+}
+
+function renderSubsidyMasterDiffPreview(pending){
+  const preview=document.getElementById('subsidy-master-diff-preview');
+  if(!preview||!pending)return;
+  const d=pending.diff;
+  const backupReady=hasCurrentSubsidyMasterBackup();
+  preview.innerHTML=`
+    <div class="subsidy-diff-preview">
+      <div class="subsidy-health-head">
+        <div>
+          <div class="subsidy-health-title">差分プレビュー</div>
+          <div class="admin-master-muted">読み込みファイル：${subsidyEscape(pending.fileName)}。確認後にのみ反映できます。医院ごとの申請記録、メモ、チェックリスト、保存先リンクは更新対象に含めません。</div>
+        </div>
+        <button class="btn btn-primary" type="button" onclick="applyPendingSubsidyMasterUpdate()" ${backupReady?'':'disabled'}>この内容を制度マスタへ反映</button>
+      </div>
+      ${backupReady
+        ? '<div class="subsidy-health-item ok"><span class="badge bg">バックアップ済み</span><div><strong>現在の制度マスタバックアップを確認しました。</strong><p>この更新を反映できます。</p></div></div>'
+        : '<div class="subsidy-health-item warn"><span class="badge by">要バックアップ</span><div><strong>反映前に現在の制度マスタをバックアップしてください。</strong><p>「現在の制度マスタをJSONバックアップ」を実行すると反映ボタンが有効になります。</p></div></div>'}
+      <div class="subsidy-diff-grid">
+        ${renderSubsidyDiffSection('新規追加',d.added)}
+        ${renderSubsidyDiffSection('内容変更',d.changed)}
+        ${renderSubsidyDiffSection('期限変更',d.deadlineChanged)}
+        ${renderSubsidyDiffSection('公式URL変更',d.officialUrlChanged)}
+        ${renderSubsidyDiffSection('受付終了',d.expired)}
+        ${renderSubsidyDiffSection('アーカイブ移動候補',d.archiveCandidates)}
+        ${renderSubsidyDiffSection('削除候補',d.deleted)}
+        ${renderSubsidyDiffSection('grantId不一致の可能性',d.possibleGrantIdMismatch)}
+      </div>
+      <div class="subsidy-notice-preview">
+        <div class="subsidy-diff-title">会員向けお知らせ文<span>コピー可</span></div>
+        <textarea id="subsidy-member-notice-text" readonly rows="8">${subsidyEscape(pending.notice||generateSubsidyMemberNotice(d))}</textarea>
+        <button class="btn btn-ghost" type="button" onclick="copySubsidyMemberNotice()">お知らせ文をコピー</button>
+      </div>
+    </div>`;
+}
+
+function applyPendingSubsidyMasterUpdate(){
+  if(!pendingSubsidyMasterUpdate){
+    if(typeof showAppToast==='function')showAppToast('先に更新データを読み込み、差分を確認してください。','warn');
+    return;
+  }
+  if(!hasCurrentSubsidyMasterBackup()){
+    if(typeof showAppToast==='function')showAppToast('反映前に現在の制度マスタをJSONバックアップしてください。','warn');
+    renderSubsidyMasterDiffPreview(pendingSubsidyMasterUpdate);
+    return;
+  }
+  backupSubsidyMasterBeforeUpdate(pendingSubsidyMasterUpdate.nextMaster);
+  const appliedAt=new Date().toISOString();
+  const counts=getSubsidyDiffCounts(pendingSubsidyMasterUpdate.diff);
+  const updatedGrantIds=getSubsidyUpdatedGrantIds(pendingSubsidyMasterUpdate.diff);
+  const history=loadStoredJson(SUBSIDY_MASTER_UPDATE_HISTORY_KEY,[]);
+  history.unshift({
+    appliedAt,
+    sourceFileName:pendingSubsidyMasterUpdate.fileName,
+    counts,
+    updatedGrantIds,
+    notice:pendingSubsidyMasterUpdate.notice||generateSubsidyMemberNotice(pendingSubsidyMasterUpdate.diff)
+  });
+  localStorage.setItem(SUBSIDY_MASTER_UPDATE_HISTORY_KEY,JSON.stringify(history.slice(0,10)));
+  localStorage.setItem(SUBSIDY_MASTER_OVERRIDE_KEY,JSON.stringify({
+    appliedAt,
+    sourceFileName:pendingSubsidyMasterUpdate.fileName,
+    updatedGrantIds,
+    programs:pendingSubsidyMasterUpdate.nextMaster
+  }));
+  pendingSubsidyMasterUpdate=null;
+  renderSubsidyAdminHealthCheck();
+  if(currentView==='subsidy')renderSubsidySupport();
+  if(typeof showAppToast==='function')showAppToast('制度マスタを反映しました。医院ごとの申請記録は変更していません。','success');
+}
+
+function clearSubsidyMasterOverride(){
+  localStorage.removeItem(SUBSIDY_MASTER_OVERRIDE_KEY);
+  pendingSubsidyMasterUpdate=null;
+  renderSubsidyAdminHealthCheck();
+  if(currentView==='subsidy')renderSubsidySupport();
+  if(typeof showAppToast==='function')showAppToast('この端末の制度マスタ上書きを解除しました。','success');
+}
+
+function copySubsidyMemberNotice(){
+  const text=document.getElementById('subsidy-member-notice-text')?.value||'';
+  if(!text){
+    if(typeof showAppToast==='function')showAppToast('コピーできるお知らせ文がありません。','warn');
+    return;
+  }
+  navigator.clipboard?.writeText(text).then(()=>{
+    if(typeof showAppToast==='function')showAppToast('会員向けお知らせ文をコピーしました。','success');
+  }).catch(()=>{
+    if(typeof showAppToast==='function')showAppToast('お知らせ文を選択してコピーしてください。','warn');
+  });
+}
+
+function formatSubsidyHistoryDate(value){
+  if(!value)return '—';
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime()))return value;
+  return d.toLocaleString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+function renderSubsidyUpdateHistory(){
+  const history=loadStoredJson(SUBSIDY_MASTER_UPDATE_HISTORY_KEY,[]);
+  if(!history.length)return '<div class="subsidy-health-item ok"><span class="badge bgr">履歴なし</span><div><strong>制度マスタ更新履歴はまだありません。</strong><p>更新JSONを反映すると直近10件まで記録します。</p></div></div>';
+  return `<div class="subsidy-history-list">${history.slice(0,10).map((item,index)=>{
+    const c=item.counts||{};
+    return `<div class="subsidy-history-item">
+      <div class="subsidy-history-head">
+        <strong>${formatSubsidyHistoryDate(item.appliedAt)}</strong>
+        <span class="badge bb">${subsidyEscape(item.sourceFileName||`更新 ${index+1}`)}</span>
+      </div>
+      <div class="subsidy-admin-diff">
+        <span>新規 ${c.added||0}</span>
+        <span>内容変更 ${c.changed||0}</span>
+        <span>期限変更 ${c.deadlineChanged||0}</span>
+        <span>公式URL ${c.officialUrlChanged||0}</span>
+        <span>受付終了 ${c.expired||0}</span>
+        <span>アーカイブ候補 ${c.archiveCandidates||0}</span>
+        <span>削除候補 ${c.deleted||0}</span>
+        <span>grantId候補 ${c.possibleGrantIdMismatch||0}</span>
+      </div>
+      ${item.notice?`<details class="subsidy-history-notice"><summary>会員向けお知らせ文</summary><textarea readonly rows="6">${subsidyEscape(item.notice)}</textarea></details>`:''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function renderSubsidyAdminCandidatePrograms(programs){
+  const candidates=getSubsidyCandidatePrograms(programs);
+  if(!candidates.length)return '<div class="subsidy-health-item ok"><span class="badge bg">候補なし</span><div><strong>会員画面に出す前の候補制度はありません。</strong><p>published/high の制度だけが会員画面の通常表示に出ます。</p></div></div>';
+  return `<div class="subsidy-candidate-list">${candidates.map(program=>`
+    <div class="subsidy-candidate-item">
+      <div>
+        <strong>${subsidyEscape(getSubsidyProgramTitle(program)||'制度名未設定')}</strong>
+        <small>ID: ${subsidyEscape(program.grantId||'未設定')} / ${subsidyEscape(program.organizer||'実施主体未設定')}</small>
+      </div>
+      <div class="subsidy-card-badges">
+        <span class="badge ${getSubsidyPublishStatus(program)==='published'?'bg':getSubsidyPublishStatus(program)==='review'?'by':getSubsidyPublishStatus(program)==='archived'?'bgr':'bb'}">${subsidyEscape(getSubsidyPublishStatus(program))}</span>
+        <span class="badge bb">priority: ${subsidyEscape(getSubsidyPriority(program))}</span>
+        ${renderSubsidyStatusBadge(getSubsidyDeadlineInfo(program))}
+      </div>
+      <div class="admin-master-muted">${subsidyEscape(program.adminNote||program.summary||'公式ページへの入口として扱い、詳細確認後に published/high へ切り替えてください。')}</div>
+      ${program.officialUrl?`<a href="${subsidyEscape(program.officialUrl)}" target="_blank" rel="noopener noreferrer">公式情報を開く</a>`:''}
+    </div>`).join('')}</div>`;
+}
+
+function renderSubsidyOfficialLinkCollection(programs){
+  const programRows=(programs||[]).filter(p=>p?.officialUrl).map(p=>({
+    label:getSubsidyProgramTitle(p)||p.grantId,
+    url:p.officialUrl,
+    organizer:p.organizer||'制度マスタ',
+    checked:getSubsidyProgramLastChecked(p)||'未確認'
+  }));
+  const fixedRows=SUBSIDY_OFFICIAL_LINKS.map(link=>({
+    label:link.label,
+    url:link.url,
+    organizer:'公式情報リンク集',
+    checked:'リンク集'
+  }));
+  const rows=[...fixedRows,...programRows];
+  if(!rows.length)return '<div class="admin-master-muted">公式情報リンクは未登録です。</div>';
+  return `<div class="subsidy-link-collection">${rows.map(link=>`
+    <div class="subsidy-link-row">
+      <div>
+        <strong>${subsidyEscape(link.label)}</strong>
+        <small>${subsidyEscape(link.organizer)} / 確認日: ${subsidyEscape(link.checked)}</small>
+      </div>
+      <a class="btn btn-ghost" href="${subsidyEscape(link.url)}" target="_blank" rel="noopener noreferrer">公式ページを開く</a>
+    </div>`).join('')}</div>`;
+}
+
+function hasRecentSubsidyUpdate(program){
+  const history=loadStoredJson(SUBSIDY_MASTER_UPDATE_HISTORY_KEY,[]);
+  const latest=history.find(item=>Array.isArray(item.updatedGrantIds)&&item.updatedGrantIds.includes(program.grantId));
+  if(!latest?.appliedAt)return false;
+  const diffDays=daysBetweenDateOnly(new Date(latest.appliedAt),new Date());
+  return diffDays>=0&&diffDays<SUBSIDY_UPDATED_BADGE_DAYS;
+}
+
+function renderSubsidyAdminHealthCheck(){
+  const root=document.getElementById('subsidy-admin-health-check');
+  if(!root)return;
+  const master=getSubsidyProgramMasterForRuntime();
+  const records=loadSubsidyClinicRecords();
+  const audit=auditSubsidyProgramMaster(master,records);
+  const override=loadStoredJson(SUBSIDY_MASTER_OVERRIDE_KEY,null);
+  const backupReady=hasCurrentSubsidyMasterBackup();
+  const issueHtml=audit.issues.length
+    ? audit.issues.map(issue=>`<div class="subsidy-health-item ${issue.severity==='error'?'danger':'warn'}">
+        <span class="badge ${issue.severity==='error'?'br':'by'}">${issue.severity==='error'?'エラー':'警告'}</span>
+        <div><strong>${subsidyEscape(issue.title)}</strong><small>ID: ${subsidyEscape(issue.grantId)}</small><p>${subsidyEscape(issue.message)}</p></div>
+      </div>`).join('')
+    : '<div class="subsidy-health-item ok"><span class="badge bg">OK</span><div><strong>重大な問題は見つかりませんでした。</strong><p>制度マスタと医院記録の紐づきを確認しました。</p></div></div>';
+  root.innerHTML=`
+    <div class="subsidy-health-panel">
+      <div class="subsidy-health-head">
+        <div>
+          <div class="subsidy-health-title">助成金・補助金データ健全性チェック</div>
+          <div class="admin-master-muted">制度マスタを更新しても、医院ごとの申請ステータス・メモ・チェックリスト・保存先リンクは <code>${SUBSIDY_RECORD_STORAGE_KEY}</code> 側で保持します。</div>
+        </div>
+        <span class="badge ${audit.errors?'br':audit.warnings?'by':'bg'}">${audit.errors?`${audit.errors}件のエラー`:audit.warnings?`${audit.warnings}件の警告`:'正常'}</span>
+      </div>
+      <div class="subsidy-health-summary">
+        <span>制度マスタ ${audit.programCount}件</span>
+        <span>医院記録 ${audit.recordCount}件</span>
+        <span>エラー ${audit.errors}件</span>
+        <span>警告 ${audit.warnings}件</span>
+        <span>使用中：${override?.programs?'この端末の更新マスタ':'アプリ初期マスタ'}</span>
+        <span>バックアップ：${backupReady?'作成済み':'未作成'}</span>
+      </div>
+      <div class="subsidy-health-list">${issueHtml}</div>
+      <div class="subsidy-admin-actions">
+        <button class="btn btn-secondary" type="button" onclick="downloadSubsidyMasterBackup()">現在の制度マスタをJSONバックアップ</button>
+        ${override?.programs?'<button class="btn btn-ghost" type="button" onclick="clearSubsidyMasterOverride()">この端末の更新マスタを解除</button>':''}
+        <label class="btn btn-primary" for="subsidy-master-update-file">更新JSONを読み込んで差分確認</label>
+        <input id="subsidy-master-update-file" type="file" accept="application/json,.json" style="display:none" onchange="previewSubsidyMasterUpdateFile(this)">
+      </div>
+      <div class="admin-master-muted">更新データは即反映されません。差分プレビューで新規追加・内容変更・期限変更・公式URL変更・受付終了・アーカイブ移動候補・削除候補・grantId不一致の可能性を確認してから反映します。</div>
+      <div id="subsidy-master-diff-preview"></div>
+      <div class="subsidy-update-history">
+        <div class="subsidy-health-title">助成金・補助金 更新履歴</div>
+        <div class="admin-master-muted">制度マスタを反映した履歴を直近10件まで表示します。医院ごとの申請記録はこの履歴更新でも変更しません。</div>
+        ${renderSubsidyUpdateHistory()}
+      </div>
+      <div class="subsidy-update-history">
+        <div class="subsidy-health-title">候補制度</div>
+        <div class="admin-master-muted">draft / review / priority: medium・low の制度は、会員画面の通常表示には出さず、公式情報への入口候補として管理します。</div>
+        ${renderSubsidyAdminCandidatePrograms(master)}
+      </div>
+      <div class="subsidy-update-history">
+        <div class="subsidy-health-title">公式情報リンク集</div>
+        <div class="admin-master-muted">詳細データ化しない制度も、まずは公式ページへのリンクとして管理できます。会員向け公開は publishStatus と priority で制御してください。</div>
+        ${renderSubsidyOfficialLinkCollection(master)}
+      </div>
+    </div>`;
 }
 
 async function renderSubsidySupport(){
   const body=document.getElementById('subsidy-body');
   if(!body)return;
+  ensureSubsidyDrawerKeyboardHandler();
   const programs=await getSubsidyPrograms();
+  const records=loadSubsidyClinicRecords();
+  const visiblePrograms=getPublishedMemberSubsidyPrograms(programs);
+  const archivedPrograms=programs.filter(program=>getSubsidyDeadlineInfo(program).archived || getSubsidyPublishStatus(program)==='archived');
+  if(visiblePrograms.length && selectedSubsidyGrantId!==null && !visiblePrograms.some(program=>program.grantId===selectedSubsidyGrantId)){
+    selectedSubsidyGrantId=undefined;
+    setSubsidyDrawerOpen(false);
+  }
+  if(!visiblePrograms.length){
+    selectedSubsidyGrantId=null;
+    setSubsidyDrawerOpen(false);
+  }
+  const selectedProgram=visiblePrograms.find(program=>program.grantId===selectedSubsidyGrantId);
+  const selectedRecord=selectedProgram?getSubsidyRecord(selectedProgram,records):null;
   body.innerHTML=`
     <div class="subsidy-note">
-      <strong>制度情報はサンプル表示です。</strong>
-      将来的には Vercel + Supabase へ移行し、補助金・助成金データを管理テーブルから取得する想定です。申請条件・期限・必要書類は必ず公式ページで確認してください。
+      <strong>公式情報への入口としてご利用ください。</strong>
+      このページでは、歯科医院で利用できる可能性がある助成金・補助金情報への入口を掲載しています。対象可否、申請期限、必要書類、受付状況は変更される場合があります。申請前には必ず公式ページ・申請窓口・関係機関で最新情報をご確認ください。
     </div>
-    <div class="subsidy-grid">
-      ${programs.map(program=>`
-        <article class="subsidy-card">
-          <div class="subsidy-card-head">
-            <div>
-              <div class="subsidy-title">${program.name}</div>
-              <div class="subsidy-organizer">${program.organizer}</div>
-            </div>
-            ${renderSubsidyStatus(program.status)}
-          </div>
-          <div class="subsidy-summary">${program.summary}</div>
-          <div class="subsidy-meta">
-            <div><span>対象</span><strong>${program.target}</strong></div>
-            <div><span>補助額</span><strong>${program.amount}</strong></div>
-            <div><span>申請期限</span><strong>${program.deadline}</strong></div>
-          </div>
-          <div class="subsidy-docs">
-            <div class="subsidy-docs-title">必要書類</div>
-            <div class="subsidy-doc-list">${program.documents.map(doc=>`<span>${doc}</span>`).join('')}</div>
-          </div>
-          <div class="subsidy-actions">
-            <a class="btn btn-secondary" href="${program.officialUrl}" target="_blank" rel="noopener noreferrer">公式ページを開く</a>
-          </div>
-        </article>
-      `).join('')}
+    <div class="subsidy-state-summary">
+      <span>募集中 ${visiblePrograms.filter(p=>getSubsidyViewStatus(p,getSubsidyRecord(p,records)).type==='open').length}件</span>
+      <span>期限間近 ${visiblePrograms.filter(p=>getSubsidyViewStatus(p,getSubsidyRecord(p,records)).type==='near_deadline').length}件</span>
+      <span>受付終了 ${visiblePrograms.filter(p=>getSubsidyViewStatus(p,getSubsidyRecord(p,records)).type==='closed').length}件</span>
+      <span>申請済み ${visiblePrograms.filter(p=>getSubsidyViewStatus(p,getSubsidyRecord(p,records)).type==='submitted').length}件</span>
+      <span>アーカイブ ${archivedPrograms.length}件</span>
     </div>
+    ${renderMemberSubsidyOfficialLinks()}
+    <div class="subsidy-section-head">
+      <div>
+        <div class="subsidy-section-title">確認価値が高い制度</div>
+        <div class="admin-master-muted">一覧で制度を選択すると、右側の詳細パネルに必要書類・メモ・保存先リンクを表示します。</div>
+      </div>
+    </div>
+    <div class="subsidy-ledger-layout">
+      <section class="subsidy-ledger-list">
+        ${visiblePrograms.length?`
+          <div class="subsidy-ledger-table-wrap">
+            <table class="subsidy-ledger-table">
+              <thead><tr><th>制度名</th><th>受付状態</th><th>確認理由</th><th>公式確認日</th><th>操作</th></tr></thead>
+              <tbody>${visiblePrograms.map(program=>renderSubsidyLedgerRow(program,records,subsidyDrawerOpen && program.grantId===selectedSubsidyGrantId)).join('')}</tbody>
+            </table>
+          </div>
+        `:`<div class="empty"><div class="ei">💴</div><p>現在、会員向けに公開中の高優先度制度はありません。<br><small>管理者が published / high にした制度のみ、通常表示に掲載されます。</small></p></div>`}
+      </section>
+    </div>
+    ${renderSubsidyDetailSidePanel(selectedProgram,selectedRecord,subsidyDrawerOpen && Boolean(selectedProgram))}
     <div class="subsidy-consult">
       ご不明点は事務局、または保険委員会にご連絡ください。
     </div>
     <div class="subsidy-admin-frame">
-      <div style="font-size:13px;font-weight:700;margin-bottom:6px">制度情報の更新について</div>
-      <div>掲載制度は、事務局側で公式情報を確認しながら更新していく想定です。申請前には各制度の公式ページで最新情報をご確認ください。</div>
-      <div class="admin-master-muted" style="margin-top:6px">将来のクラウド化では、制度名・必要書類・カテゴリをデータベース側で管理できる構造にします。</div>
+      ${renderSubsidyAdminDiffSummary(programs)}
+      <div class="admin-master-muted" style="margin-top:6px">公式様式ファイルはアプリに固定保存せず、公式ページURLと最終確認日を記録する運用です。</div>
     </div>
   `;
+  bindSubsidySupportEvents();
 }
+
+function bindSubsidySupportEvents(){
+  document.querySelectorAll('#view-subsidy [data-select-subsidy]').forEach(el=>{
+    el.addEventListener('click',(event)=>{
+      const grantId=el.dataset.selectSubsidy;
+      if(!grantId)return;
+      selectedSubsidyGrantId=grantId;
+      setSubsidyDrawerOpen(true);
+      renderSubsidySupport();
+      event.stopPropagation();
+    });
+    el.addEventListener('keydown',(event)=>{
+      if(event.key==='Enter'||event.key===' '){
+        event.preventDefault();
+        const grantId=el.dataset.selectSubsidy;
+        if(!grantId)return;
+        selectedSubsidyGrantId=grantId;
+        setSubsidyDrawerOpen(true);
+        renderSubsidySupport();
+      }
+    });
+  });
+  document.querySelectorAll('#view-subsidy [data-close-subsidy-panel]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      setSubsidyDrawerOpen(false);
+      renderSubsidySupport();
+    });
+  });
+  document.querySelectorAll('[data-subsidy-field]').forEach(el=>{
+    el.addEventListener('change',()=>{
+      saveSubsidyField(el.dataset.subsidyField,el.dataset.field,el.value);
+      if(typeof showAppToast==='function')showAppToast('申請記録を保存しました。','success');
+      if(el.dataset.field==='applicationStatus') renderSubsidySupport();
+    });
+  });
+  document.querySelectorAll('[data-subsidy-check]').forEach(el=>{
+    el.addEventListener('change',()=>{
+      saveSubsidyChecklist(el.dataset.subsidyCheck,el.dataset.subsidyDoc,el.checked);
+    });
+  });
+}
+
+Object.assign(window,{
+  renderSubsidyAdminHealthCheck,
+  downloadSubsidyMasterBackup,
+  previewSubsidyMasterUpdateFile,
+  applyPendingSubsidyMasterUpdate,
+  clearSubsidyMasterOverride,
+  copySubsidyMemberNotice,
+  copySubsidyLocalPath
+});
 
 function nav(v,el){
   if(v==='admin' && !isAdminSessionActive()){
     requestAdminModeAccess();
     return;
+  }
+  if(v!=='subsidy' && subsidyDrawerOpen){
+    setSubsidyDrawerOpen(false);
   }
   currentView=v;
   if(v!=='admin'){

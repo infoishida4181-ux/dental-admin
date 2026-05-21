@@ -538,6 +538,7 @@ function renderAdminSecurityStatus(){
   renderFacilityFormLinkAudit();
   renderAdminMasterReview();
   if(typeof renderAdminBaseupMasterManager === 'function') renderAdminBaseupMasterManager();
+  if(typeof window.renderSubsidyAdminHealthCheck === 'function') window.renderSubsidyAdminHealthCheck();
 }
 
 async function changeAdminPassphrase(){
