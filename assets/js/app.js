@@ -4188,8 +4188,31 @@ const SHINKI_GROUPS = [
   { label:'🚫 令和8年で廃止・再編された施設基準', abbrs:['医療ＤＸ','咬合圧','口細菌'] },
 ];
 
+const SHINKI_SPECIAL_REPORTS = [
+  {
+    id: 'reservation-special-care-report',
+    title: '予約に基づく診察の実施（変更）報告書',
+    type: '保険外併用療養費の実施・変更報告',
+    category: '選定療養・保険外併用療養費',
+    officialPageUrl: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/hoken_heiyo/index.html',
+    pdfUrl: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/r8-y03.pdf',
+    wordUrl: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/r8-y03.docx',
+    summary: '予約診療に係る特別の料金等を実施・変更する場合に確認する保険外併用療養費の報告様式です。通常の診療報酬上の施設基準届出ではなく、保険外併用療養費に関する実施・変更報告です。導入・変更時には管轄の地方厚生局事務所へ提出が必要となる場合があります。',
+    caution: '※本様式は、通常の施設基準届出ではありません。保険外併用療養費に関する実施・変更報告です。実際の導入前には、管轄の厚生局事務所または歯科医師会等へ確認してください。'
+  }
+];
+
 let _shinkiSelected = null;
 let _shinkiListScrollTop = 0;
+
+function isShinkiSpecialKey(key){
+  return String(key||'').startsWith('special:');
+}
+
+function getShinkiSpecialByKey(key){
+  const id = String(key||'').replace(/^special:/,'');
+  return SHINKI_SPECIAL_REPORTS.find(item=>item.id===id) || null;
+}
 
 function isFacilityStandardAbolished(def){
   return Boolean(def?.facilityStandardAbolished);
@@ -4244,6 +4267,26 @@ function renderShinki(){
     });
   });
 
+  html += `<div style="padding:10px 14px 4px;font-size:11px;font-weight:700;color:var(--text3);border-top:1px solid var(--border);margin-top:6px">📄 選定療養・保険外併用療養費</div>`;
+  html += `<div style="padding:0 14px 8px;font-size:10px;color:var(--text3);line-height:1.6">通常の施設基準届出とは別枠の報告様式です。</div>`;
+  SHINKI_SPECIAL_REPORTS.forEach(item => {
+    const key = `special:${item.id}`;
+    const isSelected = _shinkiSelected === key;
+    html += `
+      <div onclick="selectShinkiSpecial('${item.id}')" style="
+        padding:10px 14px;cursor:pointer;border-left:3px solid ${isSelected?'var(--accent)':'transparent'};
+        background:${isSelected?'var(--blue-bg)':'transparent'};
+        transition:all .12s;display:flex;align-items:center;justify-content:space-between;gap:6px"
+        onmouseover="if('${key}'!==_shinkiSelected)this.style.background='var(--bg3)'"
+        onmouseout="this.style.background='${isSelected?'var(--blue-bg)':'transparent'}'">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.5">${item.title}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px">${item.type}</div>
+        </div>
+        <span class="badge bb" style="font-size:9px;flex-shrink:0">別枠</span>
+      </div>`;
+  });
+
   html += `</div>
       <!-- 右：詳細 -->
       <div id="shinki-detail" style="overflow-y:auto;min-height:0">
@@ -4255,7 +4298,10 @@ function renderShinki(){
     </div>`;
 
   document.getElementById('shinki-body').innerHTML = html;
-  if(_shinkiSelected) showShinkiDetail(_shinkiSelected);
+  if(_shinkiSelected){
+    if(isShinkiSpecialKey(_shinkiSelected)) showShinkiSpecialDetail(_shinkiSelected);
+    else showShinkiDetail(_shinkiSelected);
+  }
   requestAnimationFrame(()=>{
     const list=document.getElementById('shinki-list-col');
     if(list) list.scrollTop=savedListScrollTop;
@@ -4266,6 +4312,13 @@ function selectShinki(abbr){
   const list=document.getElementById('shinki-list-col');
   if(list) _shinkiListScrollTop=list.scrollTop;
   _shinkiSelected = abbr;
+  renderShinki();
+}
+
+function selectShinkiSpecial(id){
+  const list=document.getElementById('shinki-list-col');
+  if(list) _shinkiListScrollTop=list.scrollTop;
+  _shinkiSelected = `special:${id}`;
   renderShinki();
 }
 
@@ -4389,6 +4442,49 @@ function renderFacilityFormSection(abbr, def){
       <div class="facility-form-search">
         <strong>様式の探し方</strong>
         公式一覧ページを開いたあと、Ctrl + Fで「${searchKeywords}」を検索してください。
+      </div>
+    </div>`;
+}
+
+function showShinkiSpecialDetail(key){
+  const item = getShinkiSpecialByKey(key);
+  const el = document.getElementById('shinki-detail');
+  if(!item || !el) return;
+  el.innerHTML = `
+    <div style="padding:4px 0 16px">
+      <div class="shinki-special-card">
+        <div class="shinki-special-head">
+          <div>
+            <div class="shinki-special-kicker">${item.category}</div>
+            <h3>${item.title}</h3>
+            <div class="shinki-special-type">${item.type}</div>
+          </div>
+          <span class="badge bb">施設基準とは別枠</span>
+        </div>
+        <p>${item.summary}</p>
+        <div class="shinki-special-caution">${item.caution}</div>
+        <div class="facility-form-section">
+          <div class="facility-form-head">
+            <div>
+              <div class="facility-form-title">公式様式</div>
+              <div class="facility-form-note">関東信越厚生局の保険外併用療養費に関する公式ページ・様式ファイルを開きます。</div>
+            </div>
+          </div>
+          <div class="facility-form-meta">
+            <div><span>種別</span><strong>${item.type}</strong></div>
+            <div><span>カテゴリ</span><strong>${item.category}</strong></div>
+            <div><span>通常の施設基準届出</span><strong>対象外</strong></div>
+          </div>
+          <div class="facility-form-actions">
+            ${renderOfficialFormButton(item.officialPageUrl, '関東信越厚生局公式ページを開く', 'page')}
+            ${renderOfficialFormButton(item.pdfUrl, 'PDF様式を開く', 'pdf')}
+            ${renderOfficialFormButton(item.wordUrl, 'Word様式を開く', 'editable')}
+          </div>
+        </div>
+        <div class="facility-form-search">
+          <strong>確認のポイント</strong>
+          予約診療に係る特別の料金等を導入・変更する場合は、実施内容・掲示・同意・提出先を公式ページで確認してください。届出台帳の施設基準データには自動追加しません。
+        </div>
       </div>
     </div>`;
 }
