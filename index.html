@@ -457,7 +457,7 @@
         <span style="display:inline-block;background:var(--accent);color:#fff;border-radius:50%;width:18px;height:18px;text-align:center;line-height:18px;font-size:10px;font-weight:700;margin-right:6px">3</span>
         この画面で「<strong style="color:var(--text)">JSONからインポート</strong>」→ 手順1で保存したファイルを選択<br>
         <span style="display:inline-block;background:var(--green);color:#fff;border-radius:50%;width:18px;height:18px;text-align:center;line-height:18px;font-size:10px;font-weight:700;margin-right:6px">✓</span>
-        届出台帳・定例報告記録・講習会履歴がすべて復元されます
+        届出台帳・定例報告記録・講習会履歴・講習会の歯科医師マスタ・受講証明書が復元されます
       </div>
     </div>
 
@@ -479,7 +479,7 @@
         </button>
       </div>
       <div style="font-size:11px;color:var(--text3);margin-top:6px">
-        JSONファイルには届出台帳・定例報告記録・講習会履歴・医院名がすべて含まれます
+        JSONファイルには届出台帳・定例報告記録・講習会履歴・講習会の歯科医師マスタ・受講証明書・医院名が含まれます
       </div>
     </div>
 
@@ -745,6 +745,7 @@
   <div class="modal">
     <div class="mt" id="koushu-modal-title">受講記録を追加</div>
     <div class="ms">講習会・研修の受講日と有効期限を登録します</div>
+    <div class="form-error" id="koushu-form-error"></div>
     <input type="hidden" id="koushu-edit-id">
     <div class="fr">
       <div class="fl">研修種別</div>
@@ -762,8 +763,18 @@
       <input type="text" class="fi" id="koushu-custom-name" placeholder="研修名を入力">
     </div>
     <div class="fr">
-      <div class="fl">受講者氏名</div>
-      <input type="text" class="fi" id="koushu-person" placeholder="例：石田 知之">
+      <div class="fl">対象の歯科医師</div>
+      <div class="form-note" style="margin-bottom:8px">複数選択できます。従業員情報で歯科医師を開いている場合は自動で候補に反映します。</div>
+      <div id="koushu-dentist-list" style="display:grid;gap:8px"></div>
+    </div>
+    <div class="fr">
+      <div class="fl">＋ 歯科医師を追加</div>
+      <div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto;gap:8px">
+        <input type="text" class="fi" id="koushu-dentist-name" placeholder="氏名を入力">
+        <input type="text" class="fi" id="koushu-dentist-role" placeholder="役職（任意）">
+        <button type="button" class="btn btn-secondary" onclick="addKoushuDentistFromModal()">追加</button>
+      </div>
+      <div class="form-note">最低限、氏名だけで登録できます。会員名簿や患者情報は入力しないでください。</div>
     </div>
     <div class="fr2">
       <div class="fr">
@@ -785,6 +796,7 @@
     </div>
     <div class="fr">
       <div class="fl">受講証明書（サーティフィケート）</div>
+      <div class="form-note" style="margin-bottom:8px">このデータは使用中の端末のブラウザ内に保存されます。共有PCでは利用に注意し、定期的にバックアップしてください。患者情報、マイナンバー、給与情報などはアップロードしないでください。</div>
       <div id="koushu-cert-area" style="width:100%">
         <div id="koushu-cert-dropzone"
           style="border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;background:var(--bg3);transition:background .15s"
@@ -793,11 +805,11 @@
           ondragleave="this.style.background='var(--bg3)'"
           ondrop="onCertDrop(event)">
           <div style="font-size:22px;margin-bottom:4px">📎</div>
-          <div style="font-size:12px;color:var(--text2)">PDF・JPG・PNG・Word をドロップ、またはクリックして選択</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:3px">1ファイル 5MB まで</div>
+          <div style="font-size:12px;color:var(--text2)">PDF・JPG・PNG・Word をドロップ、またはクリックして複数選択</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">複数添付できます。1ファイル 5MB まで</div>
         </div>
-        <input type="file" id="koushu-cert-input" accept=".pdf,.jpg,.jpeg,.png,.docx" style="display:none" onchange="onCertSelect(event)">
-        <div id="koushu-cert-preview" style="display:none;margin-top:8px"></div>
+        <input type="file" id="koushu-cert-input" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple style="display:none" onchange="onCertSelect(event)">
+        <div id="koushu-cert-list" style="display:grid;gap:8px;margin-top:10px"></div>
       </div>
     </div>
     <div class="mf">
@@ -809,12 +821,12 @@
 
 
 <!-- CERTIFICATE PREVIEW MODAL -->
-<div class="overlay" id="cert-overlay" onclick="if(event.target===this)closeOverlay('cert-overlay')">
+<div class="overlay" id="cert-overlay" onclick="if(event.target===this)closeCertificateOverlay()">
   <div class="modal" style="max-width:720px;width:95vw;max-height:92vh;overflow-y:auto">
     <div class="mt" id="cert-modal-title">📎 受講証明書</div>
     <div id="cert-modal-body" style="text-align:center;min-height:200px;padding:8px 0"></div>
     <div class="mf">
-      <button class="btn btn-ghost" onclick="closeOverlay('cert-overlay')">閉じる</button>
+      <button class="btn btn-ghost" onclick="closeCertificateOverlay()">閉じる</button>
       <button class="btn btn-primary" id="cert-open-btn">🔗 別タブで開く</button>
       <button class="btn btn-secondary" id="cert-download-btn">⬇ ダウンロード</button>
       <button class="btn btn-danger" id="cert-delete-btn">🗑 証明書を削除</button>

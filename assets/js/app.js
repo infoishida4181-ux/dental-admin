@@ -41,14 +41,22 @@ function assessKoushuRequirement(entry){
   };
   const req=requirements[entry.abbr];
   if(!req)return null;
-  const list=JSON.parse(localStorage.getItem('koushu_list')||'[]');
-  const records=list.filter(r=>r.type===req.type).sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
-  const latest=records[0];
+  const records=typeof loadTrainingRecords==='function' ? getVisibleTrainingRecords(loadTrainingRecords()) : [];
+  const dentists=typeof getActiveDentists==='function' ? getActiveDentists() : [];
+  if(dentists.length){
+    const summary=typeof getTrainingSummary==='function' ? getTrainingSummary(req.type, dentists, records) : null;
+    if(!summary||summary.unregistered===summary.total)return {type:'training',badge:'研修未登録',message:`${req.label}の最終受講日・有効期限・担当者を登録してください。`};
+    if(summary.expired>0)return {type:'training',badge:'期限切れ',message:`${req.label}に期限切れの歯科医師がいます。`};
+    if(summary.soon>0)return {type:'training',badge:'期限接近',message:`${req.label}の有効期限が近づいています。`};
+    if(summary.unregistered>0)return {type:'training',badge:'一部未登録',message:`${req.label}が未登録の歯科医師がいます。`};
+    return null;
+  }
+  const latest=records.filter(r=>r.trainingType===req.type).sort(compareTrainingRecordsDesc)[0];
   if(!latest)return {type:'training',badge:'研修未登録',message:`${req.label}の最終受講日・有効期限・担当者を登録してください。`};
-  if(!latest.date)return {type:'training',badge:'受講日未登録',message:`${req.label}の最終受講日が未登録です。`};
-  if(!latest.expire)return {type:'training',badge:'期限未登録',message:`${req.label}の有効期限が未登録です。`};
-  if(!latest.person)return {type:'training',badge:'担当者未登録',message:`${req.label}の担当者が未登録です。`};
-  const days=Math.floor((new Date(latest.expire)-new Date())/86400000);
+  if(!latest.attendedAt)return {type:'training',badge:'受講日未登録',message:`${req.label}の最終受講日が未登録です。`};
+  if(!latest.expiresAt)return {type:'training',badge:'期限未登録',message:`${req.label}の有効期限が未登録です。`};
+  if(!(latest.attendeeIds||[]).length)return {type:'training',badge:'担当者未登録',message:`${req.label}の担当者が未登録です。`};
+  const days=Math.floor((new Date(latest.expiresAt)-new Date())/86400000);
   if(days<0)return {type:'training',badge:'期限切れ',message:`${req.label}の有効期限が切れています。`};
   if(days<=180)return {type:'training',badge:'期限接近',message:`${req.label}の有効期限が近づいています。`};
   return null;
@@ -255,28 +263,24 @@ function openDP(id){
   // ── 講習会受講状況（歯初診のみ） ──
   let koushuBlock='';
   if(e.abbr==='歯初診'){
-    const kList=JSON.parse(localStorage.getItem('koushu_list')||'[]');
-    const kRecs=kList.filter(r=>r.type==='歯初診_院内感染').sort((a,b)=>new Date(b.date)-new Date(a.date));
-    const latest=kRecs[0];
-    const now=new Date();
-    const expD=latest?new Date(latest.expire):null;
-    const days=expD?Math.floor((expD-now)/86400000):null;
-    let sc='var(--red)',sl='受講記録なし',sb='var(--red-bg)',sbr='#fecaca';
-    if(days!==null){
-      if(days<0){sc='var(--red)';sl=`期限切れ（${Math.abs(days)}日超過）`;}
-      else if(days<90){sc='var(--red)';sl=`⚠ 残り${days}日`;}
-      else if(days<180){sc='var(--yellow)';sl=`⏰ 残り${days}日`;sb='var(--yellow-bg)';sbr='#fde68a';}
-      else{sc='var(--green)';sl=`✓ 残り${days}日`;sb='var(--green-bg)';sbr='#a7f3d0';}
-    }
+    const kRecords=typeof loadTrainingRecords==='function' ? getVisibleTrainingRecords(loadTrainingRecords()) : [];
+    const dentists=typeof getActiveDentists==='function' ? getActiveDentists() : [];
+    const summary=typeof getTrainingSummary==='function' ? getTrainingSummary('歯初診_院内感染', dentists, kRecords) : {overall:'受講記録なし',valid:0,soon:0,expired:0,unregistered:0,total:0};
+    const latest=kRecords.filter(r=>r.trainingType==='歯初診_院内感染').sort(compareTrainingRecordsDesc)[0];
+    let sc='var(--red)',sl=summary.overall||'受講記録なし',sb='var(--red-bg)',sbr='#fecaca';
+    if(summary.overall==='全員有効'){sc='var(--green)';sb='var(--green-bg)';sbr='#a7f3d0';}
+    else if(summary.overall==='期限間近あり'){sc='var(--yellow)';sb='var(--yellow-bg)';sbr='#fde68a';}
+    else if(summary.overall==='一部未登録'){sc='var(--text2)';sb='var(--bg3)';sbr='var(--border)';}
     koushuBlock=`<div class="ds"><div class="dst">🎓 院内感染防止対策研修（4年に1回）</div>
       <div style="background:${sb};border:1px solid ${sbr};border-radius:8px;padding:12px 14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
           <div style="font-size:15px;font-weight:700;color:${sc}">${sl}</div>
           ${latest?`<div style="text-align:right;font-size:11px;color:var(--text2)">
-            <div>最終受講：<strong>${latest.date.replace(/-/g,'/')}</strong></div>
-            <div>期限：<strong style="color:${sc}">${latest.expire.replace(/-/g,'/')}</strong></div>
+            <div>最終受講：<strong>${formatKoushuDate(latest.attendedAt)}</strong></div>
+            <div>期限：<strong style="color:${sc}">${formatKoushuDate(latest.expiresAt)}</strong></div>
           </div>`:''}
         </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px">対象 ${summary.total}名 / 有効 ${summary.valid}名 / 期限間近 ${summary.soon}名 / 期限切れ ${summary.expired}名 / 未登録 ${summary.unregistered}名</div>
       </div>
       <button class="btn btn-secondary" style="width:100%;justify-content:center;font-size:12px"
         onclick="closeDP();setTimeout(function(){nav('koushu');openKoushuModalWith('歯初診_院内感染')},50)">
@@ -1685,7 +1689,17 @@ function nav(v,el){
   if(v==='kaitei')renderKaitei();
   if(v==='teirei')renderTeirei();
   if(v==='deadline')renderDeadline();
-  if(v==='koushu')renderKoushu();
+  if(v==='koushu'){
+    try{
+      renderKoushu();
+    }catch(err){
+      console.error(err);
+      const body=document.getElementById('koushu-body');
+      if(body){
+        body.innerHTML='<div style="background:var(--red-bg);border:1px solid #fecaca;border-radius:8px;padding:14px;color:var(--red);font-size:12px">講習会管理の表示中にエラーが発生しました。ページ再読み込み後も改善しない場合は、バックアップを保存してからご連絡ください。</div>';
+      }
+    }
+  }
   if(v==='shinki')renderShinki();
   if(v==='employees' && typeof renderEmployees === 'function')renderEmployees();
   if(v==='baseup')renderBaseup();
@@ -2005,419 +2019,1325 @@ const KOUSHU_MASTER = {
   'custom': { label: 'カスタム研修', abbr: '', years: null, color: 'var(--text2)', certRequired: false, note: '' },
 };
 
-function loadKoushuList() {
-  return JSON.parse(localStorage.getItem('koushu_list') || '[]');
+const KOUSHU_STORAGE_KEY = 'koushu_list';
+const KOUSHU_DENTISTS_KEY = 'koushu_dentists_v1';
+const TRAINING_CERT_DB_NAME = 'dentalAdminTraining_v1';
+const TRAINING_CERT_DB_STORE = 'dentalAdminTrainingCertificates';
+const TRAINING_CERT_MAX_SIZE = 5 * 1024 * 1024;
+const TRAINING_CERT_ALLOWED_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+]);
+const TRAINING_CERT_ALLOWED_EXT = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
+
+let koushuInlineMigrationPromise = null;
+let koushuCertificateModalState = null;
+
+function escapeKoushuHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
-function saveKoushuList(list) {
-  localStorage.setItem('koushu_list', JSON.stringify(list));
+
+function uniqueKoushuStrings(values) {
+  return [...new Set((Array.isArray(values) ? values : []).map(value => String(value || '').trim()).filter(Boolean))];
 }
 
-function renderKoushu() {
-  const list = loadKoushuList();
-  const now = new Date();
+function normalizeKoushuName(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
 
-  // 施設基準と紐づけ：台帳に登録済みの施設基準に関連する研修を表示
-  const linkedAbbrs = new Set(entries.map(e => e.abbr));
+function formatKoushuDate(value) {
+  if (!value) return '—';
+  return String(value).replace(/-/g, '/');
+}
 
-  // 警告バッジ更新
-  const hasAlert = list.some(r => {
-    if (!r.expire) return false;
-    const d = new Date(r.expire);
-    const diff = Math.floor((d - now) / 86400000);
-    return diff < 180; // 6ヶ月以内は警告
-  });
-  const badge = document.getElementById('koushu-badge');
-  if (badge) badge.style.display = hasAlert ? 'inline-block' : 'none';
+function formatKoushuDateTime(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
 
-  // 台帳に歯初診があるのに受講記録がない場合は警告
-  const has歯初診 = linkedAbbrs.has('歯初診');
-  const has歯初診記録 = list.some(r => r.type === '歯初診_院内感染');
+function formatKoushuFileSize(size) {
+  const bytes = Number(size || 0);
+  if (!bytes) return '0 KB';
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
 
-  let html = '';
+function nextKoushuDentistId(dentists) {
+  const nums = (dentists || []).map(d => String(d.id || '').match(/dentist_(\d+)/)?.[1]).filter(Boolean).map(Number);
+  const next = nums.length ? Math.max(...nums) + 1 : 1;
+  return `dentist_${String(next).padStart(4, '0')}`;
+}
 
-  // ── 歯初診：専用の詳細ウィジェット ──
-  if (has歯初診) {
-    const records歯初診 = list
-      .filter(r => r.type === '歯初診_院内感染')
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-    const latest = records歯初診[0];
-    const expireDate = latest ? new Date(latest.expire) : null;
-    const daysLeft = expireDate ? Math.floor((expireDate - now) / 86400000) : null;
+function createKoushuDentistRecord(partial = {}, dentists = []) {
+  const nowIso = new Date().toISOString();
+  return {
+    id: partial.id || nextKoushuDentistId(dentists),
+    name: normalizeKoushuName(partial.name || ''),
+    role: partial.role || partial.position || '',
+    active: partial.active !== false,
+    joinedAt: partial.joinedAt || '',
+    retiredAt: partial.retiredAt || '',
+    memo: partial.memo || '',
+    createdAt: partial.createdAt || nowIso,
+    updatedAt: partial.updatedAt || nowIso,
+    sourceEmployeeId: partial.sourceEmployeeId || ''
+  };
+}
 
-    let statusColor = 'var(--text3)', statusLabel = '未登録', statusBg = 'var(--bg3)';
-    if (daysLeft === null) {
-      statusColor = 'var(--red)'; statusLabel = '⚠ 受講記録なし'; statusBg = 'var(--red-bg)';
-    } else if (daysLeft < 0) {
-      statusColor = 'var(--red)'; statusLabel = '❌ 期限切れ'; statusBg = 'var(--red-bg)';
-    } else if (daysLeft < 180) {
-      statusColor = 'var(--yellow)'; statusLabel = `⏰ 残り${daysLeft}日`; statusBg = 'var(--yellow-bg)';
-    } else {
-      statusColor = 'var(--green)'; statusLabel = `✓ 残り${daysLeft}日`; statusBg = 'var(--green-bg)';
+function loadStoredDentists() {
+  const raw = localStorage.getItem(KOUSHU_DENTISTS_KEY);
+  let parsed = [];
+  try {
+    parsed = raw ? JSON.parse(raw) : [];
+  } catch (_err) {
+    parsed = [];
+  }
+  if (!Array.isArray(parsed)) parsed = [];
+  return parsed.map((item, index, list) => createKoushuDentistRecord(item, list));
+}
+
+function saveDentists(dentists) {
+  const list = Array.isArray(dentists) ? dentists.map((item, index, arr) => createKoushuDentistRecord(item, arr)) : [];
+  localStorage.setItem(KOUSHU_DENTISTS_KEY, JSON.stringify(list));
+  return list;
+}
+
+function getEmployeeDentistSeeds() {
+  if (typeof hasUnlockedEmployeeMaster !== 'function' || typeof getEmployeeMasterForBaseup !== 'function' || !hasUnlockedEmployeeMaster()) return [];
+  return getEmployeeMasterForBaseup()
+    .filter(employee => ['dentist', 'doctor'].includes(employee?.jobType))
+    .map(employee => ({
+      sourceEmployeeId: employee.employeeId || '',
+      name: normalizeKoushuName(employee.displayName || employee.alias || ''),
+      role: employee.jobType === 'doctor' ? '医師' : '歯科医師',
+      active: !employee.retiredAt,
+      joinedAt: employee.joinedAt || '',
+      retiredAt: employee.retiredAt || '',
+      memo: employee.memo || ''
+    }))
+    .filter(item => item.name);
+}
+
+function syncDentistsWithEmployees() {
+  const dentists = loadStoredDentists();
+  const employeeSeeds = getEmployeeDentistSeeds();
+  if (!employeeSeeds.length) return dentists;
+  let changed = false;
+  employeeSeeds.forEach(seed => {
+    let target = dentists.find(item => item.sourceEmployeeId && item.sourceEmployeeId === seed.sourceEmployeeId);
+    if (!target) {
+      target = dentists.find(item => normalizeKoushuName(item.name) === seed.name);
+      if (target) {
+        target.sourceEmployeeId = seed.sourceEmployeeId;
+        changed = true;
+      }
     }
+    if (!target) {
+      dentists.push(createKoushuDentistRecord(seed, dentists));
+      changed = true;
+      return;
+    }
+    const nextActive = seed.active !== false;
+    const nextRole = target.role || seed.role;
+    if (target.name !== seed.name || target.role !== nextRole || target.active !== nextActive || (target.joinedAt || '') !== (seed.joinedAt || '') || (target.retiredAt || '') !== (seed.retiredAt || '')) {
+      target.name = seed.name;
+      target.role = nextRole;
+      target.active = nextActive;
+      target.joinedAt = seed.joinedAt || target.joinedAt || '';
+      target.retiredAt = seed.retiredAt || '';
+      target.updatedAt = new Date().toISOString();
+      changed = true;
+    }
+  });
+  if (changed) return saveDentists(dentists);
+  return dentists;
+}
 
-    html += `
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-        <div>
-          <div style="font-size:14px;font-weight:700">🦷 院内感染防止対策研修（歯初診 注1）</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:3px">4年に1回以上の受講が義務（施設基準要件）</div>
-        </div>
-        <div style="background:${statusBg};border-radius:8px;padding:10px 18px;text-align:center">
-          <div style="font-size:18px;font-weight:700;color:${statusColor}">${statusLabel}</div>
-          ${expireDate ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">期限：${latest.expire.replace(/-/g,'/')}</div>` : ''}
-        </div>
+function loadDentists() {
+  return syncDentistsWithEmployees();
+}
+
+function getActiveDentists() {
+  return loadDentists()
+    .filter(dentist => dentist.active !== false && !dentist.retiredAt)
+    .sort((a, b) => normalizeKoushuName(a.name).localeCompare(normalizeKoushuName(b.name), 'ja'));
+}
+
+function findDentistById(dentistId) {
+  return loadDentists().find(dentist => dentist.id === dentistId) || null;
+}
+
+function ensureDentistByName(name, options = {}) {
+  const normalizedName = normalizeKoushuName(name);
+  if (!normalizedName) return '';
+  const dentists = loadDentists();
+  let dentist = options.sourceEmployeeId
+    ? dentists.find(item => item.sourceEmployeeId === options.sourceEmployeeId)
+    : null;
+  if (!dentist) dentist = dentists.find(item => normalizeKoushuName(item.name) === normalizedName);
+  if (dentist) {
+    let changed = false;
+    if (options.sourceEmployeeId && dentist.sourceEmployeeId !== options.sourceEmployeeId) {
+      dentist.sourceEmployeeId = options.sourceEmployeeId;
+      changed = true;
+    }
+    if (options.role && !dentist.role) {
+      dentist.role = options.role;
+      changed = true;
+    }
+    if (changed) {
+      dentist.updatedAt = new Date().toISOString();
+      saveDentists(dentists);
+    }
+    return dentist.id;
+  }
+  const created = createKoushuDentistRecord({
+    name: normalizedName,
+    role: options.role || '',
+    active: options.active !== false,
+    joinedAt: options.joinedAt || '',
+    retiredAt: options.retiredAt || '',
+    memo: options.memo || '',
+    sourceEmployeeId: options.sourceEmployeeId || ''
+  }, dentists);
+  dentists.push(created);
+  saveDentists(dentists);
+  return created.id;
+}
+
+function buildTrainingName(trainingType, customName = '') {
+  if (trainingType === 'custom') return customName || KOUSHU_MASTER.custom.label;
+  return (KOUSHU_MASTER[trainingType] || KOUSHU_MASTER.custom).label;
+}
+
+function calculateTrainingExpiry(trainingType, attendedAt) {
+  const master = KOUSHU_MASTER[trainingType];
+  if (!master || !master.years || !attendedAt) return '';
+  const d = new Date(attendedAt);
+  if (Number.isNaN(d.getTime())) return '';
+  d.setFullYear(d.getFullYear() + master.years);
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function nextTrainingRecordId() {
+  return `training_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function nextTrainingCertificateId() {
+  return `cert_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function dataUrlToBlob(dataUrl) {
+  const parts = String(dataUrl || '').split(',');
+  const head = parts[0] || '';
+  const base64 = parts[1] || '';
+  const mimeType = (head.match(/data:(.*?);base64/) || [])[1] || 'application/octet-stream';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mimeType });
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('証明書データを読み込めませんでした。'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function extractLegacyCertificate(record) {
+  const cert = record?.cert || record?.certificate || record?.certificateFile || record?.certFile || record?.file || null;
+  if (cert && typeof cert === 'object') return cert;
+  if (record?.fileName || record?.fileData || record?.base64 || record?.data) {
+    return {
+      name: record.fileName || 'certificate',
+      type: record.mimeType || record.type || 'application/octet-stream',
+      size: record.size || 0,
+      data: record.fileData || record.base64 || record.data || ''
+    };
+  }
+  return null;
+}
+
+function normalizeCertificateMeta(cert, fallbackAttendeeIds = []) {
+  if (!cert || typeof cert !== 'object') return null;
+  const fileName = cert.fileName || cert.name || 'certificate';
+  const mimeType = cert.mimeType || cert.type || 'application/octet-stream';
+  const uploadedAt = cert.uploadedAt || cert.createdAt || new Date().toISOString();
+  const storageKey = cert.storageKey || cert.id || nextTrainingCertificateId();
+  return {
+    id: cert.id || storageKey,
+    fileName,
+    mimeType,
+    size: Number(cert.size || 0),
+    linkedAttendeeIds: uniqueKoushuStrings(Array.isArray(cert.linkedAttendeeIds) ? cert.linkedAttendeeIds : fallbackAttendeeIds),
+    storageKey,
+    uploadedAt,
+    memo: cert.memo || '',
+    legacyDataUrl: cert.legacyDataUrl || cert.data || cert.fileData || cert.base64 || ''
+  };
+}
+
+function normalizeTrainingRecord(record, index = 0) {
+  const trainingType = record.trainingType || record.type || 'custom';
+  const customName = record.customName || (trainingType === 'custom' ? (record.trainingName || record.name || '') : '');
+  const attendedAt = record.attendedAt || record.attendedDate || record.date || '';
+  const expiresAt = record.expiresAt || record.expiryDate || record.expire || calculateTrainingExpiry(trainingType, attendedAt);
+  const attendeeNames = uniqueKoushuStrings(
+    Array.isArray(record.attendeeNamesSnapshot) ? record.attendeeNamesSnapshot
+    : Array.isArray(record.attendeeNames) ? record.attendeeNames
+    : [record.person, record.attendeeName, record.attendee, record.name].filter(Boolean)
+  );
+  let attendeeIds = uniqueKoushuStrings(Array.isArray(record.attendeeIds) ? record.attendeeIds : []);
+  if (!attendeeIds.length && attendeeNames.length) {
+    attendeeIds = attendeeNames.map(name => ensureDentistByName(name));
+  }
+  const certificates = Array.isArray(record.certificates)
+    ? record.certificates.map(cert => normalizeCertificateMeta(cert, attendeeIds)).filter(Boolean)
+    : (() => {
+        const legacy = extractLegacyCertificate(record);
+        return legacy ? [normalizeCertificateMeta(legacy, attendeeIds)].filter(Boolean) : [];
+      })();
+  const createdAt = record.createdAt || record.updatedAt || new Date(Date.now() - ((index + 1) * 1000)).toISOString();
+  const updatedAt = record.updatedAt || createdAt;
+  return {
+    id: record.id || nextTrainingRecordId(),
+    schemaVersion: 2,
+    trainingType,
+    trainingName: record.trainingName || buildTrainingName(trainingType, customName),
+    customName,
+    attendeeIds,
+    attendeeNamesSnapshot: attendeeNames.length ? attendeeNames : attendeeIds.map(id => findDentistById(id)?.name || '').filter(Boolean),
+    attendedAt,
+    expiresAt,
+    organizer: record.organizer || record.org || '',
+    memo: record.memo || '',
+    certificates,
+    createdAt,
+    updatedAt,
+    deletedAt: record.deletedAt || null
+  };
+}
+
+function saveTrainingRecords(records) {
+  localStorage.setItem(KOUSHU_STORAGE_KEY, JSON.stringify(Array.isArray(records) ? records : []));
+  try {
+    updateKoushuBadge();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function ensureTrainingCertificateMigration(records) {
+  if (koushuInlineMigrationPromise) return;
+  const needsMigration = (records || []).some(record => (record.certificates || []).some(cert => cert.legacyDataUrl));
+  if (!needsMigration) return;
+  koushuInlineMigrationPromise = migrateInlineCertificatesToIndexedDb(records)
+    .catch(err => {
+      console.error(err);
+      if (typeof showAppToast === 'function') showAppToast(err.message || '旧形式の証明書移行に失敗しました。', 'error');
+    })
+    .finally(() => {
+      koushuInlineMigrationPromise = null;
+    });
+}
+
+function loadTrainingRecords() {
+  let parsed = [];
+  try {
+    parsed = JSON.parse(localStorage.getItem(KOUSHU_STORAGE_KEY) || '[]');
+  } catch (_err) {
+    parsed = [];
+  }
+  if (!Array.isArray(parsed)) parsed = [];
+  const normalized = parsed.map((record, index) => normalizeTrainingRecord(record, index));
+  if (JSON.stringify(parsed) !== JSON.stringify(normalized)) {
+    saveTrainingRecords(normalized);
+  }
+  ensureTrainingCertificateMigration(normalized);
+  return normalized;
+}
+
+function readStoredTrainingRecordsRaw() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(KOUSHU_STORAGE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_err) {
+    return [];
+  }
+}
+
+function loadKoushuList() {
+  return loadTrainingRecords();
+}
+
+function saveKoushuList(list) {
+  saveTrainingRecords(list);
+}
+
+function getVisibleTrainingRecords(records = loadTrainingRecords()) {
+  return records.filter(record => !record.deletedAt);
+}
+
+function getTrainingRecordSortValue(record) {
+  return new Date(record.expiresAt || record.attendedAt || record.updatedAt || 0).getTime();
+}
+
+function compareTrainingRecordsDesc(a, b) {
+  return getTrainingRecordSortValue(b) - getTrainingRecordSortValue(a);
+}
+
+function getTrainingAttendeeNames(record) {
+  const dentists = loadDentists();
+  const names = (record.attendeeIds || [])
+    .map(id => dentists.find(dentist => dentist.id === id)?.name || '')
+    .filter(Boolean);
+  return uniqueKoushuStrings(names.length ? names : record.attendeeNamesSnapshot);
+}
+
+function getTrainingAttendeeLabel(record) {
+  const names = getTrainingAttendeeNames(record);
+  return names.length ? names.join('、') : '—';
+}
+
+function getCertificatesForDentist(record, dentistId = '') {
+  const certificates = Array.isArray(record?.certificates) ? record.certificates : [];
+  if (!dentistId) return certificates;
+  return certificates.filter(cert => !Array.isArray(cert.linkedAttendeeIds) || cert.linkedAttendeeIds.length === 0 || cert.linkedAttendeeIds.includes(dentistId));
+}
+
+function getLatestTrainingRecordForDentist(dentistId, trainingType, records = loadTrainingRecords()) {
+  return getVisibleTrainingRecords(records)
+    .filter(record => record.trainingType === trainingType && Array.isArray(record.attendeeIds) && record.attendeeIds.includes(dentistId))
+    .sort(compareTrainingRecordsDesc)[0] || null;
+}
+
+function getDentistTrainingStatus(dentistId, trainingType, records = loadTrainingRecords()) {
+  const latestRecord = getLatestTrainingRecordForDentist(dentistId, trainingType, records);
+  if (!latestRecord) {
+    return { status: 'unregistered', label: '未登録', latestRecord: null, expiresAt: '', attendedAt: '', certificates: [] };
+  }
+  const expiry = latestRecord.expiresAt || calculateTrainingExpiry(trainingType, latestRecord.attendedAt);
+  const master = KOUSHU_MASTER[trainingType] || KOUSHU_MASTER.custom;
+  const certificates = getCertificatesForDentist(latestRecord, dentistId);
+  if (!expiry) {
+    return { status: 'valid', label: master.years ? '要確認' : '記録あり', latestRecord, expiresAt: '', attendedAt: latestRecord.attendedAt, certificates };
+  }
+  const diffDays = Math.floor((new Date(expiry) - new Date()) / 86400000);
+  if (diffDays < 0) return { status: 'expired', label: '期限切れ', latestRecord, expiresAt: expiry, attendedAt: latestRecord.attendedAt, certificates };
+  if (diffDays <= 90) return { status: 'soon', label: '期限間近', latestRecord, expiresAt: expiry, attendedAt: latestRecord.attendedAt, certificates };
+  return { status: 'valid', label: '有効', latestRecord, expiresAt: expiry, attendedAt: latestRecord.attendedAt, certificates };
+}
+
+function getTrainingSummary(trainingType, dentists = getActiveDentists(), records = loadTrainingRecords()) {
+  const summary = { total: dentists.length, valid: 0, soon: 0, expired: 0, unregistered: 0, overall: '未登録', rows: [] };
+  dentists.forEach(dentist => {
+    const status = getDentistTrainingStatus(dentist.id, trainingType, records);
+    summary.rows.push({ dentist, ...status });
+    if (status.status === 'valid') summary.valid += 1;
+    else if (status.status === 'soon') summary.soon += 1;
+    else if (status.status === 'expired') summary.expired += 1;
+    else summary.unregistered += 1;
+  });
+  if (summary.expired > 0) summary.overall = '期限切れあり';
+  else if (summary.soon > 0) summary.overall = '期限間近あり';
+  else if (summary.unregistered > 0) summary.overall = '一部未登録';
+  else if (summary.total > 0 && summary.valid === summary.total) summary.overall = '全員有効';
+  return summary;
+}
+
+function updateKoushuBadge() {
+  const badge = document.getElementById('koushu-badge');
+  if (!badge) return;
+  const hasAlert = readStoredTrainingRecordsRaw().some(record => {
+    if (record?.deletedAt) return false;
+    const expiry = record?.expiresAt || record?.expiryDate || record?.expire || '';
+    if (!expiry) return false;
+    return Math.floor((new Date(expiry) - new Date()) / 86400000) < 180;
+  });
+  badge.style.display = hasAlert ? 'inline-block' : 'none';
+}
+
+function isAllowedTrainingCertificate(file) {
+  const lowerName = String(file?.name || '').toLowerCase();
+  const hasAllowedExt = TRAINING_CERT_ALLOWED_EXT.some(ext => lowerName.endsWith(ext));
+  return TRAINING_CERT_ALLOWED_TYPES.has(file?.type) || hasAllowedExt;
+}
+
+function setKoushuFormError(message) {
+  const el = document.getElementById('koushu-form-error');
+  if (!el) return;
+  el.textContent = message || '';
+  el.style.display = message ? 'block' : 'none';
+}
+
+function openTrainingCertificateDb() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) {
+      reject(new Error('このブラウザでは証明書の端末保存に対応していません。'));
+      return;
+    }
+    const req = indexedDB.open(TRAINING_CERT_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(TRAINING_CERT_DB_STORE)) {
+        const store = db.createObjectStore(TRAINING_CERT_DB_STORE, { keyPath: 'id' });
+        store.createIndex('recordId', 'recordId', { unique: false });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(new Error('受講証明書の保存領域を開けませんでした。'));
+  });
+}
+
+function saveCertificateBlob(fileOrBlob, recordId, existingId = '', meta = {}) {
+  return new Promise(async (resolve, reject) => {
+    let db;
+    try {
+      db = await openTrainingCertificateDb();
+      const blob = fileOrBlob instanceof Blob ? fileOrBlob : null;
+      if (!blob) throw new Error('証明書データが不正です。');
+      const id = existingId || nextTrainingCertificateId();
+      const entry = {
+        id,
+        recordId,
+        blob,
+        fileName: meta.fileName || fileOrBlob.name || 'certificate',
+        mimeType: meta.mimeType || fileOrBlob.type || blob.type || 'application/octet-stream',
+        size: Number(meta.size || fileOrBlob.size || blob.size || 0),
+        uploadedAt: meta.uploadedAt || new Date().toISOString()
+      };
+      const tx = db.transaction(TRAINING_CERT_DB_STORE, 'readwrite');
+      tx.objectStore(TRAINING_CERT_DB_STORE).put(entry);
+      tx.oncomplete = () => { db.close(); resolve(entry); };
+      tx.onerror = () => {
+        db.close();
+        reject(new Error('ブラウザの保存容量が不足しているため、証明書を保存できませんでした。不要な証明書を削除するか、バックアップ後に整理してください。'));
+      };
+    } catch (err) {
+      if (db) db.close();
+      reject(err);
+    }
+  });
+}
+
+function getCertificateBlob(storageKey) {
+  return new Promise(async (resolve, reject) => {
+    let db;
+    try {
+      db = await openTrainingCertificateDb();
+      const tx = db.transaction(TRAINING_CERT_DB_STORE, 'readonly');
+      const req = tx.objectStore(TRAINING_CERT_DB_STORE).get(storageKey);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(new Error('受講証明書を読み込めませんでした。'));
+      tx.oncomplete = () => db.close();
+    } catch (err) {
+      if (db) db.close();
+      reject(err);
+    }
+  });
+}
+
+function deleteCertificateBlob(storageKey) {
+  return new Promise(async (resolve, reject) => {
+    if (!storageKey) { resolve(); return; }
+    let db;
+    try {
+      db = await openTrainingCertificateDb();
+      const tx = db.transaction(TRAINING_CERT_DB_STORE, 'readwrite');
+      tx.objectStore(TRAINING_CERT_DB_STORE).delete(storageKey);
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); reject(new Error('証明書データを削除できませんでした。')); };
+    } catch (err) {
+      if (db) db.close();
+      reject(err);
+    }
+  });
+}
+
+function getAllTrainingCertificateRecords() {
+  return new Promise(async (resolve, reject) => {
+    let db;
+    try {
+      db = await openTrainingCertificateDb();
+      const tx = db.transaction(TRAINING_CERT_DB_STORE, 'readonly');
+      const req = tx.objectStore(TRAINING_CERT_DB_STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(new Error('証明書バックアップを読み込めませんでした。'));
+      tx.oncomplete = () => db.close();
+    } catch (err) {
+      if (db) db.close();
+      reject(err);
+    }
+  });
+}
+
+async function exportTrainingCertificatesForBackup(records = loadTrainingRecords()) {
+  const referencedKeys = new Set(
+    getVisibleTrainingRecords(records).flatMap(record => (record.certificates || []).map(cert => cert.storageKey).filter(Boolean))
+  );
+  const items = [];
+  const stored = await getAllTrainingCertificateRecords().catch(() => []);
+  for (const entry of stored) {
+    if (!referencedKeys.has(entry.id)) continue;
+    items.push({
+      id: entry.id,
+      recordId: entry.recordId,
+      fileName: entry.fileName,
+      mimeType: entry.mimeType,
+      size: entry.size,
+      uploadedAt: entry.uploadedAt,
+      dataUrl: await blobToDataUrl(entry.blob)
+    });
+  }
+  return items;
+}
+
+async function importTrainingCertificatesFromBackup(items = []) {
+  if (!Array.isArray(items) || !items.length) return;
+  for (const item of items) {
+    if (!item?.dataUrl) continue;
+    const blob = dataUrlToBlob(item.dataUrl);
+    await saveCertificateBlob(blob, item.recordId || '', item.id, {
+      fileName: item.fileName,
+      mimeType: item.mimeType,
+      size: item.size,
+      uploadedAt: item.uploadedAt
+    });
+  }
+}
+
+async function migrateInlineCertificatesToIndexedDb(records) {
+  const nextRecords = records.map(record => ({
+    ...record,
+    certificates: (record.certificates || []).map(cert => ({ ...cert }))
+  }));
+  let changed = false;
+  for (const record of nextRecords) {
+    for (const cert of record.certificates) {
+      if (!cert.legacyDataUrl) continue;
+      const blob = dataUrlToBlob(cert.legacyDataUrl);
+      await saveCertificateBlob(blob, record.id, cert.storageKey || cert.id, {
+        fileName: cert.fileName,
+        mimeType: cert.mimeType,
+        size: cert.size || blob.size,
+        uploadedAt: cert.uploadedAt
+      });
+      delete cert.legacyDataUrl;
+      changed = true;
+    }
+  }
+  if (changed) saveTrainingRecords(nextRecords);
+}
+
+async function resolveCertificateSource(certificate) {
+  if (certificate.file instanceof Blob) {
+    return {
+      url: URL.createObjectURL(certificate.file),
+      mimeType: certificate.file.type || certificate.mimeType || 'application/octet-stream',
+      revoke: true
+    };
+  }
+  if (certificate.legacyDataUrl) {
+    return {
+      url: certificate.legacyDataUrl,
+      mimeType: certificate.mimeType || 'application/octet-stream',
+      revoke: false
+    };
+  }
+  const stored = await getCertificateBlob(certificate.storageKey);
+  if (!stored?.blob) throw new Error('証明書データ本体が見つかりませんでした。');
+  return {
+    url: URL.createObjectURL(stored.blob),
+    mimeType: stored.mimeType || certificate.mimeType || stored.blob.type || 'application/octet-stream',
+    revoke: true
+  };
+}
+
+async function downloadCertificate(certificate) {
+  const source = await resolveCertificateSource(certificate);
+  try {
+    const a = document.createElement('a');
+    a.href = source.url;
+    a.download = certificate.fileName || 'certificate';
+    a.click();
+  } finally {
+    if (source.revoke) setTimeout(() => URL.revokeObjectURL(source.url), 500);
+  }
+}
+
+async function openCertificateInNewTab(certificate) {
+  const source = await resolveCertificateSource(certificate);
+  try {
+    if (source.mimeType === 'application/pdf' || source.mimeType.startsWith('image/')) {
+      window.open(source.url, '_blank', 'noopener');
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = source.url;
+    a.download = certificate.fileName || 'certificate';
+    a.click();
+  } finally {
+    if (source.revoke) setTimeout(() => URL.revokeObjectURL(source.url), 1000);
+  }
+}
+
+async function renderCertificateModal() {
+  if (!koushuCertificateModalState) return;
+  const state = koushuCertificateModalState;
+  if (state.previewUrl) {
+    URL.revokeObjectURL(state.previewUrl);
+    state.previewUrl = '';
+  }
+  const title = document.getElementById('cert-modal-title');
+  const body = document.getElementById('cert-modal-body');
+  const openBtn = document.getElementById('cert-open-btn');
+  const downloadBtn = document.getElementById('cert-download-btn');
+  const deleteBtn = document.getElementById('cert-delete-btn');
+  const selected = state.items.find(item => item.id === state.selectedId) || state.items[0];
+  if (!selected) {
+    title.textContent = '📎 受講証明書';
+    body.innerHTML = '<div style="padding:28px 0;color:var(--text3)">表示できる証明書がありません。</div>';
+    openBtn.style.display = 'none';
+    downloadBtn.style.display = 'none';
+    deleteBtn.style.display = 'none';
+    return;
+  }
+  state.selectedId = selected.id;
+  const linkedNames = selected.linkedAttendeeIds?.length
+    ? selected.linkedAttendeeIds.map(id => findDentistById(id)?.name || '').filter(Boolean)
+    : [];
+  const source = await resolveCertificateSource(selected);
+  if (source.revoke) state.previewUrl = source.url;
+  const isPdf = source.mimeType === 'application/pdf';
+  const isImg = source.mimeType.startsWith('image/');
+  const previewHtml = isPdf
+    ? `<embed src="${source.url}" type="application/pdf" style="width:100%;height:380px;border:1px solid var(--border);border-radius:8px">`
+    : isImg
+      ? `<img src="${source.url}" alt="${escapeKoushuHtml(selected.fileName)}" style="max-width:100%;max-height:380px;border:1px solid var(--border);border-radius:8px;object-fit:contain">`
+      : `<div style="padding:32px 0;text-align:center;color:var(--text2)"><div style="font-size:44px;margin-bottom:10px">📝</div><div>Wordファイルはプレビュー対象外です。ダウンロードして確認してください。</div></div>`;
+  title.textContent = `📎 受講証明書 ${state.items.length}件`;
+  body.innerHTML = `
+    <div style="display:grid;gap:12px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start">
+        ${state.items.map(item => `<button type="button" class="btn ${item.id === selected.id ? 'btn-primary' : 'btn-ghost'}" style="padding:6px 10px;font-size:11px" onclick="selectCertificateFromModal('${item.id}')">${escapeKoushuHtml(item.fileName)}</button>`).join('')}
       </div>
-
-      ${latest ? `
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
-        <div style="background:var(--bg3);border-radius:6px;padding:10px;border:1px solid var(--border)">
-          <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:4px">最新受講日</div>
-          <div style="font-size:13px;font-weight:600">${latest.date.replace(/-/g,'/')}</div>
-        </div>
-        <div style="background:var(--bg3);border-radius:6px;padding:10px;border:1px solid var(--border)">
-          <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:4px">有効期限</div>
-          <div style="font-size:13px;font-weight:600;color:${statusColor}">${latest.expire.replace(/-/g,'/')}</div>
-        </div>
-        <div style="background:var(--bg3);border-radius:6px;padding:10px;border:1px solid var(--border)">
-          <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:4px">受講者</div>
-          <div style="font-size:13px;font-weight:600">${latest.person||'—'}</div>
-        </div>
-        <div style="background:var(--bg3);border-radius:6px;padding:10px;border:1px solid var(--border)">
-          <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:4px">研修機関</div>
-          <div style="font-size:12px;font-weight:500">${latest.org||'—'}</div>
-        </div>
-      </div>` : `
-      <div style="background:var(--red-bg);border:1px solid #fecaca;border-radius:6px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--red)">
-        受講記録が登録されていません。「＋ 受講記録を追加」から登録してください。
-      </div>`}
-
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary" onclick="openKoushuModalWith('歯初診_院内感染')">＋ 受講記録を追加</button>
-        ${records歯初診.length > 1 ? `<button class="btn btn-ghost" onclick="toggleKoushuHistory('歯初診_院内感染')">📋 受講履歴（${records歯初診.length}件）</button>` : ''}
+      <div style="text-align:left;font-size:11px;color:var(--text3);display:flex;gap:12px;flex-wrap:wrap">
+        <span>📄 ${escapeKoushuHtml(selected.fileName)}</span>
+        <span>📦 ${formatKoushuFileSize(selected.size)}</span>
+        <span>👤 ${linkedNames.length ? escapeKoushuHtml(linkedNames.join('、')) : '全受講者'}</span>
+        <span>🕒 ${escapeKoushuHtml(formatKoushuDateTime(selected.uploadedAt))}</span>
       </div>
-
-      <div id="hist-歯初診_院内感染" style="display:none;margin-top:12px">
-        <div class="tw">
-          <table>
-            <thead><tr><th>受講日</th><th>有効期限</th><th>受講者</th><th>研修機関</th><th>メモ</th><th>証明書</th><th></th></tr></thead>
-            <tbody>
-              ${records歯初診.map(r => `<tr>
-                <td class="mono">${r.date.replace(/-/g,'/')}</td>
-                <td class="mono">${r.expire.replace(/-/g,'/')}</td>
-                <td>${r.person||'—'}</td>
-                <td style="font-size:11px">${r.org||'—'}</td>
-                <td style="font-size:11px;color:var(--text2)">${r.memo||'—'}</td>
-                <td>${r.cert
-          ? `<button class="btn btn-secondary" style="padding:3px 9px;font-size:10px;background:var(--green-bg);color:var(--green);border-color:#a7f3d0" onclick="viewCert('${r.id}')">📎 証明書あり</button>`
-          : (master && master.certRequired
-              ? `<button class="btn btn-ghost" style="padding:3px 9px;font-size:10px;color:var(--yellow);border-color:#fde68a" onclick="editKoushu('${r.id}')">⚠ 未登録</button>`
-              : `<span style="font-size:10px;color:var(--text3)">—</span>`)
-        }</td>
-                <td><button class="btn btn-danger" style="padding:3px 8px;font-size:10px" onclick="deleteKoushu('${r.id}')">削除</button></td>
-              </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      ${previewHtml}
     </div>`;
-  }
+  openBtn.style.display = '';
+  downloadBtn.style.display = '';
+  deleteBtn.style.display = state.allowDelete ? '' : 'none';
+  openBtn.textContent = isPdf || isImg ? '🔗 別タブで開く' : '⬇ Wordを開く（ダウンロード）';
+  openBtn.onclick = () => openCertificateInNewTab(selected).catch(err => {
+    console.error(err);
+    if (typeof showAppToast === 'function') showAppToast(err.message || '証明書を開けませんでした。', 'error');
+  });
+  downloadBtn.onclick = () => downloadCertificate(selected).catch(err => {
+    console.error(err);
+    if (typeof showAppToast === 'function') showAppToast(err.message || '証明書をダウンロードできませんでした。', 'error');
+  });
+  deleteBtn.onclick = () => deleteSelectedCertificateFromModal();
+}
 
-  // ── その他の研修記録（外安全・外感染など：期限管理不要、記録のみ） ──
-  const otherRecords = list.filter(r => r.type !== '歯初診_院内感染');
-  if (otherRecords.length > 0 || linkedAbbrs.has('外安全１') || linkedAbbrs.has('外感染１')) {
-    html += `<div style="font-size:13px;font-weight:700;margin-bottom:6px">その他の研修・受講記録</div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 12px">
-      💡 外安全1・外感染1の研修は受講頻度の規定がないため、期限管理は不要です。受講記録の保管用としてご利用ください。
+function selectCertificateFromModal(certificateId) {
+  if (!koushuCertificateModalState) return;
+  koushuCertificateModalState.selectedId = certificateId;
+  renderCertificateModal().catch(console.error);
+}
+
+function closeCertificateOverlay() {
+  if (koushuCertificateModalState?.previewUrl) {
+    URL.revokeObjectURL(koushuCertificateModalState.previewUrl);
+  }
+  koushuCertificateModalState = null;
+  closeOverlay('cert-overlay');
+}
+
+async function deleteSelectedCertificateFromModal() {
+  if (!koushuCertificateModalState?.recordId || !koushuCertificateModalState?.selectedId) return;
+  if (!confirm('この証明書データを削除しますか？\n受講記録自体は残ります。')) return;
+  const records = loadTrainingRecords();
+  const index = records.findIndex(record => record.id === koushuCertificateModalState.recordId);
+  if (index < 0) return;
+  const record = records[index];
+  const certificate = (record.certificates || []).find(item => item.id === koushuCertificateModalState.selectedId);
+  record.certificates = (record.certificates || []).filter(item => item.id !== koushuCertificateModalState.selectedId);
+  record.updatedAt = new Date().toISOString();
+  records[index] = record;
+  saveTrainingRecords(records);
+  if (certificate?.storageKey) await deleteCertificateBlob(certificate.storageKey).catch(console.error);
+  const filtered = getCertificatesForDentist(record, koushuCertificateModalState.dentistId);
+  if (!filtered.length) {
+    closeCertificateOverlay();
+  } else {
+    koushuCertificateModalState.items = filtered;
+    koushuCertificateModalState.selectedId = filtered[0].id;
+    await renderCertificateModal();
+  }
+  renderKoushu();
+}
+
+function openCertificateListModal(recordId, dentistId = '') {
+  const records = loadTrainingRecords();
+  const record = records.find(item => item.id === recordId);
+  if (!record) return;
+  const items = getCertificatesForDentist(record, dentistId);
+  if (!items.length) {
+    if (typeof showAppToast === 'function') showAppToast('表示できる証明書がありません。', 'warn');
+    return;
+  }
+  koushuCertificateModalState = {
+    recordId,
+    dentistId,
+    items,
+    selectedId: items[0].id,
+    allowDelete: true
+  };
+  document.getElementById('cert-overlay').classList.add('open');
+  renderCertificateModal().catch(err => {
+    console.error(err);
+    if (typeof showAppToast === 'function') showAppToast(err.message || '証明書を表示できませんでした。', 'error');
+  });
+}
+
+function viewCert(recordId) {
+  openCertificateListModal(recordId);
+}
+
+function buildCertificateActionLabel(count) {
+  return count > 0 ? `${count}件 表示` : '—';
+}
+
+function renderKoushuDentistSelector(selectedIds = []) {
+  const dentists = loadDentists();
+  const targetIds = uniqueKoushuStrings(selectedIds);
+  const list = dentists.filter(dentist => dentist.active !== false || targetIds.includes(dentist.id));
+  const host = document.getElementById('koushu-dentist-list');
+  if (!host) return;
+  if (!list.length) {
+    host.innerHTML = `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--text2)">歯科医師がまだ登録されていません。下の「＋ 歯科医師を追加」から登録してください。</div>`;
+    return;
+  }
+  host.innerHTML = list.map(dentist => `
+    <label style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer">
+      <input type="checkbox" class="koushu-dentist-checkbox" value="${escapeKoushuHtml(dentist.id)}" ${targetIds.includes(dentist.id) ? 'checked' : ''} style="accent-color:var(--accent)">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700;color:var(--text)">${escapeKoushuHtml(dentist.name)}</div>
+        <div style="font-size:10px;color:var(--text3)">${escapeKoushuHtml(dentist.role || '歯科医師')} ${dentist.sourceEmployeeId ? '・従業員情報連携' : ''}</div>
+      </div>
+      ${dentist.active === false || dentist.retiredAt ? '<span class="badge by">非稼働</span>' : '<span class="badge bgr">対象</span>'}
+    </label>
+  `).join('');
+}
+
+function getSelectedKoushuDentistIds() {
+  return [...document.querySelectorAll('.koushu-dentist-checkbox:checked')].map(el => el.value);
+}
+
+function syncPendingCertificateLinks() {
+  const selectedIds = getSelectedKoushuDentistIds();
+  window._koushuPendingCertificates = (window._koushuPendingCertificates || []).map(cert => ({
+    ...cert,
+    linkedAttendeeIds: uniqueKoushuStrings(cert.linkedAttendeeIds).filter(id => selectedIds.includes(id))
+  }));
+  renderKoushuCertificateList();
+}
+
+function renderKoushuCertificateList() {
+  const host = document.getElementById('koushu-cert-list');
+  if (!host) return;
+  const dentists = loadDentists();
+  const selectedDentistIds = getSelectedKoushuDentistIds();
+  const selectedDentists = selectedDentistIds.map(id => dentists.find(item => item.id === id)).filter(Boolean);
+  const certificates = (window._koushuPendingCertificates || []).filter(cert => !cert._deleted);
+  if (!certificates.length) {
+    host.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:8px 2px">添付済みの受講証明書はありません。</div>';
+    return;
+  }
+  host.innerHTML = certificates.map((cert, index) => `
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+        <div style="min-width:0;flex:1">
+          <div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeKoushuHtml(cert.fileName)}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${formatKoushuFileSize(cert.size)} ・ ${escapeKoushuHtml(formatKoushuDateTime(cert.uploadedAt))}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn btn-ghost" style="padding:4px 8px;font-size:10px" onclick="previewPendingCertificate('${escapeKoushuHtml(cert.id)}')">表示</button>
+          <button type="button" class="btn btn-ghost" style="padding:4px 8px;font-size:10px" onclick="downloadPendingCertificate('${escapeKoushuHtml(cert.id)}')">ダウンロード</button>
+          <button type="button" class="btn btn-danger" style="padding:4px 8px;font-size:10px" onclick="removePendingCertificate('${escapeKoushuHtml(cert.id)}')">削除</button>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin:8px 0 6px">対象歯科医師（未選択なら全受講者扱い）</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${selectedDentists.length
+          ? selectedDentists.map(dentist => `<label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;background:var(--bg2);border:1px solid var(--border);border-radius:999px;padding:4px 8px">
+              <input type="checkbox" ${uniqueKoushuStrings(cert.linkedAttendeeIds).includes(dentist.id) ? 'checked' : ''} onchange="togglePendingCertificateLink('${escapeKoushuHtml(cert.id)}','${escapeKoushuHtml(dentist.id)}',this.checked)" style="accent-color:var(--accent)">
+              <span>${escapeKoushuHtml(dentist.name)}</span>
+            </label>`).join('')
+          : '<span style="font-size:11px;color:var(--text3)">先に対象歯科医師を選択してください。</span>'}
+      </div>
     </div>
-    <div class="tw" style="margin-bottom:16px">
-      <table>
-        <thead><tr><th>研修種別</th><th>受講者</th><th>受講日</th><th>研修機関</th><th>メモ</th><th>証明書</th><th></th></tr></thead>
-        <tbody>
-          ${otherRecords.length === 0
-            ? `<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px">記録なし</td></tr>`
-            : otherRecords.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(r => {
-                const m = KOUSHU_MASTER[r.type] || KOUSHU_MASTER.custom;
-                return `<tr>
-                  <td><div class="kn" style="font-size:12px">${r.customName || m.label}</div></td>
-                  <td>${r.person||'—'}</td>
-                  <td class="mono">${r.date.replace(/-/g,'/')}</td>
-                  <td style="font-size:11px">${r.org||'—'}</td>
-                  <td style="font-size:11px;color:var(--text2)">${r.memo||'—'}</td>
-                  <td>${r.cert
-          ? `<button class="btn btn-secondary" style="padding:3px 9px;font-size:10px;background:var(--green-bg);color:var(--green);border-color:#a7f3d0" onclick="viewCert('${r.id}')">📎 証明書あり</button>`
-          : (master && master.certRequired
-              ? `<button class="btn btn-ghost" style="padding:3px 9px;font-size:10px;color:var(--yellow);border-color:#fde68a" onclick="editKoushu('${r.id}')">⚠ 未登録</button>`
-              : `<span style="font-size:10px;color:var(--text3)">—</span>`)
-        }</td>
-                  <td><button class="btn btn-danger" style="padding:3px 8px;font-size:10px" onclick="deleteKoushu('${r.id}')">削除</button></td>
-                </tr>`;
-              }).join('')
-          }
-        </tbody>
-      </table>
-    </div>
-    <button class="btn btn-secondary" onclick="openKoushuModal()">＋ その他の受講記録を追加</button>`;
+  `).join('');
+}
+
+function findPendingCertificate(certificateId) {
+  return (window._koushuPendingCertificates || []).find(cert => cert.id === certificateId) || null;
+}
+
+function togglePendingCertificateLink(certificateId, dentistId, checked) {
+  const certificates = window._koushuPendingCertificates || [];
+  const cert = certificates.find(item => item.id === certificateId);
+  if (!cert) return;
+  const nextIds = new Set(uniqueKoushuStrings(cert.linkedAttendeeIds));
+  if (checked) nextIds.add(dentistId);
+  else nextIds.delete(dentistId);
+  cert.linkedAttendeeIds = [...nextIds];
+}
+
+function addKoushuDentistFromModal() {
+  const nameInput = document.getElementById('koushu-dentist-name');
+  const roleInput = document.getElementById('koushu-dentist-role');
+  const name = normalizeKoushuName(nameInput?.value || '');
+  if (!name) {
+    setKoushuFormError('歯科医師名を入力してください。');
+    nameInput?.focus();
+    return;
   }
-
-  if (!has歯初診 && otherRecords.length === 0) {
-    html = `<div class="empty"><div class="ei">🎓</div><p>台帳に施設基準を登録すると、関連する研修の管理ができます。<br>「＋ 受講記録を追加」から手動で追加することもできます。</p>
-    <div style="margin-top:16px"><button class="btn btn-primary" onclick="openKoushuModal()">＋ 受講記録を追加</button></div></div>`;
-  }
-
-  document.getElementById('koushu-body').innerHTML = html;
-}
-
-function toggleKoushuHistory(type) {
-  const el = document.getElementById(`hist-${type}`);
-  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
-
-function openKoushuModal() {
-  window._koushuCertPending = undefined;
-  document.getElementById('koushu-cert-dropzone').style.display = '';
-  document.getElementById('koushu-cert-preview').style.display = 'none';
-  document.getElementById('koushu-cert-preview').innerHTML = '';
-  document.getElementById('koushu-edit-id').value = '';
-  document.getElementById('koushu-modal-title').textContent = '受講記録を追加';
-  document.getElementById('koushu-type').value = '歯初診_院内感染';
-  document.getElementById('koushu-custom-row').style.display = 'none';
-  document.getElementById('koushu-person').value = '';
-  document.getElementById('koushu-date').value = '';
-  document.getElementById('koushu-expire').value = '';
-  document.getElementById('koushu-org').value = '';
-  document.getElementById('koushu-memo').value = '';
-  document.getElementById('koushu-overlay').classList.add('open');
-}
-
-function openKoushuModalWith(type) {
-  openKoushuModal();
-  document.getElementById('koushu-type').value = type;
-  onKoushuTypeChange(document.getElementById('koushu-type'));
+  const dentistId = ensureDentistByName(name, { role: roleInput?.value || '' });
+  const selectedIds = new Set(getSelectedKoushuDentistIds());
+  selectedIds.add(dentistId);
+  setKoushuFormError('');
+  if (nameInput) nameInput.value = '';
+  if (roleInput) roleInput.value = '';
+  renderKoushuDentistSelector([...selectedIds]);
+  syncPendingCertificateLinks();
 }
 
 function onKoushuTypeChange(sel) {
   const isCustom = sel.value === 'custom';
   document.getElementById('koushu-custom-row').style.display = isCustom ? 'block' : 'none';
-  // 受講日が入力済みなら有効期限を再計算
   const dateVal = document.getElementById('koushu-date').value;
-  if (dateVal) calcExpire(dateVal, sel.value);
+  if (dateVal) {
+    const nextExpire = calculateTrainingExpiry(sel.value, dateVal);
+    if (nextExpire) document.getElementById('koushu-expire').value = nextExpire;
+  }
 }
 
-// 受講日変更 → 有効期限自動計算（イベント委任）
 document.addEventListener('change', function(e) {
   if (e.target && e.target.id === 'koushu-date') {
     const type = document.getElementById('koushu-type').value;
-    calcExpire(e.target.value, type);
+    const nextExpire = calculateTrainingExpiry(type, e.target.value);
+    if (nextExpire) document.getElementById('koushu-expire').value = nextExpire;
+  }
+  if (e.target && e.target.classList && e.target.classList.contains('koushu-dentist-checkbox')) {
+    syncPendingCertificateLinks();
   }
 });
 
 function calcExpire(dateStr, type) {
-  const master = KOUSHU_MASTER[type];
-  if (!master || !master.years || !dateStr) return;
-  const d = new Date(dateStr);
-  d.setFullYear(d.getFullYear() + master.years);
-  // 1日引いて「4年後の前日」を期限に
-  d.setDate(d.getDate() - 1);
-  document.getElementById('koushu-expire').value = d.toISOString().slice(0,10);
+  const nextExpire = calculateTrainingExpiry(type, dateStr);
+  if (nextExpire) document.getElementById('koushu-expire').value = nextExpire;
 }
 
-function saveKoushu() {
-  const type = document.getElementById('koushu-type').value;
-  const date = document.getElementById('koushu-date').value;
-  if (!date) { alert('受講日を入力してください'); return; }
-  const list = loadKoushuList();
-  const editId = document.getElementById('koushu-edit-id').value;
-  const certData = window._koushuCertPending || null;
-  const editList = loadKoushuList();
-  const existingRec = editId ? editList.find(r=>r.id===editId) : null;
-  const rec = {
-    id: editId || String(Date.now()),
-    type,
-    customName: type === 'custom' ? document.getElementById('koushu-custom-name').value : '',
-    person: document.getElementById('koushu-person').value,
-    date,
-    expire: document.getElementById('koushu-expire').value,
-    org: document.getElementById('koushu-org').value,
-    memo: document.getElementById('koushu-memo').value,
-    cert: certData !== null ? certData : (existingRec ? existingRec.cert : null),
-  };
-  if (editId) {
-    const i = list.findIndex(r => r.id === editId);
-    if (i > -1) list[i] = rec; else list.push(rec);
-  } else {
-    list.push(rec);
-  }
-  saveKoushuList(list);
-  window._koushuCertPending = undefined;
-  closeOverlay('koushu-overlay');
-  renderKoushu();
-}
-
-
-/* ═══════════════════════════════════════════════════════
-   受講証明書（サーティフィケート）管理
-═══════════════════════════════════════════════════════ */
-
-function onCertDrop(event) {
-  event.preventDefault();
-  document.getElementById('koushu-cert-dropzone').style.background = 'var(--bg3)';
-  const file = event.dataTransfer.files[0];
-  if (file) loadCertFile(file);
-}
-
-function onCertSelect(event) {
-  const file = event.target.files[0];
-  if (file) loadCertFile(file);
-}
-
-function loadCertFile(file) {
-  const MAX = 5 * 1024 * 1024;
-  if (file.size > MAX) {
-    alert('ファイルサイズが5MBを超えています。\n証明書をスキャンする際は解像度を下げてください。');
-    return;
-  }
-  const allowed = ['application/pdf','image/jpeg','image/png','application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-  if (!allowed.includes(file.type)) {
-    alert('PDF・JPG・PNG・Word（.docx）のみ対応しています。');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    window._koushuCertPending = {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      data: e.target.result, // base64 data URL
-    };
-    renderCertPreviewInModal(window._koushuCertPending);
-  };
-  reader.readAsDataURL(file);
-}
-
-function renderCertPreviewInModal(cert) {
-  const dz = document.getElementById('koushu-cert-dropzone');
-  const pv = document.getElementById('koushu-cert-preview');
-  dz.style.display = 'none';
-  pv.style.display = 'block';
-  const sizeKB = (cert.size / 1024).toFixed(0);
-  const isWord = cert.type && cert.type.includes('wordprocessingml');
-  const icon = cert.type === 'application/pdf' ? '📄' : isWord ? '📝' : '🖼';
-  pv.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px">
-      <span style="font-size:22px">${icon}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cert.name}</div>
-        <div style="font-size:10px;color:var(--text3)">${sizeKB}KB · ${cert.type === 'application/pdf' ? 'PDF' : '画像'}</div>
-      </div>
-      <button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="removeCertFromModal()">✕ 削除</button>
-    </div>`;
-}
-
-function removeCertFromModal() {
-  window._koushuCertPending = null;
-  document.getElementById('koushu-cert-dropzone').style.display = '';
-  document.getElementById('koushu-cert-preview').style.display = 'none';
-  document.getElementById('koushu-cert-preview').innerHTML = '';
-  document.getElementById('koushu-cert-input').value = '';
-}
-
-function openKoushuModalWith(type) {
-  window._koushuCertPending = undefined;
-  document.getElementById('koushu-cert-dropzone').style.display = '';
-  document.getElementById('koushu-cert-preview').style.display = 'none';
-  document.getElementById('koushu-cert-preview').innerHTML = '';
-  window._koushuCertPending = undefined;
-  document.getElementById('koushu-cert-dropzone').style.display = '';
-  document.getElementById('koushu-cert-preview').style.display = 'none';
-  document.getElementById('koushu-cert-preview').innerHTML = '';
-  document.getElementById('koushu-edit-id').value = '';
-  document.getElementById('koushu-modal-title').textContent = '受講記録を追加';
-  document.getElementById('koushu-type').value = type;
+function openTrainingRecordModal(options = {}) {
+  const recordId = typeof options === 'string' ? options : options.recordId;
+  const records = loadTrainingRecords();
+  const record = recordId ? records.find(item => item.id === recordId) : null;
+  const selectedIds = record
+    ? uniqueKoushuStrings(record.attendeeIds)
+    : uniqueKoushuStrings(options.dentistIds || []);
+  window._koushuPendingCertificates = (record?.certificates || []).map(cert => ({ ...cert, linkedAttendeeIds: [...(cert.linkedAttendeeIds || [])] }));
+  document.getElementById('koushu-edit-id').value = record?.id || '';
+  document.getElementById('koushu-modal-title').textContent = record ? '受講記録を編集' : '受講記録を追加';
+  document.getElementById('koushu-type').value = record?.trainingType || options.type || '歯初診_院内感染';
+  document.getElementById('koushu-custom-name').value = record?.customName || '';
+  document.getElementById('koushu-date').value = record?.attendedAt || '';
+  document.getElementById('koushu-expire').value = record?.expiresAt || '';
+  document.getElementById('koushu-org').value = record?.organizer || '';
+  document.getElementById('koushu-memo').value = record?.memo || '';
+  document.getElementById('koushu-dentist-name').value = '';
+  document.getElementById('koushu-dentist-role').value = '';
+  setKoushuFormError('');
+  renderKoushuDentistSelector(selectedIds);
   onKoushuTypeChange(document.getElementById('koushu-type'));
-  document.getElementById('koushu-person').value = '';
-  document.getElementById('koushu-date').value = '';
-  document.getElementById('koushu-expire').value = '';
-  document.getElementById('koushu-org').value = '';
-  document.getElementById('koushu-memo').value = '';
+  renderKoushuCertificateList();
   document.getElementById('koushu-overlay').classList.add('open');
 }
 
-function viewCert(id) {
-  const list = loadKoushuList();
-  const rec = list.find(r => r.id === id);
-  if (!rec || !rec.cert) return;
-  const cert = rec.cert;
-  const title = document.getElementById('cert-modal-title');
-  const body  = document.getElementById('cert-modal-body');
-  const dlBtn = document.getElementById('cert-download-btn');
-  const delBtn= document.getElementById('cert-delete-btn');
+function openKoushuModal() {
+  openTrainingRecordModal({});
+}
 
-  const isWord = cert.type && cert.type.includes('wordprocessingml');
-  const isPDF  = cert.type === 'application/pdf';
-  const isImg  = cert.type && cert.type.startsWith('image/');
-  const icon = isPDF ? '📄' : isWord ? '📝' : '🖼';
-  const typeLabel = isPDF ? 'PDF' : isWord ? 'Word' : '画像';
-  const sizeKB = (cert.size / 1024).toFixed(0);
-  title.textContent = '📎 受講証明書 — ' + cert.name;
+function openKoushuModalWith(type) {
+  openTrainingRecordModal({ type });
+}
 
-  // プレビュー内容を種別で切り替え
-  let previewHTML = '';
-  if (isPDF) {
-    previewHTML = `<embed src="${cert.data}" type="application/pdf"
-      style="width:100%;height:420px;border-radius:6px;border:1px solid var(--border)">`;
-  } else if (isImg) {
-    previewHTML = `<img src="${cert.data}" alt="${cert.name}"
-      style="max-width:100%;max-height:440px;border-radius:6px;border:1px solid var(--border);object-fit:contain">`;
-  } else {
-    previewHTML = `<div style="padding:32px 0">
-      <div style="font-size:48px;margin-bottom:12px">${icon}</div>
-      <div style="font-weight:700;font-size:15px;margin-bottom:4px">${cert.name}</div>
-      <div style="font-size:12px;color:var(--text3)">Wordファイル · ${sizeKB}KB<br>ダウンロードして確認してください</div>
-    </div>`;
-  }
-  body.innerHTML = `
-    <div style="margin-bottom:10px;text-align:left;font-size:11px;color:var(--text3);display:flex;gap:12px;flex-wrap:wrap">
-      <span>${icon} ${typeLabel}</span>
-      <span>📦 ${sizeKB}KB</span>
-      <span>📄 ${cert.name}</span>
-    </div>
-    ${previewHTML}`;
+function openKoushuModalForDentist(dentistId, trainingType = '歯初診_院内感染') {
+  openTrainingRecordModal({ type: trainingType, dentistIds: [dentistId] });
+}
 
-  const openBtn = document.getElementById('cert-open-btn');
-  openBtn.textContent = isWord ? '⬇ Wordを開く（ダウンロード）' : '🔗 別タブで開く';
-  openBtn.onclick = function() {
-    if (cert.type === 'application/pdf' || cert.type.startsWith('image/')) {
-      const newTab = window.open();
-      newTab.document.write('<html><head><title>' + cert.name + '</title><style>body{margin:0;background:#1e1e1e}</style></head><body>');
-      if (cert.type === 'application/pdf') {
-        newTab.document.write('<embed src="' + cert.data + '" type="application/pdf" style="position:fixed;top:0;left:0;width:100%;height:100%">');
-      } else {
-        newTab.document.write('<div style="display:flex;justify-content:center;padding:20px"><img src="' + cert.data + '" style="max-width:100%"></div>');
-      }
-      newTab.document.write('</body></html>');
-      newTab.document.close();
-    } else {
-      const a = document.createElement('a');
-      a.href = cert.data; a.download = cert.name; a.click();
-    }
+function editKoushu(recordId) {
+  openTrainingRecordModal({ recordId });
+}
+
+async function removePendingCertificate(certificateId) {
+  const cert = findPendingCertificate(certificateId);
+  if (!cert) return;
+  cert._deleted = true;
+  renderKoushuCertificateList();
+}
+
+async function previewPendingCertificate(certificateId) {
+  const cert = findPendingCertificate(certificateId);
+  if (!cert) return;
+  koushuCertificateModalState = {
+    recordId: '',
+    dentistId: '',
+    items: [cert],
+    selectedId: cert.id,
+    allowDelete: false
   };
-
-  dlBtn.onclick = function() {
-    const a = document.createElement('a');
-    a.href = cert.data;
-    a.download = cert.name;
-    a.click();
-  };
-  delBtn.onclick = function() {
-    if (!confirm('この証明書データを削除しますか？\n受講記録自体は残ります。')) return;
-    const list2 = loadKoushuList();
-    const i = list2.findIndex(r => r.id === id);
-    if (i > -1) { list2[i].cert = null; saveKoushuList(list2); }
-    closeOverlay('cert-overlay');
-    renderKoushu();
-  };
-
   document.getElementById('cert-overlay').classList.add('open');
+  renderCertificateModal().catch(console.error);
+}
+
+async function downloadPendingCertificate(certificateId) {
+  const cert = findPendingCertificate(certificateId);
+  if (!cert) return;
+  await downloadCertificate(cert);
+}
+
+async function addPendingTrainingCertificate(file) {
+  if (file.size > TRAINING_CERT_MAX_SIZE) {
+    throw new Error('ファイルサイズが5MBを超えています。\n証明書をスキャンする際は解像度を下げてください。');
+  }
+  if (!isAllowedTrainingCertificate(file)) {
+    throw new Error('PDF・JPG・PNG・Word（.doc / .docx）のみ対応しています。');
+  }
+  window._koushuPendingCertificates = window._koushuPendingCertificates || [];
+  window._koushuPendingCertificates.push({
+    id: nextTrainingCertificateId(),
+    fileName: file.name,
+    mimeType: file.type || 'application/octet-stream',
+    size: file.size,
+    linkedAttendeeIds: [],
+    uploadedAt: new Date().toISOString(),
+    storageKey: '',
+    file,
+    memo: ''
+  });
+}
+
+async function onCertDrop(event) {
+  event.preventDefault();
+  document.getElementById('koushu-cert-dropzone').style.background = 'var(--bg3)';
+  const files = [...(event.dataTransfer?.files || [])];
+  if (!files.length) return;
+  try {
+    for (const file of files) await addPendingTrainingCertificate(file);
+    setKoushuFormError('');
+    renderKoushuCertificateList();
+  } catch (err) {
+    setKoushuFormError(err.message || '証明書を追加できませんでした。');
+  }
+}
+
+async function onCertSelect(event) {
+  const files = [...(event.target?.files || [])];
+  if (!files.length) return;
+  try {
+    for (const file of files) await addPendingTrainingCertificate(file);
+    setKoushuFormError('');
+    renderKoushuCertificateList();
+  } catch (err) {
+    setKoushuFormError(err.message || '証明書を追加できませんでした。');
+  } finally {
+    event.target.value = '';
+  }
+}
+
+async function persistModalCertificates(recordId, attendeeIds, existingCertificates = []) {
+  const pendingCertificates = (window._koushuPendingCertificates || []).map(cert => ({ ...cert }));
+  const deletedCertificates = pendingCertificates.filter(cert => cert._deleted);
+  for (const cert of deletedCertificates) {
+    if (cert.storageKey) await deleteCertificateBlob(cert.storageKey).catch(console.error);
+  }
+  const savedCertificates = [];
+  for (const cert of pendingCertificates.filter(item => !item._deleted)) {
+    const linkedAttendeeIds = uniqueKoushuStrings(cert.linkedAttendeeIds).filter(id => attendeeIds.includes(id));
+    if (cert.file) {
+      const stored = await saveCertificateBlob(cert.file, recordId, cert.storageKey || cert.id, {
+        fileName: cert.fileName,
+        mimeType: cert.mimeType,
+        size: cert.size,
+        uploadedAt: cert.uploadedAt
+      });
+      savedCertificates.push({
+        id: cert.id || stored.id,
+        fileName: cert.fileName,
+        mimeType: cert.mimeType,
+        size: cert.size,
+        linkedAttendeeIds,
+        storageKey: stored.id,
+        uploadedAt: cert.uploadedAt,
+        memo: cert.memo || ''
+      });
+      continue;
+    }
+    if (cert.legacyDataUrl) {
+      const blob = dataUrlToBlob(cert.legacyDataUrl);
+      const stored = await saveCertificateBlob(blob, recordId, cert.storageKey || cert.id, {
+        fileName: cert.fileName,
+        mimeType: cert.mimeType,
+        size: cert.size || blob.size,
+        uploadedAt: cert.uploadedAt
+      });
+      savedCertificates.push({
+        id: cert.id || stored.id,
+        fileName: cert.fileName,
+        mimeType: cert.mimeType,
+        size: cert.size || blob.size,
+        linkedAttendeeIds,
+        storageKey: stored.id,
+        uploadedAt: cert.uploadedAt,
+        memo: cert.memo || ''
+      });
+      continue;
+    }
+    const existing = existingCertificates.find(item => item.id === cert.id);
+    savedCertificates.push({
+      id: cert.id,
+      fileName: cert.fileName,
+      mimeType: cert.mimeType,
+      size: cert.size,
+      linkedAttendeeIds,
+      storageKey: cert.storageKey || existing?.storageKey || cert.id,
+      uploadedAt: cert.uploadedAt,
+      memo: cert.memo || ''
+    });
+  }
+  return savedCertificates;
+}
+
+async function saveTrainingRecordFromModal() {
+  const type = document.getElementById('koushu-type').value;
+  const attendedAt = document.getElementById('koushu-date').value;
+  const selectedDentistIds = getSelectedKoushuDentistIds();
+  const master = KOUSHU_MASTER[type] || KOUSHU_MASTER.custom;
+  const customName = document.getElementById('koushu-custom-name').value.trim();
+  const manualExpire = document.getElementById('koushu-expire').value;
+  const expiresAt = manualExpire || calculateTrainingExpiry(type, attendedAt);
+  if (!type) {
+    setKoushuFormError('研修種別を選択してください。');
+    return;
+  }
+  if (!selectedDentistIds.length) {
+    setKoushuFormError('受講者となる歯科医師を1名以上選択してください。');
+    return;
+  }
+  if (type === 'custom' && !customName) {
+    setKoushuFormError('カスタム研修名を入力してください。');
+    return;
+  }
+  if (!attendedAt) {
+    setKoushuFormError('受講日を入力してください。');
+    return;
+  }
+  if (master.years && !expiresAt) {
+    setKoushuFormError('この研修は有効期限が必要です。受講日を入力するか、有効期限を確認してください。');
+    return;
+  }
+  try {
+    const records = loadTrainingRecords();
+    const editId = document.getElementById('koushu-edit-id').value;
+    const existingIndex = editId ? records.findIndex(record => record.id === editId) : -1;
+    const existing = existingIndex > -1 ? records[existingIndex] : null;
+    const recordId = existing?.id || nextTrainingRecordId();
+    const attendeeNamesSnapshot = selectedDentistIds.map(id => findDentistById(id)?.name || '').filter(Boolean);
+    const certificates = await persistModalCertificates(recordId, selectedDentistIds, existing?.certificates || []);
+    const nextRecord = {
+      id: recordId,
+      schemaVersion: 2,
+      trainingType: type,
+      trainingName: buildTrainingName(type, customName),
+      customName,
+      attendeeIds: selectedDentistIds,
+      attendeeNamesSnapshot,
+      attendedAt,
+      expiresAt,
+      organizer: document.getElementById('koushu-org').value.trim(),
+      memo: document.getElementById('koushu-memo').value.trim(),
+      certificates,
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null
+    };
+    if (existingIndex > -1) records[existingIndex] = nextRecord;
+    else records.push(nextRecord);
+    saveTrainingRecords(records);
+    window._koushuPendingCertificates = [];
+    closeOverlay('koushu-overlay');
+    renderKoushu();
+    if (typeof showAppToast === 'function') showAppToast(existing ? '受講記録を更新しました。' : '受講記録を保存しました。', 'success');
+  } catch (err) {
+    console.error(err);
+    setKoushuFormError(err.message || '受講記録を保存できませんでした。');
+  }
+}
+
+function saveKoushu() {
+  return saveTrainingRecordFromModal();
+}
+
+async function deleteTrainingRecord(recordId) {
+  if (!confirm('この受講記録を削除します。添付証明書も削除されます。よろしいですか？')) return;
+  const records = loadTrainingRecords();
+  const index = records.findIndex(record => record.id === recordId);
+  if (index < 0) return;
+  const record = records[index];
+  for (const cert of record.certificates || []) {
+    if (cert.storageKey) await deleteCertificateBlob(cert.storageKey).catch(console.error);
+  }
+  records[index] = {
+    ...record,
+    certificates: [],
+    deletedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  saveTrainingRecords(records);
+  renderKoushu();
+  if (typeof showAppToast === 'function') showAppToast('受講記録を削除しました。', 'success');
+}
+
+function deleteKoushu(recordId) {
+  deleteTrainingRecord(recordId).catch(err => {
+    console.error(err);
+    if (typeof showAppToast === 'function') showAppToast(err.message || '受講記録を削除できませんでした。', 'error');
+  });
+}
+
+function buildDentistStatusBadge(status) {
+  const map = {
+    valid: { bg: 'var(--green-bg)', color: 'var(--green)', label: '有効' },
+    soon: { bg: 'var(--yellow-bg)', color: 'var(--yellow)', label: '期限間近' },
+    expired: { bg: 'var(--red-bg)', color: 'var(--red)', label: '期限切れ' },
+    unregistered: { bg: 'var(--bg3)', color: 'var(--text3)', label: '未登録' }
+  };
+  const def = map[status] || map.unregistered;
+  return `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:74px;padding:5px 10px;border-radius:999px;background:${def.bg};color:${def.color};font-size:11px;font-weight:700">${def.label}</span>`;
+}
+
+function renderTrainingRecordTable(records) {
+  if (!records.length) {
+    return `<div style="font-size:12px;color:var(--text3);padding:18px 0;text-align:center">受講記録はまだありません。</div>`;
+  }
+  return `<div class="tw"><table>
+    <thead><tr><th>研修種別</th><th>受講者</th><th>受講日</th><th>有効期限</th><th>研修機関</th><th>証明書</th><th>操作</th></tr></thead>
+    <tbody>${records.sort(compareTrainingRecordsDesc).map(record => {
+      const certCount = (record.certificates || []).length;
+      return `<tr>
+        <td>${escapeKoushuHtml(record.customName || buildTrainingName(record.trainingType, record.customName))}</td>
+        <td>${escapeKoushuHtml(getTrainingAttendeeLabel(record))}</td>
+        <td class="mono">${escapeKoushuHtml(formatKoushuDate(record.attendedAt))}</td>
+        <td class="mono">${escapeKoushuHtml(formatKoushuDate(record.expiresAt))}</td>
+        <td style="font-size:11px">${escapeKoushuHtml(record.organizer || '—')}</td>
+        <td>${certCount ? `<button class="btn btn-secondary" style="padding:4px 9px;font-size:10px;background:var(--green-bg);color:var(--green);border-color:#a7f3d0" onclick="openCertificateListModal('${record.id}')">${buildCertificateActionLabel(certCount)}</button>` : '<span style="font-size:10px;color:var(--text3)">—</span>'}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-ghost" style="padding:4px 8px;font-size:10px" onclick="editKoushu('${record.id}')">編集</button>
+          <button class="btn btn-danger" style="padding:4px 8px;font-size:10px" onclick="deleteKoushu('${record.id}')">削除</button>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderKoushu() {
+  const records = getVisibleTrainingRecords(loadTrainingRecords());
+  const dentists = getActiveDentists();
+  const linkedAbbrs = new Set(entries.map(entry => entry.abbr));
+  const hasRelevantTraining = linkedAbbrs.has('歯初診') || records.some(record => record.trainingType === '歯初診_院内感染');
+  const summary = getTrainingSummary('歯初診_院内感染', dentists, records);
+  const body = document.getElementById('koushu-body');
+  if (!body) return;
+  let html = `
+    <div style="background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:12px;color:var(--text2);line-height:1.8">
+      このデータは使用中の端末のブラウザ内に保存されます。共有PCでの利用には注意してください。PC変更やブラウザ初期化に備えて、定期的にバックアップを保存してください。
+    </div>`;
+
+  if (hasRelevantTraining) {
+    html += `
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+          <div>
+            <div style="font-size:15px;font-weight:700">🦷 院内感染防止対策研修（歯初診 注1）</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:3px">4年に1回以上の受講が義務</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:8px;padding:10px 14px;text-align:center;min-width:160px">
+            <div style="font-size:16px;font-weight:700;color:${summary.expired ? 'var(--red)' : summary.soon ? 'var(--yellow)' : summary.unregistered ? 'var(--text2)' : 'var(--green)'}">${summary.overall}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">対象歯科医師 ${summary.total}名</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px">
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px"><div style="font-size:10px;color:var(--text3)">対象歯科医師</div><div style="font-size:17px;font-weight:700">${summary.total}</div></div>
+          <div style="background:var(--green-bg);border:1px solid #a7f3d0;border-radius:8px;padding:10px"><div style="font-size:10px;color:var(--green)">有効</div><div style="font-size:17px;font-weight:700;color:var(--green)">${summary.valid}</div></div>
+          <div style="background:var(--yellow-bg);border:1px solid #fde68a;border-radius:8px;padding:10px"><div style="font-size:10px;color:var(--yellow)">期限間近</div><div style="font-size:17px;font-weight:700;color:var(--yellow)">${summary.soon}</div></div>
+          <div style="background:var(--red-bg);border:1px solid #fecaca;border-radius:8px;padding:10px"><div style="font-size:10px;color:var(--red)">期限切れ</div><div style="font-size:17px;font-weight:700;color:var(--red)">${summary.expired}</div></div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px"><div style="font-size:10px;color:var(--text3)">未登録</div><div style="font-size:17px;font-weight:700">${summary.unregistered}</div></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <button class="btn btn-primary" onclick="openKoushuModalWith('歯初診_院内感染')">＋ 受講記録を追加</button>
+          <button class="btn btn-secondary" onclick="nav('employees')">従業員情報を確認</button>
+        </div>
+        ${summary.total
+          ? `<div class="tw"><table>
+              <thead><tr><th>歯科医師名</th><th>最終受講日</th><th>有効期限</th><th>状態</th><th>証明書</th><th>操作</th></tr></thead>
+              <tbody>${summary.rows.map(row => `
+                <tr>
+                  <td>${escapeKoushuHtml(row.dentist.name)}</td>
+                  <td class="mono">${escapeKoushuHtml(formatKoushuDate(row.attendedAt))}</td>
+                  <td class="mono">${escapeKoushuHtml(formatKoushuDate(row.expiresAt))}</td>
+                  <td>${buildDentistStatusBadge(row.status)}</td>
+                  <td>${row.certificates.length ? `<button class="btn btn-secondary" style="padding:4px 9px;font-size:10px;background:var(--green-bg);color:var(--green);border-color:#a7f3d0" onclick="openCertificateListModal('${row.latestRecord.id}','${row.dentist.id}')">${buildCertificateActionLabel(row.certificates.length)}</button>` : '<span style="font-size:10px;color:var(--text3)">—</span>'}</td>
+                  <td>${row.latestRecord ? `<button class="btn btn-ghost" style="padding:4px 8px;font-size:10px" onclick="editKoushu('${row.latestRecord.id}')">編集</button>` : `<button class="btn btn-primary" style="padding:4px 8px;font-size:10px" onclick="openKoushuModalForDentist('${row.dentist.id}','歯初診_院内感染')">追加</button>`}</td>
+                </tr>`).join('')}</tbody>
+            </table></div>`
+          : `<div style="background:var(--yellow-bg);border:1px solid #fde68a;border-radius:8px;padding:12px;font-size:12px;color:var(--text2)">歯科医師がまだ登録されていません。講習会管理内で追加するか、従業員情報で歯科医師を登録してください。</div>`}
+      </div>`;
+  }
+
+  html += `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+        <div>
+          <div style="font-size:14px;font-weight:700">受講記録一覧</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">編集・削除・証明書確認ができます。外安全1・外感染1は記録保管用として利用できます。</div>
+        </div>
+        <button class="btn btn-secondary" onclick="openKoushuModal()">＋ 受講記録を追加</button>
+      </div>
+      ${renderTrainingRecordTable(records)}
+    </div>`;
+
+  body.innerHTML = html;
+  updateKoushuBadge();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -5395,14 +6315,7 @@ render();
 
 // 講習会バッジ初期更新
 (function(){
-  const list=JSON.parse(localStorage.getItem('koushu_list')||'[]');
-  const now=new Date();
-  const hasAlert=list.some(r=>{
-    if(!r.expire)return false;
-    return Math.floor((new Date(r.expire)-now)/86400000)<180;
-  });
-  const b=document.getElementById('koushu-badge');
-  if(b)b.style.display=hasAlert?'inline-block':'none';
+  if(typeof updateKoushuBadge==='function') updateKoushuBadge();
 })();
 
 // ── バージョンチェック（GitHub Gist から version.json を取得）──

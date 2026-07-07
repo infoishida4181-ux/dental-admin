@@ -309,6 +309,7 @@ const DATA_KEYS = {
   'teirei_在支歯':   '定例報告：在支歯',
   'teirei_外感染２': '定例報告：外感染2',
   koushu_list:       '講習会履歴',
+  koushu_dentists_v1:'講習会の歯科医師マスタ',
   clinic_name:       '医院名',
 };
 
@@ -329,7 +330,7 @@ function openDataMgr() {
   document.getElementById('data-mgr-overlay').classList.add('open');
 }
 
-function exportAllData() {
+async function exportAllData() {
   const payload = {
     _meta: {
       appVersion:  APP_VERSION,
@@ -356,6 +357,14 @@ function exportAllData() {
     }
   }
   if (Object.keys(histKeys).length > 0) payload._kijun_hist = histKeys;
+  if (typeof exportTrainingCertificatesForBackup === 'function') {
+    try {
+      payload._training_certificates = await exportTrainingCertificatesForBackup(payload.koushu_list || []);
+    } catch (err) {
+      console.error(err);
+      payload._training_certificates_warning = '受講証明書ファイル本体をバックアップに含められませんでした。';
+    }
+  }
 
   const json     = JSON.stringify(payload, null, 2);
   const blob     = new Blob([json], { type: 'application/json;charset=utf-8;' });
@@ -375,7 +384,7 @@ function importAllData(event) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const payload = JSON.parse(e.target.result);
 
@@ -417,6 +426,9 @@ function importAllData(event) {
           restored++;
         });
       }
+      if (Array.isArray(payload._training_certificates) && typeof importTrainingCertificatesFromBackup === 'function') {
+        await importTrainingCertificatesFromBackup(payload._training_certificates);
+      }
 
       // グローバル変数を再ロード
       entries    = JSON.parse(localStorage.getItem('shisetsu_kijun') || '[]');
@@ -427,7 +439,10 @@ function importAllData(event) {
       closeOverlay('data-mgr-overlay');
       event.target.value = '';
 
-      alert(`✅ インポート完了\n${restored}種類のデータを復元しました。\n\n・届出台帳：${entries.length}件`);
+      const certNotice = Array.isArray(payload._training_certificates)
+        ? `\n・受講証明書：${payload._training_certificates.length}件`
+        : (payload._training_certificates_warning ? '\n・受講証明書本体はこのバックアップに含まれていません' : '');
+      alert(`✅ インポート完了\n${restored}種類のデータを復元しました。\n\n・届出台帳：${entries.length}件${certNotice}`);
 
     } catch(err) {
       alert(`インポートに失敗しました。\n正しいJSONファイルを選択してください。\n\n${err.message}`);
