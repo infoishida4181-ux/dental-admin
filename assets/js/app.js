@@ -86,24 +86,81 @@ function isBaseUpStandard(entry){
     entry?.category,
     entry?.id
   ].map(v=>String(v||'')).join(' ');
-  return /ベースアップ評価料|歯外在ベ|外在ベ|base.?up/i.test(text);
+  return /ベースアップ評価料|歯科外来・在宅ベースアップ評価料|歯外在ベ[ⅠⅡ１２12]?(注)?|外在ベ|歯技ベ|base.?up/i.test(text);
 }
 function getBaseUpAlertReason(){
   return {
     type:'baseup',
-    badge:'報告・届出確認',
-    message:'ベースアップ評価料は、継続算定中であっても年度ごとの報告書提出や、改定に伴う届出・区分確認が必要となる場合があります。'
+    badge:'番号6・7',
+    message:'歯科外来・在宅ベースアップ評価料は、令和7年度分の賃金改善実績報告書と、令和8年度分の賃金改善中間報告書の対象となる場合があります。番号6・7はメール提出です。提出期限は令和8年8月31日（月）です。'
   };
+}
+function normalizeTeireiAbbr(value){
+  return String(value||'')
+    .trim()
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g,ch=>String.fromCharCode(ch.charCodeAt(0)-0xFEE0))
+    .replace(/１/g,'1')
+    .replace(/２/g,'2')
+    .replace(/Ⅰ/g,'I')
+    .replace(/Ⅱ/g,'II')
+    .replace(/\s+/g,'')
+    .toLowerCase();
+}
+function teireiReports(){
+  return typeof TEIREI_REPORTS_R08 === 'undefined' ? {} : TEIREI_REPORTS_R08;
+}
+function teireiOfficial(){
+  return typeof TEIREI_OFFICIAL_R08 === 'undefined' ? {
+    pageUrl:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/iryo_shido/teirei-shika.html',
+    referenceDateLabel:'令和8年8月1日現在',
+    deadlineLabel:'令和8年8月31日（月）'
+  } : TEIREI_OFFICIAL_R08;
+}
+function isZaitakuSupportDental(entry){
+  const text=[entry?.abbr,entry?.name,entry?.officialName,entry?.shortName].map(v=>String(v||'')).join(' ');
+  const normalized=normalizeTeireiAbbr(text);
+  return /(在支歯|歯援診|在宅療養支援歯科診療所|支援歯科診療所)/.test(text) || normalized.includes('zaishishi');
+}
+function getTeireiReportsForEntry(entry){
+  const reports=teireiReports();
+  if(!entry)return [];
+  if(isBaseUpStandard(entry)){
+    return [reports.baseupActualR07,reports.baseupInterimR08].filter(Boolean);
+  }
+  if(isZaitakuSupportDental(entry)){
+    return [reports.zaitakuSupportDental].filter(Boolean);
+  }
+  const normalized=normalizeTeireiAbbr(entry.abbr);
+  return Object.values(reports).filter(report=>
+    (report.relatedAbbrs||[]).some(abbr=>normalizeTeireiAbbr(abbr)===normalized)
+  );
+}
+function getTeireiLedgerLabel(entry){
+  const reports=getTeireiReportsForEntry(entry);
+  if(!reports.length)return '';
+  if(reports.some(report=>report.id==='teirei_r08_baseup_actual_r07'||report.id==='teirei_r08_baseup_interim_r08')){
+    return '番号6 実績報告 / 番号7 中間報告（メール）';
+  }
+  return reports.map(report=>report.ledgerLabel||`番号${report.number} ${report.form}`).join(' / ');
 }
 function getRevisionImpact(entry){
   const master=getFacilityMasterForEntry(entry);
   if(isBaseUpStandard(entry)){
     return {
       key:'baseup',
-      badge:'<span class="badge br">ベースアップ要対応</span>',
-      label:'ベースアップ要対応',
+      badge:'<span class="badge br">番号6・7</span>',
+      label:'ベースアップ報告要確認',
       className:'v-warn',
-      message:'ベースアップ評価料は、昨年度分の報告書提出、今年度の届出・計画書、区分確認が必要となる場合があります。昨年度から算定していた医院と、今年度から新規算定・変更する医院で確認すべき書類が異なります。'
+      message:'歯科外来・在宅ベースアップ評価料は、令和7年度分の賃金改善実績報告書と、令和8年度分の賃金改善中間報告書の対象となる場合があります。番号6・7はメール提出です。提出期限は令和8年8月31日（月）です。'
+    };
+  }
+  if(getTeireiReportsForEntry(entry).some(report=>report.id==='teirei_r08_zaitaku_support_dental')){
+    return {
+      key:'report',
+      badge:'<span class="badge by">番号5</span>',
+      label:'定例報告対象',
+      className:'v-warn',
+      message:'在宅療養支援歯科診療所の届出を行っている場合、番号5「別紙様式19」の提出対象です。提出期限は令和8年8月31日（月）です。'
     };
   }
   if(entry.kaitei==='expire'||master?.facilityStandardAbolished||['咬合圧','口細菌'].includes(entry.abbr)){
@@ -142,7 +199,7 @@ function getRevisionImpact(entry){
       message:'経過措置・期限付きの項目です。終了日や継続要件を確認してください。'
     };
   }
-  if(TEIREI_ROW[entry.abbr]){
+  if(getTeireiReportsForEntry(entry).length){
     return {
       key:'report',
       badge:'<span class="badge by">報告対象</span>',
@@ -189,7 +246,7 @@ function render(){
   const abanner=document.getElementById('abanner');
   abanner.style.display=entries.some(e=>e.status==='red'||e.kaitei==='reapply'||isBaseUpStandard(e))?'flex':'none';
   abanner.innerHTML=baseUpCount
-    ? `⚠️ <span><strong>ベースアップ評価料</strong>：昨年度分報告書・今年度届出の確認が必要です。<a href="#" onclick="nav('baseup');return false">確認する →</a></span>`
+    ? `⚠️ <span><strong>ベースアップ評価料</strong>：番号6 実績報告・番号7 中間報告（メール提出）の対象確認が必要です。<a href="#" onclick="nav('teirei');return false">確認する →</a></span>`
     : `⚠️ <span><strong>令和8年度改定対応中</strong>：再届出・経過措置の期限を確認してください。<a href="#" onclick="openAiModal();return false">詳細を確認 →</a></span>`;
   const tb=document.getElementById('tbody');
   tb.innerHTML='';
@@ -204,8 +261,8 @@ function render(){
       <td><span class="badge bgr">${CL[e.category]||e.category}</span></td>
       <td>${renderLedgerStatus(e)}${renderReviewBadges(e)}</td>
       <td>${getRevisionImpact(e).badge}</td>
-      <td>${TEIREI_ROW[e.abbr]
-        ? '<span class="badge by">'+TEIREI_ROW[e.abbr]+'</span>'
+      <td>${getTeireiLedgerLabel(e)
+        ? '<span class="badge by">'+getTeireiLedgerLabel(e)+'</span>'
         : '<span class="badge bgr" style="color:var(--green)">自己点検のみ</span>'
       }</td>`;
     tb.appendChild(tr);
@@ -237,11 +294,18 @@ function openDP(id){
   // ── 様式ダウンロード ──
   const YOSHIKI_DL={
     // 【令和8年改定】歯初診・外感染2の様式27は定例報告廃止のため削除
-    '在支歯':   [{label:'特掲様式18の2（PDF）',url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/r07tokkei18-2.pdf'},
-                 {label:'特掲様式18の2（Word）',url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/r07tokkei18-2.docx'}],
+    '在支歯':   [{label:'令和8年8月 定例報告ページ（番号5 別紙様式19）',url:teireiOfficial().pageUrl}],
     '歯外在ベⅠ':[
-      {label:'計画書・実績報告書 ダウンロードページ（関東信越厚生局）',url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html'},
-      {label:'様式・記載例（厚生労働省）',url:'https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000188411_00053.html'},
+      {label:'令和8年8月 定例報告ページ（番号6・7 メール提出）',url:teireiOfficial().pageUrl},
+    ],
+    '歯外在ベⅡ':[
+      {label:'令和8年8月 定例報告ページ（番号6・7 メール提出）',url:teireiOfficial().pageUrl},
+    ],
+    '歯外在ベⅠ注':[
+      {label:'令和8年8月 定例報告ページ（番号6・7 メール提出）',url:teireiOfficial().pageUrl},
+    ],
+    '歯外在ベⅡ注':[
+      {label:'令和8年8月 定例報告ページ（番号6・7 メール提出）',url:teireiOfficial().pageUrl},
     ],
   };
   const COMMON_DL=[
@@ -324,15 +388,16 @@ function openDP(id){
   const baseUpBlock=isBaseUpStandard(e)?`
     <div class="ds ledger-review-panel">
       <div class="dst">ベースアップ評価料の確認</div>
-      <div class="ledger-review-badges" style="margin-bottom:8px"><span class="badge by">報告・届出確認</span><span class="badge by">ベースアップ</span></div>
+      <div class="ledger-review-badges" style="margin-bottom:8px"><span class="badge br">番号6・7</span><span class="badge by">メール提出</span><span class="badge by">${teireiOfficial().deadlineLabel}</span></div>
       <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:8px">
-        ベースアップ評価料は、継続算定中であっても年度ごとの報告書提出や、改定に伴う届出・区分確認が必要となる場合があります。「要件充足」として放置せず、昨年度分の報告書と今年度の届出・計画書の要否を確認してください。
+        歯科外来・在宅ベースアップ評価料は、令和7年度分の賃金改善実績報告書（番号6）と、令和8年度分の賃金改善中間報告書（番号7）の対象となる場合があります。番号6・7は郵送ではなくメール提出です。
       </div>
       <ul class="checklist">
-        <li><span class="ci" style="color:var(--yellow)">⚠</span>昨年度から算定していた医院：昨年度分の報告書提出を確認</li>
-        <li><span class="ci" style="color:var(--yellow)">⚠</span>今年度から新規算定・変更する医院：今年度の届出・計画書を確認</li>
-        <li><span class="ci" style="color:var(--yellow)">⚠</span>区分変更が必要な医院：新しい区分での届出要否を確認</li>
+        <li><span class="ci" style="color:var(--yellow)">⚠</span>令和7年度に算定している場合：番号6「賃金改善実績報告書（令和7年度分）」を確認</li>
+        <li><span class="ci" style="color:var(--yellow)">⚠</span>令和8年度に算定している場合：番号7「賃金改善中間報告書（令和8年度分）」を確認</li>
+        <li><span class="ci" style="color:var(--yellow)">⚠</span>提出期限：${teireiOfficial().deadlineLabel} / 基準日：${teireiOfficial().referenceDateLabel}</li>
       </ul>
+      <a href="${teireiOfficial().pageUrl}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:6px;text-decoration:none;color:var(--accent);font-size:12px;font-weight:600">関東信越厚生局：歯科診療所に係る定例報告等について ↗</a>
     </div>`:'';
   const reviewBlock=reviewAssessment.reasons.length?`
     <div class="ds ledger-review-panel">
@@ -475,7 +540,7 @@ function openAiModal(){
       <div style="color:var(--accent);font-weight:700;margin-bottom:6px;font-size:12px">📋 推奨アクション</div>
       <div style="font-size:12px;line-height:1.9;color:var(--text2)">
         1. <strong style="color:var(--text)">再届出必要</strong>：改定通知の該当箇所を確認し、新要件の書類を準備<br>
-        2. <strong style="color:var(--text)">毎年8月の定例報告</strong>：8月1日現在の自己点検 → 8月29日までに厚生局へ郵送<br>
+        2. <strong style="color:var(--text)">令和8年8月の定例報告</strong>：8月1日現在の自己点検 → 8月31日（月）までに厚生局へ提出（番号6・7はメール提出）<br>
         3. <strong style="color:var(--text)">経過措置期限</strong>：令和7年5月31日（旧外来環等）が既に過ぎていないか確認
       </div>
     </div>`;
@@ -1778,39 +1843,60 @@ function applyKaiteiAuto(){
     : '台帳に改定影響の対象施設基準が見つかりませんでした。';
   alert(msg);
 }
+const TEIREI_R08_STATUS_KEY = 'teirei_r08_report_status_v1';
+
+function loadTeireiR08Statuses(){
+  try {
+    return JSON.parse(localStorage.getItem(TEIREI_R08_STATUS_KEY) || '{}') || {};
+  } catch (err) {
+    console.error('定例報告ステータスの読込に失敗しました', err);
+    return {};
+  }
+}
+
+function saveTeireiR08Status(reportId, status){
+  const statuses = loadTeireiR08Statuses();
+  statuses[reportId] = status;
+  localStorage.setItem(TEIREI_R08_STATUS_KEY, JSON.stringify(statuses));
+  renderTeirei();
+}
+
+function getTeireiLegacyKeysForReport(report){
+  if(!report) return [];
+  if(report.id === 'teirei_r08_zaitaku_support_dental') return ['在支歯', '歯援診１', '歯援診1', '歯援診２', '歯援診2'];
+  if(report.id === 'teirei_r08_baseup_actual_r07' || report.id === 'teirei_r08_baseup_interim_r08'){
+    return ['歯外在ベⅠ', '歯外在ベⅡ', '歯外在ベⅠ注', '歯外在ベⅡ注'];
+  }
+  return report.relatedAbbrs || [];
+}
+
+function hasLegacyTeireiRecordForReport(report){
+  if(typeof loadTeireiByAbbr !== 'function') return false;
+  return getTeireiLegacyKeysForReport(report).some(abbr => (loadTeireiByAbbr(abbr) || []).length > 0);
+}
+
+function getReportEntries(report){
+  if(!report) return [];
+  return entries.filter(entry => getTeireiReportsForEntry(entry).some(item => item.id === report.id));
+}
+
+function renderTeireiStatusSelect(report, currentStatus){
+  const options = [
+    ['unchecked', '未確認'],
+    ['target', '対象'],
+    ['not_target', '対象外'],
+    ['submitted', '提出済'],
+  ];
+  return `<select onchange="saveTeireiR08Status('${report.id}', this.value)" style="min-width:120px">
+    ${options.map(([value, label]) => `<option value="${value}" ${currentStatus === value ? 'selected' : ''}>${label}</option>`).join('')}
+  </select>`;
+}
+
 function renderTeirei(){
-  // ══════════════════════════════════════════════════
-  // 定例報告が必要な施設基準マスタ
-  // 出典: 関東信越厚生局「歯科診療所に係る定例報告等について」
-  // https://kouseikyoku.mhlw.go.jp/kantoshinetsu/iryo_shido/teirei-shika.html
-  // ══════════════════════════════════════════════════
-  // 【令和8年改定】歯初診（様式27）および外感染2は定例報告が廃止（8月報告不要に）
-  // 在支歯（様式18の2）・ベースアップ（様式98）は継続
-  const TEIREI_MASTER = {
-    // 番号9: 特掲様式18の2
-    '在支歯': {
-      num: '番号9',
-      yoshiki: '（特掲）様式18の2',
-      name: '在宅療養支援歯科診療所（1又は2）の施設基準に係る報告書',
-      note: '年1回・8月定例報告（管轄の地方厚生局へ郵送）',
-      required: true,
-    },
-    // 番号10: 特掲様式98（継続算定施設）
-    '歯外在ベⅠ': {
-      num: '番号10',
-      yoshiki: '（特掲）様式98',
-      name: '歯科外来・在宅ベースアップ評価料(1)(2) 賃金改善実績報告書（継続算定施設：前年度分）',
-      note: '⚠ 郵送ではなくメールによる提出。継続施設は前年分実績報告。令和8年度から新規算定の施設は中間報告書を提出。',
-      required: true,
-    },
-    '歯外在ベⅡ': {
-      num: '番号10',
-      yoshiki: '（特掲）様式98',
-      name: '歯科外来・在宅ベースアップ評価料(1)(2) 賃金改善実績報告書（継続算定施設：前年度分）',
-      note: '⚠ 郵送ではなくメールによる提出。継続施設は前年分実績報告。令和8年度から新規算定の施設は中間報告書を提出。',
-      required: true,
-    },
-  };
+  const official = teireiOfficial();
+  const reports = Object.values(teireiReports());
+  const statuses = loadTeireiR08Statuses();
+  const noReportItems = entries.filter(entry => getTeireiReportsForEntry(entry).length === 0);
 
   // 番号2: 別紙様式4-2（特別の療養環境＝差額ベッド）
   // 番号3: 別紙様式5（選定療養・歯科衛生実地指導料の実績がある場合）
@@ -1820,59 +1906,49 @@ function renderTeirei(){
   // 番号7: 別紙様式26（情報通信機器を用いた診療の届出がある場合）
   // → これらは施設基準台帳とは別の条件で発生するため、下記の「その他」欄に記載
 
-  // 自院の届出と定例報告を照合
-  const reportItems = entries
-    .map(e => ({ entry: e, teirei: TEIREI_MASTER[e.abbr] || null }))
-    .filter(x => x.teirei !== null);
-
-  const noReportItems = entries.filter(e => !TEIREI_MASTER[e.abbr]);
-
-  const y = new Date().getFullYear();
-
   document.getElementById('teirei-body').innerHTML = `
     <div class="teirei-banner">
-      📅 提出期限：<strong>${y}年8月29日（金）</strong>　→　関東信越厚生局東京事務所（郵送）
-      <span style="margin-left:16px;font-size:11px;color:var(--text2)">8月1日現在の施設基準要件を自己点検してください</span>
+      📅 令和8年8月 定例報告・実績報告・中間報告
+      <span style="margin-left:16px;font-size:11px;color:var(--text2)">基準日：${official.referenceDateLabel} ／ 提出期限：${official.deadlineLabel}</span>
     </div>
     <div style="background:var(--yellow-bg);border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.9">
-      <strong style="color:var(--yellow)">⚠ 令和8年度 ベースアップ評価料の8月報告（施設により異なります）</strong><br>
-      ・<strong style="color:var(--text)">継続算定施設</strong>（令和7年度以前から算定）→ 前年分（令和7年度）<strong>実績報告書</strong>を提出<br>
-      ・<strong style="color:var(--text)">令和8年度から新規算定の施設</strong> → 令和8年度分<strong>中間報告書</strong>を提出（実績報告は翌年8月）<br>
-      <span style="font-size:11px;color:var(--text3)">※ 最終的な様式・提出先は管轄厚生局（関東信越厚生局）の令和8年版案内で必ず確認してください。</span>
+      <strong style="color:var(--yellow)">⚠ ${official.referenceDateLabel}の施設基準自己点検</strong><br>
+      施設基準の届出を行った保険医療機関は、届出内容について自己点検が必要です。要件を満たしていない施設基準がある場合は、番号1「施設基準の届出の確認について」と辞退届の提出が必要です。番号2以降は、報告対象に該当する場合に提出します。<br>
+      <a class="link" href="${official.pageUrl}" target="_blank" rel="noopener noreferrer">関東信越厚生局：歯科診療所に係る定例報告等について ↗</a>
     </div>
 
-    ${reportItems.length > 0 ? `
     <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:var(--text)">
-      📋 報告書の提出が必要な施設基準（${reportItems.length}件）
+      📋 令和8年8月 歯科関係の重要報告
     </div>
-    <div class="tw" style="margin-bottom:20px">
-      <table>
-        <thead><tr>
-          <th>届出施設基準</th>
-          <th>番号</th>
-          <th>提出様式</th>
-          <th>備考</th>
-          <th>自己点検</th>
-          <th>提出状況</th>
-        </tr></thead>
-        <tbody>
-          ${reportItems.map((x, i) => `<tr>
-            <td>
-              <div class="kn">${x.entry.name}</div>
-              <div style="font-size:10px;color:var(--text2);margin-top:2px;font-family:var(--mono)">${x.entry.number||''}</div>
-            </td>
-            <td><span class="badge bb">${x.teirei.num}</span></td>
-            <td style="font-size:11px;color:var(--text2)">${x.teirei.yoshiki}</td>
-            <td style="font-size:11px;color:${x.teirei.note.includes('⚠')?'var(--yellow)':'var(--text2)'}">${x.teirei.note||'—'}</td>
-            <td><input type="checkbox" id="chk-r-${i}" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer"></td>
-            <td><span class="badge bgr" id="sub-r-${i}">未提出</span></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>` : `
-    <div style="background:var(--green-bg);border:1px solid #a7f3d0;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:var(--green);font-weight:600">
-      ✅ 報告書の提出が必要な施設基準は届出台帳の中にありません
-    </div>`}
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:20px">
+      ${reports.map(report => {
+        const relatedEntries = getReportEntries(report);
+        const status = statuses[report.id] || 'unchecked';
+        const legacyNote = hasLegacyTeireiRecordForReport(report)
+          ? `<div style="margin-top:8px;font-size:11px;color:var(--yellow)">旧定例報告記録があります。令和7年度算定・令和8年度算定の有無を確認し、今回の対象区分を選択してください。</div>`
+          : '';
+        return `<div class="card" style="min-width:0">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+            <div>
+              <span class="badge bb">番号${report.number}</span>
+              <span class="badge ${report.submitMethod.includes('メール') ? 'br' : 'bg'}">${report.submitMethod}</span>
+            </div>
+            ${renderTeireiStatusSelect(report, status)}
+          </div>
+          <div style="font-size:14px;font-weight:800;color:var(--text);line-height:1.5;margin-bottom:6px">${report.title}</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.8">
+            <div><strong>様式：</strong>${report.form}</div>
+            <div><strong>対象：</strong>${report.target}</div>
+            <div><strong>提出期限：</strong>${report.deadlineLabel}</div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text2)">台帳内の関連届出：</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px">
+            ${relatedEntries.length ? relatedEntries.map(entry => `<span class="badge bb">${entry.abbr || entry.name}</span>`).join('') : '<span class="badge bgr">該当届出なし</span>'}
+          </div>
+          ${legacyNote}
+        </div>`;
+      }).join('')}
+    </div>
 
     <div style="margin-bottom:8px;font-size:13px;font-weight:700;color:var(--text)">
       ✅ 自己点検のみ（提出書類なし）（${noReportItems.length}件）
@@ -1888,54 +1964,40 @@ function renderTeirei(){
     <div style="background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;margin-bottom:20px">
       <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px">📌 その他・条件付きで提出が必要な様式</div>
       <div style="font-size:12px;color:var(--text2);line-height:1.9">
-        <strong style="color:var(--text)">番号2 別紙様式4-2</strong>：特別の療養環境（差額室料）を提供している場合<br>
-        <strong style="color:var(--text)">番号3 別紙様式5</strong>：選定療養の実施実績がある、または歯科衛生実地指導料・訪問歯科衛生指導料の算定実績がある場合<br>
-        <strong style="color:var(--text)">番号4 別紙様式12</strong>：明細書を全患者に無料発行していない（正当な理由がある）診療所<br>
-        <strong style="color:var(--text)">番号5</strong>：予約診察・時間外診察で特別料金を徴収している場合<br>
-        <strong style="color:var(--text)">番号6 別紙様式16</strong>：摂食嚥下機能回復体制加算の届出がある場合<br>
-        <strong style="color:var(--text)">番号7 別紙様式26</strong>：情報通信機器を用いた診療（オンライン診療）の届出がある場合
+        番号2以降は、公式ページの表に掲げられた報告対象に該当する場合に提出します。届出台帳だけでは判定できない選定療養、明細書発行、情報通信機器を用いた診療等は、公式ページで対象有無を確認してください。<br>
+        <strong style="color:var(--red)">番号6・7（ベースアップ評価料）はメール提出です。</strong>
       </div>
     </div>
 
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="checkAllTeirei()">全項目 確認済みにする</button>
+      <button class="btn btn-primary" onclick="checkAllTeirei()">全項目 提出済みにする</button>
       <button class="btn btn-ghost" onclick="printTeirei()">🖨 印刷用チェックシート</button>
       <button class="btn btn-secondary" onclick="openTeireiRecModal()">💾 この年度の記録を保存</button>
       <button class="btn btn-ghost" onclick="showTeireiHistory()">📂 過去の記録を見る</button>
     </div>
     <div id="teirei-history-area" style="display:none;margin-top:16px"></div>
   `;
-
-  // チェックボックスイベント
-  reportItems.forEach((_, i) => {
-    const chk = document.getElementById(`chk-r-${i}`);
-    if (chk) chk.addEventListener('change', function() {
-      const b = document.getElementById(`sub-r-${i}`);
-      b.className = this.checked ? 'badge bg' : 'badge bgr';
-      b.textContent = this.checked ? '提出済' : '未提出';
-    });
-  });
 }
 
 function checkAllTeirei(){
-  document.querySelectorAll('[id^="chk-r-"]').forEach(chk => {
-    chk.checked = true;
-    chk.dispatchEvent(new Event('change'));
+  const statuses = loadTeireiR08Statuses();
+  Object.values(teireiReports()).forEach(report => {
+    statuses[report.id] = 'submitted';
   });
+  localStorage.setItem(TEIREI_R08_STATUS_KEY, JSON.stringify(statuses));
+  renderTeirei();
 }
 
 function printTeirei(){
-  // 【令和8年改定】歯初診（様式27）・外感染2の定例報告は廃止
-  const TEIREI_MASTER_PRINT = {
-    '在支歯':'番号9 特掲様式18の2',
-    '歯外在ベⅠ':'番号10 特掲様式98（メール）','歯外在ベⅡ':'番号10 特掲様式98（メール）',
-  };
+  const official = teireiOfficial();
   const w = window.open('','_blank');
-  const reportRows = entries
-    .filter(e => TEIREI_MASTER_PRINT[e.abbr])
-    .map(e => `<tr style="background:#fff9e6"><td><strong>${e.name}</strong></td><td>${e.abbr||''}</td><td>${e.number||''}</td><td>${e.date||''}</td><td style="color:#d97706;font-weight:bold">${TEIREI_MASTER_PRINT[e.abbr]}</td><td style="text-align:center">□</td></tr>`).join('');
+  const reportRows = Object.values(teireiReports()).map(report => {
+    const related = getReportEntries(report);
+    const relatedText = related.length ? related.map(entry => `${entry.abbr || ''} ${entry.name}`).join('<br>') : '該当届出なし（対象有無を確認）';
+    return `<tr style="background:#fff9e6"><td><strong>番号${report.number}</strong></td><td>${report.form}</td><td>${report.title}</td><td>${report.submitMethod}</td><td>${relatedText}</td><td style="text-align:center">□</td></tr>`;
+  }).join('');
   const checkRows = entries
-    .filter(e => !TEIREI_MASTER_PRINT[e.abbr])
+    .filter(e => getTeireiReportsForEntry(e).length === 0)
     .map(e => `<tr><td>${e.name}</td><td>${e.abbr||''}</td><td>${e.number||''}</td><td>${e.date||''}</td><td style="color:#059669">自己点検のみ</td><td style="text-align:center">□</td></tr>`).join('');
   w.document.write(`<html><head><meta charset="UTF-8"><title>施設基準定例報告 チェックシート</title>
   <style>
@@ -1951,15 +2013,15 @@ function printTeirei(){
 </head>
   <body>
   <h2>施設基準届出 定例報告 チェックシート</h2>
-  <div class="sub">${clinicName}　　${new Date().getFullYear()}年8月1日現在　→　提出期限：${new Date().getFullYear()}年8月29日（金）　関東信越厚生局東京事務所</div>
-  <div class="legend">🟡 黄色行：報告書の提出が必要　／　白色行：自己点検のみ（要件充足で提出不要）</div>
+  <div class="sub">${clinicName}　　${official.referenceDateLabel}　→　提出期限：${official.deadlineLabel}</div>
+  <div class="legend">🟡 黄色行：番号5・6・7の重要報告　／　白色行：自己点検のみ（要件充足で提出不要）</div>
   <table>
-    <thead><tr><th>施設基準名</th><th>略称</th><th>受理番号</th><th>算定開始</th><th>定例報告</th><th>確認</th></tr></thead>
+    <thead><tr><th>番号</th><th>様式</th><th>報告書名</th><th>提出方法</th><th>台帳内の関連届出</th><th>確認</th></tr></thead>
     <tbody>${reportRows}${checkRows}</tbody>
   </table>
   <div style="font-size:10px;color:#666;border-top:1px solid #ccc;padding-top:8px">
-  ※ 要件を満たしていない施設基準がある場合は辞退届（別添2-2）の提出が必要です。<br>
-  ※ 番号10（ベースアップ評価料）は郵送ではなくメールによる提出です。
+  ※ 要件を満たしていない施設基準がある場合は番号1と辞退届の提出が必要です。<br>
+  ※ 番号6・7（ベースアップ評価料）は郵送ではなくメール提出です。公式ページ：${official.pageUrl}
   </div>
   </body></html>`);
   w.print();
@@ -3596,7 +3658,7 @@ const TREC_KIJUN = {
     tabLabel:     'ベースアップ評価料',
     formLabel:    '歯科外来・在宅ベースアップ評価料',
     submitMethod: '⚠ 専用メール提出（郵送不可）',
-    note:         '計画書：算定開始前月末まで（専用メール添付）／ 実績報告書：毎年8月末',
+    note:         '計画書：算定開始前月末まで（専用メール添付）／ 令和8年8月は番号6 実績報告・番号7 中間報告を対象に応じて確認',
     dlPdf:  'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/baseup.html',
     fields: [
       { id:'sep1',        label:'── 賃金改善計画書（算定開始前月末・専用メール添付）──', type:'label' },
@@ -3605,7 +3667,7 @@ const TREC_KIJUN = {
       { id:'plan_mail',   label:'メール送付先', type:'text', placeholder:'例：baseup-hyoukaryou27@mhlw.go.jp' },
       { id:'plan_taisho', label:'対象職員数',   type:'text', placeholder:'例：常勤3名、非常勤2名' },
       { id:'plan_chin',   label:'賃上げ計画額', type:'text', placeholder:'例：月額2,000円/人' },
-      { id:'sep2',        label:'── 賃金改善実績報告書（毎年8月末提出）──', type:'label' },
+      { id:'sep2',        label:'── 番号6 実績報告・番号7 中間報告（令和8年8月31日提出期限）──', type:'label' },
       { id:'jisseki_date',label:'提出日',       type:'date' },
       { id:'jisseki_mail',label:'メール送付先', type:'text', placeholder:'例：baseup-hyoukaryou27@mhlw.go.jp' },
       { id:'jisseki_chin',label:'賃上げ実績額', type:'text', placeholder:'例：月額2,100円/人（実績）' },
@@ -4543,14 +4605,14 @@ const SHINKI_MASTER = {
       '24時間対応できる連絡体制（担当歯科医の氏名・診療可能日等を文書提供）',
       '後方支援機能を有する別の医療機関との連携体制',
       '多職種連携（地域ケア会議等への年1回以上出席、または施設職員への技術的助言等）',
-      '毎年8月に様式18の2で定例報告',
+      '毎年8月に番号5「別紙様式19」で定例報告',
     ],
     note: '在支歯1と在支歯2では要件が異なります。訪問診療の実績を積んでから届出します。',
     yoshiki: [
       {label:'🔍 特掲診療料の届出一覧（関東信越厚生局）', url:'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html', keyword:'歯援診'},
     ],
     sourcePage: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/shinsei/shido_kansa/shitei_kijun/tokukei_shinryo_r08.html',
-    flow: ['訪問診療の実績を積む（年15回以上）','高齢者対応研修を受講','連携体制を整備','届出書を記載して郵送','毎年8月に定例報告（様式18の2）'],
+    flow: ['訪問診療の実績を積む（年15回以上）','高齢者対応研修を受講','連携体制を整備','届出書を記載して郵送','毎年8月に定例報告（番号5 別紙様式19）'],
   },
 
   '歯地連': {
@@ -5033,7 +5095,7 @@ const SHINKI_MASTER = {
       '対象職員（歯科医師を除く医療従事者）が常勤換算で1名以上勤務',
       '賃金改善計画書を作成し、算定開始前月末までに専用メールアドレスへ添付送付',
       'ベースアップ評価料による算定収入を対象職員の賃上げに充てること',
-      '毎年8月に賃金改善実績報告書（様式98）を厚生局へメール提出',
+      '令和8年8月は令和7年度分の賃金改善実績報告書（番号6）と令和8年度分の賃金改善中間報告書（番号7）を対象に応じてメール提出',
     ],
     note: '届出・計画書はいずれも専用メールアドレスへ添付送付（郵送不可）。計画書は算定開始前月末が期限。ファイル名に医療機関コードを含める必要あり。',
     yoshiki: [
@@ -5575,7 +5637,7 @@ function renderDeadline(){
     {name:'令和8年度改定 施設基準 施行日',date:'2026-06-01',cat:'厚生局',status:'green',note:'令和8年6月1日から新点数・新施設基準が施行。新設項目の届出はこの日以降算定可。'},
     {name:'ベースアップ評価料 中間報告書（令和8年度新規算定施設のみ）',date:'2026-08-31',cat:'厚生局',status:'yellow',note:'令和8年度から新規に算定を開始した施設のみ対象。継続算定施設は実績報告書を提出。'},
     {name:'ベースアップ評価料 実績報告書（継続算定施設・令和7年度分）',date:'2026-08-31',cat:'厚生局',status:'yellow',note:'令和7年度以前から継続算定している施設は前年分実績報告書を提出。'},
-    {name:'施設基準 定例報告（令和8年度・8月1日現在）',date:'2026-08-31',cat:'厚生局',status:'green',note:'在支歯（様式18の2）・ベースアップ（様式98）が対象。8月1日現在で自己点検し8月末までに提出。'},
+    {name:'施設基準 定例報告（令和8年度・8月1日現在）',date:'2026-08-31',cat:'厚生局',status:'green',note:'在支歯は番号5「別紙様式19」、ベースアップ評価料は番号6「令和7年度分実績報告」・番号7「令和8年度分中間報告」が対象となる場合があります。番号6・7はメール提出です。'},
   ].sort((a,b)=>new Date(a.date)-new Date(b.date));
   document.getElementById('deadline-body').innerHTML=`<div class="tw"><table>
     <thead><tr><th>届出・手続き名</th><th>提出先</th><th>期限</th><th>状態</th></tr></thead>
@@ -5593,7 +5655,7 @@ function renderDeadline(){
 /* ═══ CSV ═══ */
 function exportCSV(){
   const h=['施設基準名','略称','受理番号','算定開始','カテゴリ','状態','改定影響','定例報告','メモ'];
-  const rows=entries.map(e=>[e.name,e.abbr,e.number,e.date,CL[e.category],getLedgerDisplayStatusLabel(e),getRevisionImpact(e).label,TEIREI_ROW[e.abbr]||'自己点検のみ',e.memo]);
+  const rows=entries.map(e=>[e.name,e.abbr,e.number,e.date,CL[e.category],getLedgerDisplayStatusLabel(e),getRevisionImpact(e).label,getTeireiLedgerLabel(e)||'自己点検のみ',e.memo]);
   const csv=[h,...rows].map(r=>r.map(v=>`"${v||''}"`).join(',')).join('\n');
   const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'})),download:`施設基準台帳_${new Date().toISOString().slice(0,10)}.csv`});
   a.click();

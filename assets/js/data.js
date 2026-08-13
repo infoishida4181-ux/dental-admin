@@ -279,12 +279,76 @@ function resetToDefault(){
   alert('デフォルトデータに戻しました。');
 }
 
-// 定例報告が必要な施設基準と様式番号（台帳表示用）
-// 【令和8年改定】歯初診（様式27）・外感染2の定例報告は廃止
+// 令和8年8月 歯科診療所に係る定例報告等（関東信越厚生局）
+const TEIREI_OFFICIAL_R08 = {
+  pageUrl: 'https://kouseikyoku.mhlw.go.jp/kantoshinetsu/iryo_shido/teirei-shika.html',
+  updatedAt: '2026-07-31',
+  referenceDate: '2026-08-01',
+  referenceDateLabel: '令和8年8月1日現在',
+  deadline: '2026-08-31',
+  deadlineLabel: '令和8年8月31日（月）'
+};
+
+const TEIREI_REPORTS_R08 = {
+  zaitakuSupportDental: {
+    id: 'teirei_r08_zaitaku_support_dental',
+    number: '5',
+    form: '別紙様式19',
+    title: '在宅療養支援歯科診療所・支援病院の施設基準に係る報告書',
+    target: '在宅療養支援歯科診療所の届出を行っている場合',
+    submitMethod: '郵送または電子申請等',
+    deadline: TEIREI_OFFICIAL_R08.deadline,
+    deadlineLabel: TEIREI_OFFICIAL_R08.deadlineLabel,
+    referenceDate: TEIREI_OFFICIAL_R08.referenceDate,
+    referenceDateLabel: TEIREI_OFFICIAL_R08.referenceDateLabel,
+    relatedAbbrs: ['在支歯','歯援診１','歯援診1','歯援診２','歯援診2','歯援病'],
+    ledgerLabel: '番号5 別紙様式19',
+    shortTitle: '在宅療養支援歯科診療所・支援病院'
+  },
+  baseupActualR07: {
+    id: 'teirei_r08_baseup_actual_r07',
+    number: '6',
+    form: '（特掲）旧様式98',
+    title: '歯科外来・在宅ベースアップ評価料(1)(2) 賃金改善実績報告書（令和7年度分）',
+    target: '令和7年度に歯科外来・在宅ベースアップ評価料を算定している場合',
+    submitMethod: 'メール提出',
+    deadline: TEIREI_OFFICIAL_R08.deadline,
+    deadlineLabel: TEIREI_OFFICIAL_R08.deadlineLabel,
+    referenceDate: TEIREI_OFFICIAL_R08.referenceDate,
+    referenceDateLabel: TEIREI_OFFICIAL_R08.referenceDateLabel,
+    relatedAbbrs: ['歯外在ベⅠ','歯外在ベⅡ','歯外在ベⅠ注','歯外在ベⅡ注'],
+    ledgerLabel: '番号6 実績報告',
+    shortTitle: '令和7年度分 賃金改善実績報告書'
+  },
+  baseupInterimR08: {
+    id: 'teirei_r08_baseup_interim_r08',
+    number: '7',
+    form: '（特掲）100の別添1',
+    title: '歯科外来・在宅ベースアップ評価料（1）（2）賃金改善中間報告書（令和8年度分）',
+    target: '令和8年度に歯科外来・在宅ベースアップ評価料を算定している場合',
+    submitMethod: 'メール提出',
+    deadline: TEIREI_OFFICIAL_R08.deadline,
+    deadlineLabel: TEIREI_OFFICIAL_R08.deadlineLabel,
+    referenceDate: TEIREI_OFFICIAL_R08.referenceDate,
+    referenceDateLabel: TEIREI_OFFICIAL_R08.referenceDateLabel,
+    relatedAbbrs: ['歯外在ベⅠ','歯外在ベⅡ','歯外在ベⅠ注','歯外在ベⅡ注'],
+    ledgerLabel: '番号7 中間報告',
+    shortTitle: '令和8年度分 賃金改善中間報告書'
+  }
+};
+
+// 定例報告が必要な施設基準と様式番号（台帳表示用・既存互換）
+// 【令和8年8月版】歯初診（様式27）・外感染2の定例報告は廃止
 const TEIREI_ROW = {
-  '在支歯':    '番号9 様式18の2',
-  '歯外在ベⅠ':'番号10 様式98(mail)',
-  '歯外在ベⅡ':'番号10 様式98(mail)',
+  '在支歯': '番号5 別紙様式19',
+  '歯援診１': '番号5 別紙様式19',
+  '歯援診1': '番号5 別紙様式19',
+  '歯援診２': '番号5 別紙様式19',
+  '歯援診2': '番号5 別紙様式19',
+  '歯外在ベⅠ': '番号6 実績報告 / 番号7 中間報告（メール）',
+  '歯外在ベⅡ': '番号6 実績報告 / 番号7 中間報告（メール）',
+  '歯外在ベⅠ注': '番号6 実績報告 / 番号7 中間報告（メール）',
+  '歯外在ベⅡ注': '番号6 実績報告 / 番号7 中間報告（メール）',
 };
 
 /* ═══════════════════════════════════════════════════════
