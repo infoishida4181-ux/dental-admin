@@ -77,16 +77,31 @@ function shouldRequireReview(entry){
   if(training)reasons.push(training);
   return {requiresReview:reasons.length>0,reasons};
 }
-function isBaseUpStandard(entry){
+function getEntrySearchText(entry){
   const text=[
     entry?.name,
     entry?.abbr,
     entry?.shortName,
     entry?.officialName,
+    entry?.acceptedName,
+    entry?.acceptedCode,
     entry?.category,
     entry?.id
   ].map(v=>String(v||'')).join(' ');
-  return /ベースアップ評価料|歯科外来・在宅ベースアップ評価料|歯外在ベ[ⅠⅡ１２12]?(注)?|外在ベ|歯技ベ|base.?up/i.test(text);
+  return text;
+}
+function isDentalLabBaseUpSupportFee(entry){
+  const text=getEntrySearchText(entry);
+  return /歯技ベ|歯科技工所ベースアップ|歯技工所ベースアップ|技工所ベースアップ支援料|技工所ベースアップ/.test(text);
+}
+function isDentalOutpatientHomeBaseUpStandard(entry){
+  const text=getEntrySearchText(entry);
+  if(isDentalLabBaseUpSupportFee(entry))return false;
+  return /歯外在ベ[ⅠⅡIＩII１１２２12]?(注)?|歯科外来・在宅ベースアップ評価料|外来・在宅ベースアップ評価料|外在ベ/.test(text);
+}
+function isBaseUpStandard(entry){
+  const text=getEntrySearchText(entry);
+  return isDentalOutpatientHomeBaseUpStandard(entry) || isDentalLabBaseUpSupportFee(entry) || /ベースアップ評価料|base.?up/i.test(text);
 }
 function getBaseUpAlertReason(){
   return {
@@ -124,7 +139,7 @@ function isZaitakuSupportDental(entry){
 function getTeireiReportsForEntry(entry){
   const reports=teireiReports();
   if(!entry)return [];
-  if(isBaseUpStandard(entry)){
+  if(isDentalOutpatientHomeBaseUpStandard(entry)){
     return [reports.baseupActualR07,reports.baseupInterimR08].filter(Boolean);
   }
   if(isZaitakuSupportDental(entry)){
@@ -145,7 +160,7 @@ function getTeireiLedgerLabel(entry){
 }
 function getRevisionImpact(entry){
   const master=getFacilityMasterForEntry(entry);
-  if(isBaseUpStandard(entry)){
+  if(isDentalOutpatientHomeBaseUpStandard(entry)){
     return {
       key:'baseup',
       badge:'<span class="badge br">番号6・7</span>',
@@ -218,21 +233,21 @@ function getRevisionImpact(entry){
 }
 function getLedgerDisplayStatus(entry){
   if(entry.status==='red')return 'red';
-  if(isBaseUpStandard(entry))return 'yellow';
+  if(isDentalOutpatientHomeBaseUpStandard(entry))return 'yellow';
   return shouldRequireReview(entry).requiresReview?'yellow':'green';
 }
 function getLedgerDisplayStatusLabel(entry){
-  if(isBaseUpStandard(entry))return '要対応';
+  if(isDentalOutpatientHomeBaseUpStandard(entry))return '要対応';
   return {green:'要件充足',yellow:'要確認',red:'要対応'}[getLedgerDisplayStatus(entry)]||'要件充足';
 }
 function renderReviewBadges(entry){
   const reasons=[...shouldRequireReview(entry).reasons];
-  if(isBaseUpStandard(entry))reasons.unshift(getBaseUpAlertReason());
+  if(isDentalOutpatientHomeBaseUpStandard(entry))reasons.unshift(getBaseUpAlertReason());
   if(!reasons.length)return '';
   return `<div class="ledger-review-badges">${reasons.map(r=>`<span class="badge by">${r.badge}</span>`).join('')}</div>`;
 }
 function renderLedgerStatus(entry){
-  if(isBaseUpStandard(entry))return '<span class="badge br"><span class="dot dr"></span>要対応</span>';
+  if(isDentalOutpatientHomeBaseUpStandard(entry))return '<span class="badge br"><span class="dot dr"></span>要対応</span>';
   const displayStatus=getLedgerDisplayStatus(entry);
   return SB[displayStatus]||SB.green;
 }
@@ -242,9 +257,9 @@ function render(){
   document.getElementById('s-ok').textContent=entries.filter(e=>getLedgerDisplayStatus(e)==='green').length;
   document.getElementById('s-check').textContent=entries.filter(e=>getLedgerDisplayStatus(e)==='yellow').length;
   document.getElementById('s-alert').textContent=entries.filter(e=>getLedgerDisplayStatus(e)==='red').length;
-  const baseUpCount=entries.filter(isBaseUpStandard).length;
+  const baseUpCount=entries.filter(isDentalOutpatientHomeBaseUpStandard).length;
   const abanner=document.getElementById('abanner');
-  abanner.style.display=entries.some(e=>e.status==='red'||e.kaitei==='reapply'||isBaseUpStandard(e))?'flex':'none';
+  abanner.style.display=entries.some(e=>e.status==='red'||e.kaitei==='reapply'||isDentalOutpatientHomeBaseUpStandard(e))?'flex':'none';
   abanner.innerHTML=baseUpCount
     ? `⚠️ <span><strong>ベースアップ評価料</strong>：番号6 実績報告・番号7 中間報告（メール提出）の対象確認が必要です。<a href="#" onclick="nav('teirei');return false">確認する →</a></span>`
     : `⚠️ <span><strong>令和8年度改定対応中</strong>：再届出・経過措置の期限を確認してください。<a href="#" onclick="openAiModal();return false">詳細を確認 →</a></span>`;
@@ -385,7 +400,7 @@ function openDP(id){
   }
 
   const reviewAssessment=shouldRequireReview(e);
-  const baseUpBlock=isBaseUpStandard(e)?`
+  const baseUpBlock=isDentalOutpatientHomeBaseUpStandard(e)?`
     <div class="ds ledger-review-panel">
       <div class="dst">ベースアップ評価料の確認</div>
       <div class="ledger-review-badges" style="margin-bottom:8px"><span class="badge br">番号6・7</span><span class="badge by">メール提出</span><span class="badge by">${teireiOfficial().deadlineLabel}</span></div>
@@ -1811,7 +1826,7 @@ function applyRevisionImpactAutoAnalysisAfterImport(targetEntries=entries){
     }
     const impact=getRevisionImpact(e);
     if(impact.key!=='none')impacted++;
-    if(impact.key==='none'&&!shouldRequireReview(e).requiresReview&&!isBaseUpStandard(e)){
+    if(impact.key==='none'&&!shouldRequireReview(e).requiresReview&&!isDentalOutpatientHomeBaseUpStandard(e)){
       e.status='green';
     }
   });
