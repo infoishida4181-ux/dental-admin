@@ -1,11 +1,11 @@
-﻿{
-  "activeDatasetId": "tokyo-dental-r0807",
+{
+  "activeDatasetId": "tokyo-dental-r0809",
   "datasets": [
     {
-      "datasetId": "tokyo-dental-r0807",
+      "datasetId": "tokyo-dental-r0809",
       "label": "東京都 歯科施設基準 最新版",
-      "file": "./assets/data/tokyo-dental-r0807.json",
-      "sourceDate": "2026-04-01",
+      "file": "./assets/data/tokyo-dental-r0809.json",
+      "sourceDate": "",
       "schemaVersion": "1.1.0",
       "format": "grouped-by-clinic"
     }
