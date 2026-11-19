@@ -181,8 +181,8 @@ const DEFAULT_ENTRIES=[
   {id:9, name:'医療DX推進体制整備加算',abbr:'医療ＤＸ',number:'第610058号',date:'2024-07-01',category:'basic',status:'red',kaitei:'expire',memo:'令和8年6月廃止・再編。電子的歯科診療情報連携体制整備加算への移行が必要。'},
 ];
 
-// entriesが空（初回起動 or データ消去後）の場合はデフォルトデータをセット
-if(!entries || !entries.length){
+// A stored empty ledger is valid, including after backup restoration.
+if(localStorage.getItem('shisetsu_kijun') === null){
   entries=DEFAULT_ENTRIES.map(e=>({...e}));
   save();
 }
@@ -356,8 +356,8 @@ const TEIREI_ROW = {
    バージョン更新時のデータ引き継ぎに使用
 ═══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '3.1.0';
-const APP_DATE    = '2026-03-18';
+const APP_VERSION = '3.1.1';
+const APP_DATE    = '2026-11-19';
 
 // エクスポート対象のlocalStorageキー一覧
 const DATA_KEYS = {
@@ -427,6 +427,7 @@ async function exportAllData() {
     } catch (err) {
       console.error(err);
       payload._training_certificates_warning = '受講証明書ファイル本体をバックアップに含められませんでした。';
+      if (typeof showAppToast === 'function') showAppToast('証明書本体を含められない不完全なバックアップです。元のデータを削除せず、保存領域と証明書の状態を確認してください。', 'error');
     }
   }
 
@@ -443,14 +444,12 @@ async function exportAllData() {
   URL.revokeObjectURL(a.href);
 }
 
-function importAllData(event) {
+async function importAllData(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = async function(e) {
     try {
-      const payload = JSON.parse(e.target.result);
+      const payload = JSON.parse(await file.text());
 
       // メタ情報チェック
       if (!payload._meta) {
@@ -475,45 +474,15 @@ function importAllData(event) {
         return;
       }
 
-      // 固定キーをlocalStorageに書き込み
-      let restored = 0;
-      Object.keys(DATA_KEYS).forEach(key => {
-        if (payload[key] !== undefined) {
-          localStorage.setItem(key, JSON.stringify(payload[key]));
-          restored++;
-        }
-      });
-      // 届出・変更履歴（動的キー）を復元
-      if (payload._kijun_hist) {
-        Object.entries(payload._kijun_hist).forEach(([key, val]) => {
-          localStorage.setItem(key, JSON.stringify(val));
-          restored++;
-        });
-      }
-      if (Array.isArray(payload._training_certificates) && typeof importTrainingCertificatesFromBackup === 'function') {
-        await importTrainingCertificatesFromBackup(payload._training_certificates);
-      }
-
-      // グローバル変数を再ロード
-      entries    = JSON.parse(localStorage.getItem('shisetsu_kijun') || '[]');
-      clinicName = localStorage.getItem('clinic_name') || '○○歯科医院';
-      updateClinicPill();
-
-      render();
-      closeOverlay('data-mgr-overlay');
+      const result = await DentalBackupRestore.restore(payload, Object.keys(DATA_KEYS));
       event.target.value = '';
-
-      const certNotice = Array.isArray(payload._training_certificates)
-        ? `\n・受講証明書：${payload._training_certificates.length}件`
-        : (payload._training_certificates_warning ? '\n・受講証明書本体はこのバックアップに含まれていません' : '');
-      alert(`✅ インポート完了\n${restored}種類のデータを復元しました。\n\n・届出台帳：${entries.length}件${certNotice}`);
+      alert(`インポート完了\n${result.restored}種類のデータ、受講証明書${result.certificates}件を復元しました。${result.cleanupPending ? '\n復旧記録の整理は次回起動時に再試行します。' : ''}\n再読み込みして反映します。`);
+      location.reload();
 
     } catch(err) {
-      alert(`インポートに失敗しました。\n正しいJSONファイルを選択してください。\n\n${err.message}`);
+      alert(`インポートを完了できませんでした。\n${err.message}`);
       event.target.value = '';
     }
-  };
-  reader.readAsText(file, 'utf-8');
 }
 
 

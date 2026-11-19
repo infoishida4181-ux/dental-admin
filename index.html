@@ -480,6 +480,7 @@
       </div>
       <div style="font-size:11px;color:var(--text3);margin-top:6px">
         JSONファイルには届出台帳・定例報告記録・講習会履歴・講習会の歯科医師マスタ・受講証明書・医院名が含まれます
+        <p>新版の保存領域は旧版から分離されています。更新時は旧版タブを閉じてください。旧版で保存した変更は新版へ自動同期されません。旧版の元データは削除せず保持しています。</p>
       </div>
     </div>
 
@@ -806,7 +807,7 @@
           ondrop="onCertDrop(event)">
           <div style="font-size:22px;margin-bottom:4px">📎</div>
           <div style="font-size:12px;color:var(--text2)">PDF・JPG・PNG・Word をドロップ、またはクリックして複数選択</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:3px">複数添付できます。1ファイル 5MB まで</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">複数添付できます。1ファイル20MBまで、元の形式でこのブラウザに保存します。端末の空き容量に依存します。JSONバックアップを保管してください。</div>
         </div>
         <input type="file" id="koushu-cert-input" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple style="display:none" onchange="onCertSelect(event)">
         <div id="koushu-cert-list" style="display:grid;gap:8px;margin-top:10px"></div>
@@ -1037,15 +1038,17 @@
   </div>
 </div>
 
-  <script src="./assets/js/data.js"></script>
-  <script src="./assets/js/admin.js?v=20260521-subsidy-drawer"></script>
-  <script src="./assets/js/import-excel.js"></script>
-  <script src="./assets/js/secure-storage.js"></script>
-  <script src="./assets/js/baseup-security.js"></script>
-  <script src="./assets/js/employee-manager.js"></script>
-  <script src="./assets/js/baseup-calculator.js"></script>
-  <script src="./assets/js/baseup-ui.js"></script>
-  <script src="./assets/js/app.js?v=20260521-subsidy-drawer"></script>
+  <script src="./assets/js/version-storage.js?v=20261119-pdf-v1"></script>
+  <script src="./assets/js/backup-restore.js?v=20261119-pdf-v1"></script>
+  <script>
+    window.dentalAppReady = DentalBackupRestore.boot([
+      './assets/js/data.js?v=20261119-pdf-v1', './assets/js/admin.js?v=20261119-pdf-v1',
+      './assets/js/import-excel.js?v=20261119-pdf-v1', './assets/js/secure-storage.js?v=20261119-pdf-v1',
+      './assets/js/baseup-security.js?v=20261119-pdf-v1', './assets/js/employee-manager.js?v=20261119-pdf-v1',
+      './assets/js/baseup-calculator.js?v=20261119-pdf-v1', './assets/js/baseup-ui.js?v=20261119-pdf-v1',
+      './assets/js/app.js?v=20261119-pdf-v1'
+    ]);
+  </script>
 </body>
 </html>
 

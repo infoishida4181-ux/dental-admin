@@ -2098,9 +2098,9 @@ const KOUSHU_MASTER = {
 
 const KOUSHU_STORAGE_KEY = 'koushu_list';
 const KOUSHU_DENTISTS_KEY = 'koushu_dentists_v1';
-const TRAINING_CERT_DB_NAME = 'dentalAdminTraining_v1';
+const TRAINING_CERT_DB_NAME = DentalVersionStorage.fileDbName;
 const TRAINING_CERT_DB_STORE = 'dentalAdminTrainingCertificates';
-const TRAINING_CERT_MAX_SIZE = 5 * 1024 * 1024;
+const TRAINING_CERT_MAX_SIZE = 20 * 1024 * 1024;
 const TRAINING_CERT_ALLOWED_TYPES = new Set([
   'application/pdf',
   'image/jpeg',
@@ -2109,6 +2109,26 @@ const TRAINING_CERT_ALLOWED_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ]);
 const TRAINING_CERT_ALLOWED_EXT = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
+
+function getTrainingCertificateMimeType(fileName, mimeType = '') {
+  const type = String(mimeType).toLowerCase().split(';')[0].trim();
+  if (TRAINING_CERT_ALLOWED_TYPES.has(type)) return type;
+  const extension = String(fileName || '').toLowerCase().split('.').pop();
+  return ({ pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+    png: 'image/png', doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })[extension]
+    || (type === 'application/x-pdf' ? 'application/pdf' : type) || 'application/octet-stream';
+}
+
+function trainingCertificateStorageError(error) {
+  if (error?.name === 'QuotaExceededError') {
+    return new Error('ブラウザの保存容量が不足しています。バックアップ後に端末の空き容量・ブラウザの保存容量を確認してください。');
+  }
+  if (error?.name === 'DataCloneError') {
+    return new Error('ファイルを端末の保存領域に複製できませんでした。ブラウザを更新し、元のファイルを再選択してください。');
+  }
+  return new Error(`受講証明書の保存領域でエラーが発生しました（${error?.name || '不明'}）。ブラウザの保存許可・プライベートモードを確認してください。`);
+}
 
 let koushuInlineMigrationPromise = null;
 let koushuCertificateModalState = null;
@@ -2352,7 +2372,7 @@ function extractLegacyCertificate(record) {
 function normalizeCertificateMeta(cert, fallbackAttendeeIds = []) {
   if (!cert || typeof cert !== 'object') return null;
   const fileName = cert.fileName || cert.name || 'certificate';
-  const mimeType = cert.mimeType || cert.type || 'application/octet-stream';
+  const mimeType = getTrainingCertificateMimeType(fileName, cert.mimeType || cert.type);
   const uploadedAt = cert.uploadedAt || cert.createdAt || new Date().toISOString();
   const storageKey = cert.storageKey || cert.id || nextTrainingCertificateId();
   return {
@@ -2551,7 +2571,7 @@ function updateKoushuBadge() {
 function isAllowedTrainingCertificate(file) {
   const lowerName = String(file?.name || '').toLowerCase();
   const hasAllowedExt = TRAINING_CERT_ALLOWED_EXT.some(ext => lowerName.endsWith(ext));
-  return TRAINING_CERT_ALLOWED_TYPES.has(file?.type) || hasAllowedExt;
+  return TRAINING_CERT_ALLOWED_TYPES.has(getTrainingCertificateMimeType(file?.name, file?.type)) || hasAllowedExt;
 }
 
 function setKoushuFormError(message) {
@@ -2575,8 +2595,17 @@ function openTrainingCertificateDb() {
         store.createIndex('recordId', 'recordId', { unique: false });
       }
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(new Error('受講証明書の保存領域を開けませんでした。'));
+    let blocked = false;
+    req.onblocked = () => {
+      blocked = true;
+      reject(new Error('受講証明書の保存領域が別のタブで使用中です。他のアプリタブを閉じて再試行してください。'));
+    };
+    req.onsuccess = () => {
+      if (blocked) { req.result.close(); return; }
+      req.result.onversionchange = () => req.result.close();
+      resolve(req.result);
+    };
+    req.onerror = () => reject(trainingCertificateStorageError(req.error));
   });
 }
 
@@ -2585,28 +2614,30 @@ function saveCertificateBlob(fileOrBlob, recordId, existingId = '', meta = {}) {
     let db;
     try {
       db = await openTrainingCertificateDb();
-      const blob = fileOrBlob instanceof Blob ? fileOrBlob : null;
-      if (!blob) throw new Error('証明書データが不正です。');
+      if (!(fileOrBlob instanceof Blob)) throw new Error('証明書データが不正です。');
+      const fileName = meta.fileName || fileOrBlob.name || 'certificate';
+      const mimeType = getTrainingCertificateMimeType(fileName, meta.mimeType || fileOrBlob.type);
+      const blob = fileOrBlob.slice(0, fileOrBlob.size, mimeType);
       const id = existingId || nextTrainingCertificateId();
       const entry = {
         id,
         recordId,
         blob,
-        fileName: meta.fileName || fileOrBlob.name || 'certificate',
-        mimeType: meta.mimeType || fileOrBlob.type || blob.type || 'application/octet-stream',
+        fileName,
+        mimeType,
         size: Number(meta.size || fileOrBlob.size || blob.size || 0),
         uploadedAt: meta.uploadedAt || new Date().toISOString()
       };
       const tx = db.transaction(TRAINING_CERT_DB_STORE, 'readwrite');
       tx.objectStore(TRAINING_CERT_DB_STORE).put(entry);
       tx.oncomplete = () => { db.close(); resolve(entry); };
-      tx.onerror = () => {
+      tx.onabort = () => {
         db.close();
-        reject(new Error('ブラウザの保存容量が不足しているため、証明書を保存できませんでした。不要な証明書を削除するか、バックアップ後に整理してください。'));
+        reject(trainingCertificateStorageError(tx.error));
       };
     } catch (err) {
       if (db) db.close();
-      reject(err);
+      reject(err?.name === 'DataCloneError' ? trainingCertificateStorageError(err) : err);
     }
   });
 }
@@ -2618,9 +2649,11 @@ function getCertificateBlob(storageKey) {
       db = await openTrainingCertificateDb();
       const tx = db.transaction(TRAINING_CERT_DB_STORE, 'readonly');
       const req = tx.objectStore(TRAINING_CERT_DB_STORE).get(storageKey);
-      req.onsuccess = () => resolve(req.result || null);
+      let result;
+      req.onsuccess = () => { result = req.result || null; };
       req.onerror = () => reject(new Error('受講証明書を読み込めませんでした。'));
-      tx.oncomplete = () => db.close();
+      tx.oncomplete = () => { db.close(); resolve(result); };
+      tx.onabort = () => { db.close(); reject(trainingCertificateStorageError(tx.error)); };
     } catch (err) {
       if (db) db.close();
       reject(err);
@@ -2637,7 +2670,7 @@ function deleteCertificateBlob(storageKey) {
       const tx = db.transaction(TRAINING_CERT_DB_STORE, 'readwrite');
       tx.objectStore(TRAINING_CERT_DB_STORE).delete(storageKey);
       tx.oncomplete = () => { db.close(); resolve(); };
-      tx.onerror = () => { db.close(); reject(new Error('証明書データを削除できませんでした。')); };
+      tx.onabort = () => { db.close(); reject(new Error('証明書データを削除できませんでした。')); };
     } catch (err) {
       if (db) db.close();
       reject(err);
@@ -2652,9 +2685,11 @@ function getAllTrainingCertificateRecords() {
       db = await openTrainingCertificateDb();
       const tx = db.transaction(TRAINING_CERT_DB_STORE, 'readonly');
       const req = tx.objectStore(TRAINING_CERT_DB_STORE).getAll();
-      req.onsuccess = () => resolve(req.result || []);
+      let result;
+      req.onsuccess = () => { result = req.result || []; };
       req.onerror = () => reject(new Error('証明書バックアップを読み込めませんでした。'));
-      tx.oncomplete = () => db.close();
+      tx.oncomplete = () => { db.close(); resolve(result); };
+      tx.onabort = () => { db.close(); reject(trainingCertificateStorageError(tx.error)); };
     } catch (err) {
       if (db) db.close();
       reject(err);
@@ -2663,37 +2698,64 @@ function getAllTrainingCertificateRecords() {
 }
 
 async function exportTrainingCertificatesForBackup(records = loadTrainingRecords()) {
-  const referencedKeys = new Set(
-    getVisibleTrainingRecords(records).flatMap(record => (record.certificates || []).map(cert => cert.storageKey).filter(Boolean))
-  );
   const items = [];
-  const stored = await getAllTrainingCertificateRecords().catch(() => []);
-  for (const entry of stored) {
-    if (!referencedKeys.has(entry.id)) continue;
-    items.push({
-      id: entry.id,
-      recordId: entry.recordId,
-      fileName: entry.fileName,
-      mimeType: entry.mimeType,
-      size: entry.size,
-      uploadedAt: entry.uploadedAt,
-      dataUrl: await blobToDataUrl(entry.blob)
-    });
+  const visible = getVisibleTrainingRecords(records);
+  if (!visible.some(record => record.certificates?.length)) return items;
+  const stored = new Map((await getAllTrainingCertificateRecords()).map(entry => [entry.id, entry]));
+  for (const record of visible) {
+    for (const cert of record.certificates || []) {
+      const entry = stored.get(cert.storageKey || cert.id);
+      const dataUrl = cert.legacyDataUrl || (entry?.blob ? await blobToDataUrl(entry.blob) : '');
+      if (!dataUrl) throw new Error('証明書本体が見つからないため、完全なバックアップを作成できませんでした。');
+      items.push({
+        id: cert.storageKey || cert.id,
+        recordId: record.id,
+        fileName: cert.fileName,
+        mimeType: getTrainingCertificateMimeType(cert.fileName, cert.mimeType),
+        size: cert.size,
+        uploadedAt: cert.uploadedAt,
+        dataUrl
+      });
+    }
   }
   return items;
 }
 
 async function importTrainingCertificatesFromBackup(items = []) {
   if (!Array.isArray(items) || !items.length) return;
-  for (const item of items) {
-    if (!item?.dataUrl) continue;
+  const entries = items.map(item => {
+    if (!item?.id || !/^data:[^,]*;base64,/i.test(item.dataUrl || '')) {
+      throw new Error('バックアップの受講証明書データが不正です。復元を中止しました。');
+    }
     const blob = dataUrlToBlob(item.dataUrl);
-    await saveCertificateBlob(blob, item.recordId || '', item.id, {
+    const mimeType = getTrainingCertificateMimeType(item.fileName, item.mimeType || blob.type);
+    return {
+      id: item.id,
+      recordId: item.recordId || '',
       fileName: item.fileName,
-      mimeType: item.mimeType,
-      size: item.size,
-      uploadedAt: item.uploadedAt
+      mimeType,
+      size: blob.size,
+      uploadedAt: item.uploadedAt || new Date().toISOString(),
+      blob: blob.slice(0, blob.size, mimeType)
+    };
+  });
+  const db = await openTrainingCertificateDb();
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(TRAINING_CERT_DB_STORE, 'readwrite');
+      tx.oncomplete = resolve;
+      tx.onabort = () => reject(trainingCertificateStorageError(tx.error));
+      try {
+        const store = tx.objectStore(TRAINING_CERT_DB_STORE);
+        // This low-level helper must never replace an existing file body.
+        entries.forEach(entry => store.add(entry));
+      } catch (error) {
+        tx.abort();
+        reject(trainingCertificateStorageError(error));
+      }
     });
+  } finally {
+    db.close();
   }
 }
 
@@ -2722,24 +2784,28 @@ async function migrateInlineCertificatesToIndexedDb(records) {
 
 async function resolveCertificateSource(certificate) {
   if (certificate.file instanceof Blob) {
+    const mimeType = getTrainingCertificateMimeType(certificate.fileName, certificate.file.type || certificate.mimeType);
     return {
-      url: URL.createObjectURL(certificate.file),
-      mimeType: certificate.file.type || certificate.mimeType || 'application/octet-stream',
+      url: URL.createObjectURL(certificate.file.slice(0, certificate.file.size, mimeType)),
+      mimeType,
       revoke: true
     };
   }
   if (certificate.legacyDataUrl) {
+    const blob = dataUrlToBlob(certificate.legacyDataUrl);
+    const mimeType = getTrainingCertificateMimeType(certificate.fileName, certificate.mimeType || blob.type);
     return {
-      url: certificate.legacyDataUrl,
-      mimeType: certificate.mimeType || 'application/octet-stream',
-      revoke: false
+      url: URL.createObjectURL(blob.slice(0, blob.size, mimeType)),
+      mimeType,
+      revoke: true
     };
   }
   const stored = await getCertificateBlob(certificate.storageKey);
   if (!stored?.blob) throw new Error('証明書データ本体が見つかりませんでした。');
+  const mimeType = getTrainingCertificateMimeType(stored.fileName || certificate.fileName, stored.mimeType || certificate.mimeType || stored.blob.type);
   return {
-    url: URL.createObjectURL(stored.blob),
-    mimeType: stored.mimeType || certificate.mimeType || stored.blob.type || 'application/octet-stream',
+    url: URL.createObjectURL(stored.blob.slice(0, stored.blob.size, mimeType)),
+    mimeType,
     revoke: true
   };
 }
@@ -2757,18 +2823,28 @@ async function downloadCertificate(certificate) {
 }
 
 async function openCertificateInNewTab(certificate) {
-  const source = await resolveCertificateSource(certificate);
+  const mimeType = getTrainingCertificateMimeType(certificate.fileName, certificate.mimeType);
+  const canPreview = mimeType === 'application/pdf' || mimeType.startsWith('image/');
+  // Open during the click event, before IndexedDB awaits consume popup activation.
+  const previewWindow = canPreview ? window.open('about:blank', '_blank') : null;
+  if (canPreview && !previewWindow) throw new Error('別タブを開けませんでした。ポップアップの許可を確認するか、ダウンロードして閲覧してください。');
+  if (previewWindow) previewWindow.opener = null;
+  let source;
   try {
-    if (source.mimeType === 'application/pdf' || source.mimeType.startsWith('image/')) {
-      window.open(source.url, '_blank', 'noopener');
+    source = await resolveCertificateSource(certificate);
+    if (previewWindow) {
+      previewWindow.location.replace(source.url);
       return;
     }
     const a = document.createElement('a');
     a.href = source.url;
     a.download = certificate.fileName || 'certificate';
     a.click();
+  } catch (error) {
+    if (previewWindow) previewWindow.close();
+    throw error;
   } finally {
-    if (source.revoke) setTimeout(() => URL.revokeObjectURL(source.url), 1000);
+    if (source?.revoke) setTimeout(() => URL.revokeObjectURL(source.url), 60000);
   }
 }
 
@@ -3104,8 +3180,9 @@ async function downloadPendingCertificate(certificateId) {
 }
 
 async function addPendingTrainingCertificate(file) {
+  if (!file.size) throw new Error('空のファイルは保存できません。元のファイルを確認してください。');
   if (file.size > TRAINING_CERT_MAX_SIZE) {
-    throw new Error('ファイルサイズが5MBを超えています。\n証明書をスキャンする際は解像度を下げてください。');
+    throw new Error('1ファイル20MBまで保存できます。上限を超える場合は、元のファイルを保管したうえで容量を小さくしてください。');
   }
   if (!isAllowedTrainingCertificate(file)) {
     throw new Error('PDF・JPG・PNG・Word（.doc / .docx）のみ対応しています。');
@@ -3114,7 +3191,7 @@ async function addPendingTrainingCertificate(file) {
   window._koushuPendingCertificates.push({
     id: nextTrainingCertificateId(),
     fileName: file.name,
-    mimeType: file.type || 'application/octet-stream',
+    mimeType: getTrainingCertificateMimeType(file.name, file.type),
     size: file.size,
     linkedAttendeeIds: [],
     uploadedAt: new Date().toISOString(),
@@ -3135,6 +3212,7 @@ async function onCertDrop(event) {
     renderKoushuCertificateList();
   } catch (err) {
     setKoushuFormError(err.message || '証明書を追加できませんでした。');
+    renderKoushuCertificateList();
   }
 }
 
@@ -3147,6 +3225,7 @@ async function onCertSelect(event) {
     renderKoushuCertificateList();
   } catch (err) {
     setKoushuFormError(err.message || '証明書を追加できませんでした。');
+    renderKoushuCertificateList();
   } finally {
     event.target.value = '';
   }
@@ -3154,10 +3233,6 @@ async function onCertSelect(event) {
 
 async function persistModalCertificates(recordId, attendeeIds, existingCertificates = []) {
   const pendingCertificates = (window._koushuPendingCertificates || []).map(cert => ({ ...cert }));
-  const deletedCertificates = pendingCertificates.filter(cert => cert._deleted);
-  for (const cert of deletedCertificates) {
-    if (cert.storageKey) await deleteCertificateBlob(cert.storageKey).catch(console.error);
-  }
   const savedCertificates = [];
   for (const cert of pendingCertificates.filter(item => !item._deleted)) {
     const linkedAttendeeIds = uniqueKoushuStrings(cert.linkedAttendeeIds).filter(id => attendeeIds.includes(id));
@@ -3271,6 +3346,14 @@ async function saveTrainingRecordFromModal() {
     if (existingIndex > -1) records[existingIndex] = nextRecord;
     else records.push(nextRecord);
     saveTrainingRecords(records);
+    // Remove file bodies only after the updated metadata has been saved successfully.
+    for (const cert of existing?.certificates || []) {
+      if (cert.storageKey && !certificates.some(item => item.storageKey === cert.storageKey)) {
+        await deleteCertificateBlob(cert.storageKey).catch(() => {
+          if (typeof showAppToast === 'function') showAppToast('記録は保存されましたが、削除済み証明書の本体を整理できませんでした。', 'warn');
+        });
+      }
+    }
     window._koushuPendingCertificates = [];
     closeOverlay('koushu-overlay');
     renderKoushu();
