@@ -356,7 +356,7 @@ const TEIREI_ROW = {
    バージョン更新時のデータ引き継ぎに使用
 ═══════════════════════════════════════════════════════ */
 
-const APP_VERSION = '3.1.1';
+const APP_VERSION = '3.2.0';
 const APP_DATE    = '2026-11-19';
 
 // エクスポート対象のlocalStorageキー一覧

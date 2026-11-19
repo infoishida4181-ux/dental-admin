@@ -6371,6 +6371,9 @@ function editClinicName(){
       <input id="clinic-edit-input" type="text" value="${clinicName}"
         style="width:100%;padding:10px 12px;border:1.5px solid var(--accent);border-radius:8px;font-size:14px;font-family:var(--font);background:var(--bg2);color:var(--text);box-sizing:border-box;margin-bottom:16px"
         placeholder="例：くにたち石田歯科">
+      <label>都道府県 <select id="clinic-prefecture-input" class="fi">
+        ${Object.keys(RegisterRegions.codes).sort().map(code=>`<option value="${code}" ${code===(profile.prefectureCode||'13')?'selected':''}>${RegisterRegions.codes[code]}</option>`).join('')}
+      </select></label>
       <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">医療機関コード（任意）</div>
       <input id="clinic-medical-id-input" type="text" value="${medicalInstitutionNumber}"
         style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font);background:var(--bg2);color:var(--text);box-sizing:border-box;margin-bottom:8px"
@@ -6384,7 +6387,7 @@ function editClinicName(){
       </div>
     </div>`;
   document.body.appendChild(modal);
-  setTimeout(()=>document.getElementById('clinic-edit-input').focus(),100);
+  setTimeout(()=>document.getElementById('clinic-edit-input')?.focus(),100);
 }
 
 function showClinicNameConfirm(parsedName) {
@@ -6443,17 +6446,32 @@ function showInfoModal(title, message) {
     </div>`;
   document.body.appendChild(modal);
 }
-function saveClinicName(){
+async function saveClinicName(){
   const n = document.getElementById('clinic-edit-input').value.trim();
   const medicalIdInput = document.getElementById('clinic-medical-id-input');
   const medicalInstitutionNumber = medicalIdInput ? medicalIdInput.value.trim() : '';
+  if(medicalInstitutionNumber && !/^\d{7}$/.test(medicalInstitutionNumber.normalize('NFKC'))){
+    medicalIdInput.setCustomValidity('医療機関番号は7桁の数字で入力してください。');medicalIdInput.reportValidity();medicalIdInput.setCustomValidity('');return;
+  }
+  const prefectureCode=document.getElementById('clinic-prefecture-input').value;
+  if(prefectureCode!==ExcelImport.profileRegion()){
+    const locks=await navigator.locks?.query?.();
+    if(!locks || locks.held.filter(x=>x.name==='dental-admin-restore-session-v1').length!==1){
+      medicalIdInput.setCustomValidity('都道府県の変更は他のアプリタブを閉じ、最新のブラウザで行ってください。');
+      medicalIdInput.reportValidity();medicalIdInput.setCustomValidity('');return;
+    }
+  }
   if(n){
     clinicName = n;
     localStorage.setItem('clinic_name', n);
     updateClinicPill();
   }
   if(typeof saveClinicProfile === 'function'){
-    saveClinicProfile({ medicalInstitutionNumber });
+    if(prefectureCode!==ExcelImport.profileRegion()){
+      ExcelImport.lastOfficialCompareResult=null;
+      officialDataset=null;
+    }
+    saveClinicProfile({ medicalInstitutionNumber,prefectureCode });
   }
   const modal = document.getElementById('clinic-edit-modal');
   if(modal) modal.remove();

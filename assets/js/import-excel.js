@@ -36,9 +36,20 @@ window.ExcelImport = window.ExcelImport || {
   lastDatasetPreview: null,
   lastOfficialCompareResult: null,
   lastOfficialDatasetDebug: null,
+  profileRegion() {
+    const profile=getClinicProfile();
+    if(profile?.prefectureCode)return profile.prefectureCode;
+    // The legacy member feed served Tokyo only. A fresh install has no such history.
+    return profile?.medicalInstitutionNumber || getOfficialDatasetLastMedicalInstitutionNumber() ||
+      entries.some(e=>/^tokyo-dental-/.test(e.importMeta?.datasetId||'')) ? '13' : '';
+  },
+  matchesRegion(d, region=this.profileRegion()) {
+    return !!d && (d.prefectureCode || (d.area==='tokyo' || /^tokyo-dental-/.test(d.datasetId) ? '13' : ''))===region;
+  },
   officialDatasetMode: 'update',
   init() {
     this.reset();
+    if(officialDataset && !this.matchesRegion(officialDataset)) officialDataset=null;
     this.renderStoredOfficialDatasetSummary();
     this.renderOfficialDatasetBanner();
     this.maybeCheckManifestOnStartup();
@@ -907,6 +918,10 @@ window.ExcelImport = window.ExcelImport || {
     return `${(bytes / (1024 * 1024)).toFixed(2)} MiB`;
   },
   getOfficialDatasetStats(dataset) {
+    if(Array.isArray(dataset?.recordsByClinic)){
+      const count=dataset.recordsByClinic.reduce((sum,c)=>sum+(c.facilities?.length||0),0);
+      return {recordCount:count,facilityCount:count,institutionCount:dataset.recordsByClinic.length};
+    }
     const flatRecords = this.flattenOfficialDatasetRecords(dataset);
     const institutionSet = new Set(flatRecords.map(record => this.normalizeMedicalId(record.medicalInstitutionNumber || record.medicalId)));
     return {
@@ -1339,7 +1354,7 @@ window.ExcelImport = window.ExcelImport || {
       </details>
     `;
   },
-  async fetchJsonTextWithDiagnostics(inputUrl, label) {
+  async fetchJsonTextWithDiagnostics(inputUrl, label, parse=true) {
     const requestUrl = this.buildCacheBustedUrl(inputUrl);
     const response = await fetch(requestUrl.toString(), { cache: 'no-store' });
     const text = await response.text();
@@ -1355,7 +1370,7 @@ window.ExcelImport = window.ExcelImport || {
         requestUrl: requestUrl.toString(),
         httpStatus: String(response.status),
         text,
-        json: JSON.parse(this.stripBom(text))
+        json: parse ? JSON.parse(this.stripBom(text)) : null
       };
     } catch (err) {
       const parseErr = new Error(`${label}の解析に失敗しました。\n確認URL: ${requestUrl.toString()}\n${err.message}`);
@@ -1386,6 +1401,7 @@ window.ExcelImport = window.ExcelImport || {
       ? getClinicProfile()?.medicalInstitutionNumber
       : '';
     candidates.push(profileMedicalId);
+    if (getClinicProfile()?.prefectureCode) return this.normalizeMedicalId(profileMedicalId);
     if (typeof getOfficialDatasetLastMedicalInstitutionNumber === 'function') {
       candidates.push(getOfficialDatasetLastMedicalInstitutionNumber());
     }
@@ -1435,7 +1451,7 @@ window.ExcelImport = window.ExcelImport || {
         : '管理者が更新した最新データをもとに、自院の届出済み施設基準を確認します。現在の台帳は自動では上書きされません。';
     }
     const section = document.getElementById('official-dataset-candidate-title');
-    if (section) section.textContent = isInitial ? '医療機関コードから取り込む' : '自院の施設基準候補';
+    if (section) section.textContent = (RegisterRegions.codes[this.profileRegion()]||'都道府県未設定')+'：'+(isInitial ? '医療機関コードから取り込む' : '自院の施設基準候補');
     const searchButton = document.getElementById('official-dataset-search-btn');
     if (searchButton) searchButton.textContent = isInitial ? '検索' : '自院の施設基準を確認';
     const closeButton = document.getElementById('official-dataset-close-btn');
@@ -1571,8 +1587,10 @@ window.ExcelImport = window.ExcelImport || {
       const text = this.stripBom(await file.text());
       const dataset = JSON.parse(text);
       this.validateOfficialDataset(dataset);
+      if(!this.matchesRegion(dataset))throw new Error('医院情報の都道府県と一致しません。');
       const normalizedDataset = this.normalizeLoadedOfficialDataset(dataset, { file: file.name, label: dataset.datasetName || dataset.label || file.name }, file.name);
       saveOfficialDataset(normalizedDataset);
+      this.manualDataset=true;
       this.setOfficialDatasetDebug({
         manifestRequestUrl: '',
         datasetRequestUrl: file.name,
@@ -1608,6 +1626,11 @@ window.ExcelImport = window.ExcelImport || {
   },
   findInstitutionByCode(code, masterData = officialDataset) {
     const medicalId = this.normalizeMedicalInstitutionCode(code);
+    if(!this.matchesRegion(masterData))return [];
+    if(Array.isArray(masterData.recordsByClinic)){
+      const clinic=masterData.recordsByClinic.find(c=>this.normalizeMedicalInstitutionCode(c.medicalInstitutionNumber||c.medicalId)===medicalId);
+      return clinic ? this.flattenOfficialDatasetRecords({recordsByClinic:[clinic]}) : [];
+    }
     const records = this.flattenOfficialDatasetRecords(masterData);
     return records.filter(record => this.normalizeMedicalInstitutionCode(record.medicalInstitutionNumber || record.medicalId) === medicalId);
   },
@@ -1622,31 +1645,39 @@ window.ExcelImport = window.ExcelImport || {
   async searchOfficialDatasetMedicalInstitution(forcedMedicalId = '') {
     this.setOfficialDatasetError('');
     const input = document.getElementById('official-dataset-medical-id');
-    const medicalId = this.normalizeMedicalId(forcedMedicalId || (input ? input.value.trim() : ''));
+    const medicalId = String(forcedMedicalId || input?.value || '').trim().normalize('NFKC');
     if (input && medicalId) input.value = medicalId;
-    if (!medicalId) {
+    if (!/^\d{7}$/.test(medicalId)) {
+      this.lastOfficialCompareResult=null;
       this.setOfficialDatasetStatus('医療機関コードの入力が必要です。', 'error');
-      this.setOfficialDatasetError('医療機関コードを入力してください。');
+      this.setOfficialDatasetError('医療機関コードは7桁の数字で入力してください。');
       this.setOfficialMedicalIdHelp('医療機関コードを入力してください。');
       return;
     }
-    let records = this.flattenOfficialDatasetRecords(officialDataset);
-    if (!officialDataset || !records.length) {
+    const region=this.profileRegion();
+    if (!this.matchesRegion(officialDataset,region) || (!this.manualDataset &&
+        (this.verifiedRegister!==officialDataset || (officialManifestMeta?.activeDatasetId && officialDataset.datasetId!==officialManifestMeta.activeDatasetId)))) {
       try {
-        await this.loadOfficialDatasetFromManifest({ autoSearch: false, preferredMessage: '最新データを取得しています。' });
-        records = this.flattenOfficialDatasetRecords(officialDataset);
+        if(!await this.loadOfficialDatasetFromManifest({ keepInput:true, autoSearch: false, preferredMessage: '最新データを取得しています。' }))return;
       } catch (err) {
         this.setOfficialDatasetStatus('最新データの取得に失敗しました。', 'error');
         this.setOfficialDatasetError(this.buildOfficialDatasetFriendlyError(err));
         return;
       }
     }
-    if (!officialDataset || !records.length) {
-      this.setOfficialDatasetStatus('最新データを取得できませんでした。', 'error');
-      this.setOfficialDatasetError('GitHub上のデータ形式が想定と異なるため、取り込みできませんでした。');
+    if(region!==this.profileRegion() || !this.matchesRegion(officialDataset,region))return;
+    this.setOfficialDatasetStatus('自院の施設基準候補を確認しています。');
+    if(this.officialDatasetMode!=='initial' && entries.some(entry=>{
+      const m=entry.importMeta;
+      if(!m)return false;
+      const pref=m.prefectureCode || (/^tokyo-dental-/.test(m.datasetId||'')?'13':'');
+      const id=this.normalizeMedicalId(m.medicalInstitutionNumber||m.medicalId);
+      return (pref && pref!==region) || (id && (id!==medicalId || (!pref && region!=='13')));
+    })){
+      this.lastOfficialCompareResult=null;
+      this.setOfficialDatasetResultPlaceholder('既存台帳の都道府県・医院番号を確認してください。異なる医院の届出は自動比較しません。');
       return;
     }
-    this.setOfficialDatasetStatus('自院の施設基準候補を確認しています。');
     const filtered = this.findInstitutionByCode(medicalId, officialDataset);
     const result = document.getElementById('official-dataset-result');
     if (!result) return;
@@ -1660,6 +1691,7 @@ window.ExcelImport = window.ExcelImport || {
       if (this.officialDatasetMode !== 'initial') setOfficialDatasetLastMedicalInstitutionNumber(medicalId);
     }
     const compareResult = this.previewFacilityImport(filtered);
+    Object.assign(compareResult,{region,medicalId,datasetId:officialDataset.datasetId,ledgerSnapshot:localStorage.getItem('shisetsu_kijun')});
     if (!compareResult.ledgerRows.length) {
       this.lastOfficialCompareResult = null;
       this.setOfficialDatasetStatus('該当データに施設基準がありません。', 'error');
@@ -1963,8 +1995,15 @@ window.ExcelImport = window.ExcelImport || {
       removedTitle.style.display = normalizedFilter === 'all' || showRemovedOnly ? '' : 'none';
     }
   },
+  isPreviewCurrent() {
+    const preview=this.lastOfficialCompareResult;
+    const saved=JSON.parse(localStorage.getItem(CLINIC_PROFILE_KEY)||'{}');
+    return preview && preview.ledgerSnapshot===localStorage.getItem('shisetsu_kijun') &&
+        JSON.stringify(JSON.parse(preview.ledgerSnapshot))===JSON.stringify(entries) && preview.region===this.profileRegion() && preview.region===(saved.prefectureCode||'13') &&
+        this.matchesRegion(officialDataset) && preview.datasetId===officialDataset.datasetId && preview.medicalId===String(document.getElementById('official-dataset-medical-id')?.value||'').trim().normalize('NFKC');
+  },
   applyOfficialDatasetNewCandidates() {
-    if (!this.lastOfficialCompareResult) {
+    if (!this.isPreviewCurrent()) {
       this.setOfficialDatasetError('先に最新データから自院の施設基準候補を確認してください。');
       return;
     }
@@ -2007,7 +2046,7 @@ window.ExcelImport = window.ExcelImport || {
         medicalId: item.medicalId,
         clinicName: item.clinicName,
         importedAt,
-        mode: 'official-dataset-new-candidate-import'
+        mode: 'official-dataset-new-candidate-import', prefectureCode: this.profileRegion()
       }
     }));
     entries.push(...added);
@@ -2015,7 +2054,7 @@ window.ExcelImport = window.ExcelImport || {
       setOfficialDatasetLastMedicalInstitutionNumber(medicalId);
     }
     if (medicalId && typeof saveClinicProfile === 'function') {
-      saveClinicProfile({ medicalInstitutionNumber: medicalId });
+      saveClinicProfile({ medicalInstitutionNumber: medicalId, prefectureCode:this.profileRegion() });
     }
     if (importedClinicName) {
       clinicName = importedClinicName;
@@ -2030,6 +2069,7 @@ window.ExcelImport = window.ExcelImport || {
     alert(`✅ 新規候補 ${added.length}件を届出台帳へ追加しました。\n既存項目は自動変更していません。`);
   },
   replaceLedgerWithOfficialDatasetResult() {
+    if(!this.isPreviewCurrent()){this.setOfficialDatasetError('医院情報またはデータ版が変わりました。再検索してください。');return;}
     const compareResult = this.lastOfficialCompareResult;
     const ledgerRows = compareResult?.ledgerRows || [];
     if (!ledgerRows.length) {
@@ -2074,7 +2114,7 @@ window.ExcelImport = window.ExcelImport || {
         medicalId: item.medicalId,
         clinicName: item.clinicName,
         importedAt,
-        mode: 'official-dataset-ledger-replace'
+        mode: 'official-dataset-ledger-replace', prefectureCode: this.profileRegion()
       }
     }));
     entries.length = 0;
@@ -2086,7 +2126,7 @@ window.ExcelImport = window.ExcelImport || {
       setOfficialDatasetLastMedicalInstitutionNumber(medicalId);
     }
     if (medicalId && typeof saveClinicProfile === 'function') {
-      saveClinicProfile({ medicalInstitutionNumber: medicalId });
+      saveClinicProfile({ medicalInstitutionNumber: medicalId, prefectureCode:this.profileRegion() });
     }
     if (importedClinicName) {
       clinicName = importedClinicName;
@@ -2102,6 +2142,12 @@ window.ExcelImport = window.ExcelImport || {
     closeOfficialDatasetModal();
   },
   async loadOfficialDatasetFromManifest(options = {}) {
+    const region=this.profileRegion(),request=this.registerRequest=(this.registerRequest||0)+1;
+    this.lastOfficialCompareResult=null;
+    if(!region){
+      this.setOfficialDatasetError('医院情報で都道府県を選択して保存してください。');
+      return false;
+    }
     const preferredMessage = options.preferredMessage || '最新データを確認しています。';
     this.setOfficialDatasetError('');
     this.setOfficialDatasetStatus(preferredMessage);
@@ -2116,7 +2162,8 @@ window.ExcelImport = window.ExcelImport || {
     try {
       const { manifest, manifestUrl, manifestRequestUrl } = await this.fetchOfficialManifest();
       const datasets = Array.isArray(manifest.datasets) ? manifest.datasets : [];
-      const active = datasets.find(item => item.datasetId === manifest.activeDatasetId) || datasets[0];
+      const active = RegisterRegions.active(manifest,region);
+      if(!active)throw new Error((RegisterRegions.codes[region]||'指定都道府県')+'：データ準備中');
       this.setOfficialDatasetDebug({
         manifestRequestUrl,
         activeDatasetId: manifest.activeDatasetId || '',
@@ -2131,15 +2178,23 @@ window.ExcelImport = window.ExcelImport || {
         throw new Error('最新版データ設定が見つかりません。');
       }
       const datasetBaseUrl = this.resolveDatasetUrl(file, manifestUrl);
-      const fetchedDataset = await this.fetchJsonTextWithDiagnostics(datasetBaseUrl, '最新版データ');
+      const base=new URL(manifestUrl),target=new URL(datasetBaseUrl);
+      if(target.origin!==base.origin || !target.pathname.startsWith(new URL('.',base).pathname))throw new Error('配布先パスが不正です。');
+      const fetchedDataset = await this.fetchJsonTextWithDiagnostics(datasetBaseUrl, '最新版データ',false);
       this.setOfficialDatasetDebug({
         datasetRequestUrl: fetchedDataset.requestUrl,
         httpStatus: fetchedDataset.httpStatus,
         datasetFile: file
       });
-      const dataset = this.normalizeLoadedOfficialDataset(fetchedDataset.json, active, datasetBaseUrl);
+      const verified=await RegisterRegions.verify(active,fetchedDataset.text);
+      if(request!==this.registerRequest || region!==this.profileRegion())return;
+      const dataset = this.normalizeLoadedOfficialDataset(verified, active, datasetBaseUrl);
       this.validateOfficialDataset(dataset);
-      const cacheSaved = saveOfficialDataset(dataset);
+      if(!this.matchesRegion(dataset,region))throw new Error('配布先の都県が一致しません。');
+      officialDataset=dataset;
+      this.verifiedRegister=dataset;
+      this.manualDataset=false;
+      const cacheSaved = !active.prefectureCode && saveOfficialDataset(dataset);
       if (!cacheSaved) {
         this.setOfficialDatasetDebug({
           cacheMessage: 'ブラウザ内キャッシュ保存は省略されました。検索と取り込みは継続できます。'
@@ -2153,7 +2208,7 @@ window.ExcelImport = window.ExcelImport || {
         if (!this.tryAutoSearchOfficialDataset()) {
           this.setOfficialDatasetResultPlaceholder('最新データを確認しました。医療機関コードを入力すると自院の施設基準候補を表示します。');
         }
-      } else {
+      } else if(!options.keepInput) {
         if (this.officialDatasetMode !== 'initial') {
           this.applyResolvedMedicalInstitutionNumber(this.resolveSavedMedicalInstitutionNumber());
           this.setOfficialDatasetResultPlaceholder('最新データを確認しました。医療機関コードを入力すると自院の施設基準候補を表示します。');
@@ -2161,9 +2216,11 @@ window.ExcelImport = window.ExcelImport || {
           this.setOfficialDatasetResultPlaceholder('医療機関コードを入力して検索してください。');
         }
       }
+      return true;
     } catch (err) {
+      if(request!==this.registerRequest || region!==this.profileRegion())return;
       this.setOfficialDatasetStatus('最新データの確認に失敗しました。', 'error');
-      const friendly = this.buildOfficialDatasetFriendlyError(err);
+      const friendly = err.message.includes('データ準備中')?err.message:this.buildOfficialDatasetFriendlyError(err);
       this.setOfficialDatasetError(friendly);
       this.setOfficialDatasetDebug({
         httpStatus: err.httpStatus || this.lastOfficialDatasetDebug?.httpStatus || '',
@@ -2171,12 +2228,7 @@ window.ExcelImport = window.ExcelImport || {
         errorMessage: err.message || '不明なエラー'
       });
       this.renderStoredOfficialDatasetSummary();
-      if (officialDataset) {
-        this.renderOfficialDatasetBanner();
-        if (options.autoSearch) {
-          this.tryAutoSearchOfficialDataset();
-        }
-      }
+      this.renderOfficialDatasetBanner();
     }
   },
   buildOfficialDatasetFriendlyError(err) {
@@ -2201,7 +2253,7 @@ window.ExcelImport = window.ExcelImport || {
     const fetched = await this.fetchJsonTextWithDiagnostics(manifestUrl.toString(), '最新データ設定');
     const manifest = fetched.json;
     saveOfficialManifestMeta({
-      activeDatasetId: manifest.activeDatasetId || '',
+      activeDatasetId: RegisterRegions.active(manifest,this.profileRegion())?.datasetId || '',
       checkedAt: new Date().toISOString(),
       datasetCount: Array.isArray(manifest.datasets) ? manifest.datasets.length : 0
     });
@@ -2225,12 +2277,7 @@ window.ExcelImport = window.ExcelImport || {
       return;
     }
     try {
-      const { manifest } = await this.fetchOfficialManifest();
-      saveOfficialManifestMeta({
-        activeDatasetId: manifest.activeDatasetId || '',
-        checkedAt: new Date().toISOString(),
-        datasetCount: Array.isArray(manifest.datasets) ? manifest.datasets.length : 0
-      });
+      await this.fetchOfficialManifest();
       this.renderOfficialDatasetBanner();
       this.renderStoredOfficialDatasetSummary();
     } catch {

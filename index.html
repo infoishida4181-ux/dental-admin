@@ -269,8 +269,7 @@
     <div style="background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:10px;padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)">
       <div style="font-size:13px;color:var(--text2);line-height:1.9">
         <div>この画面は、歯科医師会側・保険委員会側が施設基準データを更新するための準備画面です。</div>
-        <div>現時点では、公式Excel/ZIP取込の第1段階として `.xlsx` の構造確認・医療機関番号検索・配布用JSONデータセット作成まで対応しています。</div>
-        <div>今後、関東信越厚生局の公式Excel/ZIPを読み込み、東京都・歯科の施設基準データを最新版として管理できるようにします。</div>
+        <div>公式ZIPから都県別の公開候補を作成できます。会員の届出台帳や公開中のデータは変更されません。</div>
         <div>会員側は、医療機関コードを入力するだけで配布用JSONから自院の施設基準を取り込める設計を目指します。既存台帳は自動上書きせず、差分確認後に反映します。</div>
       </div>
     </div>
@@ -320,26 +319,33 @@
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
           <div style="font-size:14px;font-weight:700;color:var(--text)">公式Excel/ZIP取込</div>
-          <span class="badge bb">第1段階</span>
+          <span class="badge bb">関東信越10都県</span>
         </div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:12px">まずは `.xlsx` を読み込み、シート構成・列名・先頭データを安全に確認できます。ZIP取込と本体反映は次段階で対応予定です。</div>
+        <div id="register-drop" style="padding:12px;border:1px dashed var(--border);margin-bottom:10px">
+          <strong>関東信越 歯科施設基準データ一括更新</strong>
+          <label style="display:block;margin:8px 0">公式ZIPまたは個別Excelをドロップ、または選択 <input type="file" id="register-file" accept=".zip,.xlsx"></label>
+          <label>件数の許容減少率（%） <input type="number" id="register-decline" value="10" min="0" max="100" style="width:5em"></label>
+          <p id="register-progress" role="status"></p>
+          <div id="register-review" style="max-width:100%;overflow:auto"></div>
+          <a id="register-download" hidden download="register-release-candidate.zip">検証結果と公開候補を保存</a>
+        </div>
         <button class="btn btn-primary" onclick="openExcelImportModal()">📊 Excelを読み込む</button>
       </div>
 
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
           <div style="font-size:14px;font-weight:700;color:var(--text)">最新版データ確認</div>
-          <span class="badge by">未実装</span>
+          <span class="badge bb">配布中データ</span>
         </div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.8">現在アプリに登録されている最新版データの基準日、作成日、件数を確認する予定です。</div>
+        <button type="button" class="btn btn-ghost" onclick="openOfficialDatasetModal()">医院の都道府県の最新版を確認</button>
       </div>
 
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
           <div style="font-size:14px;font-weight:700;color:var(--text)">医療機関コード検索テスト</div>
-          <span class="badge by">未実装</span>
+          <span class="badge bb">7桁</span>
         </div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.8">3440435、3440609などのテスト用医療機関コードで、正しく医院名と施設基準が取得できるか確認する予定です。</div>
+        <button type="button" class="btn btn-ghost" onclick="openFacilityImportModal()">自院の届出候補を確認</button>
       </div>
 
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--shadow)">
@@ -1042,11 +1048,12 @@
   <script src="./assets/js/backup-restore.js?v=20261119-pdf-v1"></script>
   <script>
     window.dentalAppReady = DentalBackupRestore.boot([
-      './assets/js/data.js?v=20261119-pdf-v1', './assets/js/admin.js?v=20261119-pdf-v1',
-      './assets/js/import-excel.js?v=20261119-pdf-v1', './assets/js/secure-storage.js?v=20261119-pdf-v1',
+      './assets/js/data.js?v=regional-1', './assets/js/admin.js?v=20261119-pdf-v1',
+      './assets/js/register-regions.js?v=regional-1', './assets/js/register-admin.js?v=regional-1',
+      './assets/js/import-excel.js?v=regional-1', './assets/js/secure-storage.js?v=20261119-pdf-v1',
       './assets/js/baseup-security.js?v=20261119-pdf-v1', './assets/js/employee-manager.js?v=20261119-pdf-v1',
       './assets/js/baseup-calculator.js?v=20261119-pdf-v1', './assets/js/baseup-ui.js?v=20261119-pdf-v1',
-      './assets/js/app.js?v=20261119-pdf-v1'
+      './assets/js/app.js?v=regional-1'
     ]);
   </script>
 </body>
